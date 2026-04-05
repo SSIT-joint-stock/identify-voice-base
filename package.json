@@ -1,0 +1,70 @@
+{
+  "name": "voice-identify-service",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "check-types": "turbo run check-types",
+    "------ BE (API) ------": "---",
+    "dev:be": "pnpm --filter api run start:dev",
+    "dev:worker": "pnpm --filter api run start:worker",
+    "build:be": "pnpm --filter api run build",
+    "lint:be": "pnpm --filter api run lint",
+    "start:be": "pnpm --filter api run start:prod",
+    "start:worker": "pnpm --filter api run start:worker:prod",
+    "------ FE Client (Clone) ------": "---",
+    "dev:fe": "pnpm --filter voice-identify-fe run dev",
+    "build:fe": "pnpm --filter voice-identify-fe run build",
+    "lint:fe": "pnpm --filter voice-identify-fe run lint",
+    "start:fe": "pnpm --filter voice-identify-fe run start",
+    "------ Combined ------": "---",
+    "dev:all": "turbo run dev --parallel",
+    "build:all": "turbo run build",
+    "lint:all": "turbo run lint",
+    "format:all": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "------ Database & Prisma ------": "---",
+    "prisma:migrate:reset:dev": "pnpm --filter api run prisma:migrate:reset:dev",
+    "prisma:migrate:reset:force": "pnpm --filter api run prisma:migrate:reset:force",
+    "prisma:migrate": "pnpm --filter api run prisma:migrate",
+    "prisma:studio": "pnpm --filter api run prisma:studio",
+    "prisma:generate": "pnpm --filter api run prisma:generate",
+    "db:push:dev": "pnpm --filter api run db:push:dev",
+    "db:push:test": "pnpm --filter api run db:push:test",
+    "db:push:prod": "pnpm --filter api run db:push:prod",
+    "db:seed:dev": "pnpm --filter api run db:seed:dev",
+    "db:seed:test": "pnpm --filter api run db:seed:test",
+    "db:seed:prod": "pnpm --filter api run db:seed:prod",
+    "infra:up": "docker compose --env-file .env.development up db redis -d",
+    "infra:worker:up": "docker compose --env-file .env.development up db redis worker -d",
+    "infra:all:up": "docker compose --env-file .env.development up -d",
+    "infra:down": "docker compose --env-file .env.development down",
+    "infra:logs": "docker compose --env-file .env.development logs -f"
+  },
+  "prisma": {
+    "schema": "apps/api/prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
+    "prettier": "^3.4.2",
+    "turbo": "^2.8.10",
+    "typescript": "5.9.2"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "**/*.{js,mjs,cjs}": [
+      "prettier --write"
+    ],
+    "**/*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
+}

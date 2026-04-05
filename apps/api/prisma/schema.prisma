@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model auth_accounts {
+  id            String   @id @default(uuid()) @db.Uuid
+  username      String   @unique
+  password      String
+  role          String   @default("user")
+  active_status Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@map("auth_accounts")
+}
+
+model voice_records {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  cccd       String   @unique
+  phone      String
+  audio_url  String
+  metadata   Json?    @db.JsonB
+  embedding  Bytes?   @db.ByteA
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("voice_records")
+}
+
+model identify_sessions {
+  id            String   @id @default(uuid()) @db.Uuid
+  user_id       String   @db.Uuid
+  session_type  String   // e.g., 'single', 'multi'
+  audio_url     String
+  results       Json?    @db.JsonB
+  identified_at DateTime @default(now())
+
+  @@map("identify_sessions")
+}
