@@ -109,13 +109,13 @@ The monorepo uses centralized scripts in the root `package.json` to manage all a
 
 ### Backend-Specific
 
-- `pnpm dev:be`: Starts the NestJS API with hot-reload.
+- `pnpm dev:api`: Starts the NestJS API with hot-reload.
 - `pnpm dev:worker`: Starts the background worker.
 - `pnpm prisma:migrate`: Runs database migrations.
 
 ### Frontend-Specific
 
-- `pnpm dev:fe`: Starts the frontend development server.
+- `pnpm dev:client`: Starts the frontend development server.
 
 ---
 

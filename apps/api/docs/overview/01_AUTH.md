@@ -44,7 +44,7 @@ Content-Type: application/json
 
 ```typescript
 interface LoginDto {
-  username: string; // required — tên đăng nhập
+  email: string; // required — email đăng nhập
   password: string; // required — mật khẩu plain text (≥ 6 ký tự)
 }
 ```
@@ -63,7 +63,7 @@ interface LoginDto {
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"securepassword123"}'
+  -d '{"email":"admin@example.com","password":"securepassword123"}'
 ```
 
 ### Response thành công — 200 OK
@@ -106,11 +106,11 @@ interface LoginResponse {
 
 ### Response lỗi
 
-| Status                      | Code                  | Điều kiện                                |
-| --------------------------- | --------------------- | ---------------------------------------- |
-| `400 Bad Request`           | `VALIDATION_ERROR`    | Body thiếu `username` hoặc `password`    |
-| `401 Unauthorized`          | `INVALID_CREDENTIALS` | Username không tồn tại hoặc password sai |
-| `500 Internal Server Error` | `INTERNAL_ERROR`      | Lỗi DB hoặc JWT signing                  |
+| Status                      | Code                  | Điều kiện                             |
+| --------------------------- | --------------------- | ------------------------------------- |
+| `400 Bad Request`           | `VALIDATION_ERROR`    | Body thiếu `email` hoặc `password`    |
+| `401 Unauthorized`          | `INVALID_CREDENTIALS` | Email không tồn tại hoặc password sai |
+| `500 Internal Server Error` | `INTERNAL_ERROR`      | Lỗi DB hoặc JWT signing               |
 
 **Example 401:**
 
@@ -126,7 +126,7 @@ interface LoginResponse {
 
 ```
 1. Nhận LoginDto từ controller
-2. query: SELECT * FROM auth_accounts WHERE username = $1
+2. query: SELECT * FROM auth_accounts WHERE email = $1
 3. Nếu không tìm thấy → 401
 4. bcrypt.compare(dto.password, account.password)
 5. Nếu không khớp → 401
@@ -143,7 +143,7 @@ interface LoginResponse {
 
 ### Mô tả
 
-Dùng refresh token còn hạn để cấp lại access token mới. Không cần đăng nhập lại.
+Dùng refresh token trong **HTTP-only Cookie** để cấp lại access token mới. Không cần đăng nhập lại.
 
 ### Request
 
@@ -152,28 +152,17 @@ POST /api/auth/refresh
 Content-Type: application/json
 ```
 
-**Body schema:**
+**Request uses cookies:**
 
-```typescript
-interface RefreshTokenDto {
-  refresh_token: string; // required — refresh token nhận được khi login
-}
-```
+- Cookie: `refresh_token=<token>`
 
-**Example body:**
-
-```json
-{
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+No body required.
 
 **cURL:**
 
 ```bash
 curl -X POST http://localhost:3000/api/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}'
+  -b "refresh_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ### Response thành công — 200 OK
@@ -213,7 +202,8 @@ interface RefreshResponse {
 ### Business Logic
 
 ```
-1. jwt.verify(refresh_token, REFRESH_SECRET) → giải mã payload { sub }
+1. Lấy refresh_token từ `req.cookies`
+2. jwt.verify(refresh_token, REFRESH_SECRET) → giải mã payload { sub }
 2. Nếu verify thất bại (hết hạn/sai chữ ký) → 401
 3. SELECT * FROM auth_accounts WHERE id = sub
 4. So sánh bcrypt.compare(refresh_token, stored_refresh_token_hash)
@@ -265,7 +255,8 @@ curl -X POST http://localhost:3000/api/auth/logout \
 
 ```
 1. JwtAuthGuard xác thực access token → inject request.user.id
-2. UPDATE auth_accounts SET refresh_token = NULL WHERE id = $1
+2. Xóa cookie `refresh_token`
+3. UPDATE auth_accounts SET refresh_token = NULL WHERE id = $1
 3. Trả 200 — kể từ lúc này refresh_token cũ không dùng được nữa
 ```
 
@@ -290,7 +281,8 @@ Content-Type: application/json
 ```typescript
 interface ResetPasswordDto {
   old_password: string; // required — mật khẩu hiện tại
-  new_password: string; // required — mật khẩu mới (≥ 6 ký tự, khác old_password)
+  new_password: string; // required — mật khẩu mới (≥ 6 ký tự)
+  confirm_new_password: string; // required — khớp với new_password
 }
 ```
 
@@ -299,7 +291,8 @@ interface ResetPasswordDto {
 ```json
 {
   "old_password": "securepassword123",
-  "new_password": "newpassword456"
+  "new_password": "newpassword456",
+  "confirm_new_password": "newpassword456"
 }
 ```
 
@@ -309,7 +302,7 @@ interface ResetPasswordDto {
 curl -X POST http://localhost:3000/api/auth/reset-password \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -H "Content-Type: application/json" \
-  -d '{"old_password":"securepassword123","new_password":"newpassword456"}'
+  -d '{"old_password":"securepassword123","new_password":"newpassword456","confirm_new_password":"newpassword456"}'
 ```
 
 ### Response thành công — 200 OK
@@ -361,9 +354,9 @@ curl -X POST http://localhost:3000/api/auth/reset-password \
 ```typescript
 // login-user.dto.ts
 export class LoginDto {
-  @IsString()
+  @IsEmail()
   @IsNotEmpty()
-  username: string;
+  email: string;
 
   @IsString()
   @IsNotEmpty()
@@ -381,6 +374,11 @@ export class ResetPasswordDto {
   @IsNotEmpty()
   @MinLength(6)
   new_password: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Match('new_password')
+  confirm_new_password: string;
 }
 
 // JWT Payload

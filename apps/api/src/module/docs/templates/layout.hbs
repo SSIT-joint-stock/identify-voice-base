@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - DocHub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --bg-dark: #0f172a;
+            --bg-glass: rgba(30, 41, 59, 0.7);
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --sidebar-width: 300px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Background */
+        .glass-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            z-index: -1;
+        }
+
+        .glass-blob {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%);
+            border-radius: 50%;
+            z-index: -1;
+            filter: blur(80px);
+        }
+
+        .blob-1 { top: -100px; right: -100px; }
+        .blob-2 { bottom: -200px; left: -200px; }
+
+        /* Layout Structure */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        aside.sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border-glass);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 2rem 1.5rem;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            margin-bottom: 2.5rem;
+            display: flex;
+            items-center: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .sidebar-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        /* Main Content */
+        main.main-content {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-left: var(--sidebar-width);
+            padding: 2rem 3rem;
+        }
+
+        /* Markdown Styles */
+        .prose {
+           
+            color: var(--text-main);
+        }
+
+        .prose h1 { font-size: 3rem; font-weight: 800; margin-bottom: 2rem; letter-spacing: -0.05em; color: #fff; }
+        .prose h2 { font-size: 1.8rem; font-weight: 700; margin-top: 3rem; margin-bottom: 1.25rem; color: var(--primary-light); }
+        .prose h3 { font-size: 1.4rem; font-weight: 600; margin-top: 2rem; margin-bottom: 1rem; }
+        .prose p { margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--text-dim); }
+        
+        .prose ul, .prose ol { margin-bottom: 1.5rem; margin-left: 1.5rem; color: var(--text-dim); }
+        .prose li { margin-bottom: 0.5rem; }
+
+        .prose code {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255,255,255,0.1);
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .prose pre {
+            background: #1e293b !important;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-glass);
+            margin-bottom: 2rem;
+            overflow-x: auto;
+        }
+
+        .prose pre code {
+            background: transparent;
+            padding: 0;
+            font-size: 0.95rem;
+        }
+
+        .prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+            background: var(--bg-glass);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .prose th {
+            text-align: left;
+            padding: 1rem;
+            background: rgba(255,255,255,0.05);
+            font-weight: 600;
+        }
+
+        .prose td {
+            padding: 1rem;
+            border-top: 1px solid var(--border-glass);
+            color: var(--text-dim);
+        }
+
+        /* Sidebar Nav Styles from reference */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--text-dim);
+            transition: all 0.2s ease;
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        .nav-item i { width: 24px; font-size: 1.1rem; }
+
+        .nav-category {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            margin: 1.5rem 0 0.75rem 1rem;
+            font-weight: 700;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-glass); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    </style>
+</head>
+<body>
+    <div class="glass-bg"></div>
+    <div class="glass-blob blob-1"></div>
+    <div class="glass-blob blob-2"></div>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon"><i class="fas fa-book"></i></div>
+                <h1 class="sidebar-title">DocHub</h1>
+            </div>
+            
+            <nav class="sidebar-nav">
+                {{> sidebar sidebar=sidebar active=activeId}}
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <article class="prose">
+                {{{content}}}
+            </article>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

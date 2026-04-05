@@ -1,0 +1,13 @@
+{{#each sidebar}}
+    {{#if (eq this.type "doc")}}
+        <a href="/docs/page/{{this.id}}" class="nav-item {{#if (eq ../active this.id)}}active{{/if}}">
+            <i class="fas fa-file-lines mr-3"></i>
+            {{this.label}}
+        </a>
+    {{else}}
+        <h2 class="nav-category">{{this.label}}</h2>
+        <div class="nav-items-group" style="padding-left: 1rem;">
+            {{> sidebar sidebar=this.items active=../active}}
+        </div>
+    {{/if}}
+{{/each}}

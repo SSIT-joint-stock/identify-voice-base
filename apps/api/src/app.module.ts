@@ -29,6 +29,7 @@ import { PrismaModule } from './database/prisma/prisma.module';
 import { AuthModule } from './module/auth/auth.module';
 import { IdentifyModule } from './module/identify/identify.module';
 import { VoicesModule } from './module/voices/voices.module';
+import { DocsModule } from './module/docs/docs.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { VoicesModule } from './module/voices/voices.module';
     AuthModule,
     VoicesModule,
     IdentifyModule,
+    DocsModule,
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       imports: [ConfigModule],

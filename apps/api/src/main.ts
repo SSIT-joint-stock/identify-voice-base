@@ -60,6 +60,8 @@ async function bootstrap() {
       exclude: [
         { path: 'health', method: RequestMethod.ALL },
         { path: 'health/*path', method: RequestMethod.ALL },
+        { path: 'docs', method: RequestMethod.ALL },
+        { path: 'docs/*path', method: RequestMethod.ALL },
       ],
     });
 
@@ -101,7 +103,7 @@ async function bootstrap() {
       .addBearerAuth()
       .build();
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('docs', app, document);
+    SwaggerModule.setup('api-docs', app, document);
 
     // Start the application
     const port = appCfg.port;
@@ -126,7 +128,8 @@ async function bootstrap() {
       `📧 SMTP         : ${e.SMTP_HOST || '-'}:${e.SMTP_PORT || '-'}`,
     );
     console.log(`🌐 CORS         : ${e.CORS_ORIGINS || '*'}`);
-    console.log(`📖 Swagger Docs : http://localhost:${port}/docs`);
+    console.log(`📖 Swagger Docs : http://localhost:${port}/api-docs`);
+    console.log(`📚 Module Docs  : http://localhost:${port}/docs`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     return app;
   } catch (error: any) {
