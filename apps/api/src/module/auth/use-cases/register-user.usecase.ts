@@ -1,6 +1,7 @@
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { BaseUseCase } from '@/shared/interfaces/base-usecase.interface';
 import { ConflictException, Injectable } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { RegisterUserDto } from '../dto/register-user.dto';
 
@@ -23,7 +24,7 @@ export class RegisterUserUseCase implements BaseUseCase<RegisterUserDto, any> {
       data: {
         username: dto.username,
         password: hashedPassword,
-        role: dto.role || 'user',
+        role: dto.role ?? Role.ADMIN,
       },
     });
 

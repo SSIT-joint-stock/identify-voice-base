@@ -1,29 +1,38 @@
-import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 export class CreateVoiceRecordDto {
-  @ApiProperty({ example: 'Thanh Trh' })
-  @IsString()
+  @ApiProperty({ example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' })
+  @IsUUID()
   @IsNotEmpty()
-  name: string;
+  user_id: string;
 
-  @ApiProperty({ example: '123456789012' })
+  @ApiProperty({ example: 'qdrant-point-uuid-or-string' })
   @IsString()
   @IsNotEmpty()
-  cccd: string;
-
-  @ApiProperty({ example: '0123456789' })
-  @IsString()
-  @IsNotEmpty()
-  phone: string;
+  voice_id: string;
 
   @ApiProperty({ example: 'https://storage.example.com/voices/voice1.wav' })
   @IsString()
   @IsNotEmpty()
   audio_url: string;
 
-  @ApiProperty({ example: { age: 25, gender: 'male' }, required: false })
-  @IsObject()
+  @ApiProperty({ example: true, required: false })
+  @IsBoolean()
   @IsOptional()
-  metadata?: any;
+  is_active?: boolean;
+
+  @ApiProperty({ example: 1, required: false })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  version?: number;
 }

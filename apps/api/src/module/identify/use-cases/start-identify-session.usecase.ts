@@ -2,11 +2,12 @@ import { PrismaService } from '@/database/prisma/prisma.service';
 import { BaseUseCase } from '@/shared/interfaces/base-usecase.interface';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
+import { SessionType } from '@prisma/client';
 import { Queue } from 'bullmq';
 
 interface StartIdentifyInput {
   userId: string;
-  session_type: string;
+  session_type: SessionType;
   audio_url: string;
 }
 
@@ -26,6 +27,7 @@ export class StartIdentifySessionUseCase implements BaseUseCase<
         user_id: input.userId,
         session_type: input.session_type,
         audio_url: input.audio_url,
+        results: [],
       },
     });
 

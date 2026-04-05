@@ -1,19 +1,15 @@
-import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-
-export enum IdentifySessionType {
-  SINGLE = 'single',
-  MULTI = 'multi',
-}
+import { SessionType } from '@prisma/client';
 
 export class StartIdentifyDto {
   @ApiProperty({
-    enum: IdentifySessionType,
-    example: IdentifySessionType.SINGLE,
+    enum: SessionType,
+    example: SessionType.SINGLE,
   })
-  @IsEnum(IdentifySessionType)
+  @IsEnum(SessionType)
   @IsNotEmpty()
-  session_type: IdentifySessionType;
+  session_type: SessionType;
 
   @ApiProperty({
     example: 'https://storage.example.com/identifications/test.wav',
