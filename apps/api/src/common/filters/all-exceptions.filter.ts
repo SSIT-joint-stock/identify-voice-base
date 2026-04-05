@@ -1,12 +1,3 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  Inject,
-} from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { LoggerService } from '@/common/logger/logger.service';
 import { CONTEXT_LOGGER_TOKEN } from '@/common/logger/logger.token';
 import {
@@ -23,6 +14,15 @@ import {
   BaseServerError,
   InternalServerError,
 } from '@/common/response/server-errors';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { HttpLogInterceptor } from '../interceptors/http-logger.interceptor';
 
