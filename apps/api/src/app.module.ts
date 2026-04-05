@@ -27,6 +27,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { LoggerModule } from './common/logger/logger.module';
 import { PrismaModule } from './database/prisma/prisma.module';
 import { AuthModule } from './module/auth/auth.module';
+import { UserAuthModule } from './module/user-auth/user-auth.module';
 import { IdentifyModule } from './module/identify/identify.module';
 import { VoicesModule } from './module/voices/voices.module';
 import { DocsModule } from './module/docs/docs.module';
@@ -73,6 +74,7 @@ import { DocsModule } from './module/docs/docs.module';
     }),
     PrismaModule,
     AuthModule,
+    UserAuthModule,
     VoicesModule,
     IdentifyModule,
     DocsModule,
