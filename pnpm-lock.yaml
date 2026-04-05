@@ -13,6 +13,9 @@ importers:
       "@commitlint/config-conventional":
         specifier: ^20.4.2
         version: 20.5.0
+      "@commitlint/types":
+        specifier: 20.5.0
+        version: 20.5.0
       "@eslint/compat":
         specifier: ^2.0.4
         version: 2.0.4
