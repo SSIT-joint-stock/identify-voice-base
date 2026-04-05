@@ -1,14 +1,18 @@
 // src/common/helpers/bcrypt.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { jwtConfig } from '@/config';
+import { Inject, Injectable } from '@nestjs/common';
+import { type ConfigType } from '@nestjs/config';
 import * as bcryptjs from 'bcryptjs';
-
-const SALT_PASSWORD = 10;
 
 @Injectable()
 export class BcryptService {
+  constructor(
+    @Inject(jwtConfig.KEY)
+    private readonly jwtCfg: ConfigType<typeof jwtConfig>,
+  ) {}
   async hashPassword(password: string): Promise<string> {
-    return await bcryptjs.hash(password, SALT_PASSWORD);
+    return await bcryptjs.hash(password, Number(this.jwtCfg.bcryptRounds));
   }
 
   async comparePassword(

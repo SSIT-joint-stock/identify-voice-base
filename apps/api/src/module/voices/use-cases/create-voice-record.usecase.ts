@@ -39,7 +39,7 @@ export class CreateVoiceRecordUseCase implements BaseUseCase<
       data: {
         user_id: dto.user_id,
         voice_id: dto.voice_id,
-        audio_url: dto.audio_url,
+        audio_file_id: dto.audio_file_id,
         is_active: dto.is_active ?? true,
         version: dto.version ?? nextVersion,
       },

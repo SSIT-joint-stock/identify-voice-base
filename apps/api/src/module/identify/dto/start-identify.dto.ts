@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { SessionType } from '@prisma/client';
 
@@ -12,9 +12,9 @@ export class StartIdentifyDto {
   session_type: SessionType;
 
   @ApiProperty({
-    example: 'https://storage.example.com/identifications/test.wav',
+    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
   })
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
-  audio_url: string;
+  audio_file_id: string;
 }

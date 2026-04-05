@@ -33,6 +33,7 @@ import { AppModule } from '@/app.module';
 import { appConfig } from '@/config';
 // external
 import cookieParser from 'cookie-parser';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 // bootstrap the application
 async function bootstrap() {
@@ -92,6 +93,16 @@ async function bootstrap() {
       }),
     );
 
+    // Setup Swagger documentation
+    const config = new DocumentBuilder()
+      .setTitle(appCfg.name || 'API Documentation')
+      .setDescription(`The API description for ${appCfg.name}`)
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document);
+
     // Start the application
     const port = appCfg.port;
     await app.listen(port, '0.0.0.0');
@@ -115,6 +126,7 @@ async function bootstrap() {
       `📧 SMTP         : ${e.SMTP_HOST || '-'}:${e.SMTP_PORT || '-'}`,
     );
     console.log(`🌐 CORS         : ${e.CORS_ORIGINS || '*'}`);
+    console.log(`📖 Swagger Docs : http://localhost:${port}/docs`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     return app;
   } catch (error: any) {
