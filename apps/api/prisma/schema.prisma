@@ -29,6 +29,10 @@ datasource db {
 enum Role {
   ADMIN
 }
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
 
 /// Loại phiên nhận dạng: đơn giọng hoặc đa giọng
 enum SessionType {
@@ -36,12 +40,19 @@ enum SessionType {
   MULTI
 }
 
-/// Trạng thái của job cập nhật embedding giọng nói
+/// Trạng thái của job cập nhật embedding giọng nói (Async)
 enum JobStatus {
   PENDING
   PROCESSING
   DONE
   FAILED
+}
+
+/// Mục đích của file audio được upload
+enum AudioPurpose {
+  ENROLL
+  IDENTIFY
+  UPDATE_VOICE
 }
 
 // ============================================================
@@ -51,15 +62,23 @@ enum JobStatus {
 /// Tài khoản đăng nhập hệ thống — dành cho operator/admin
 model auth_accounts {
   id       String @id @default(uuid()) @db.Uuid
+  /// Email tài khoản, phải là duy nhất trong hệ thống
+  email    String @unique
   /// Tên đăng nhập, phải là duy nhất trong hệ thống
-  username String @unique
+  username   String? @unique
   /// Mật khẩu đã hash bằng bcrypt, không bao giờ lưu plain text
   password String
   /// Phân quyền tài khoản
-  role     Role   @default(ADMIN)
+  role          Role   @default(ADMIN)
+  /// Refresh token đã hash (nullable)
+  refresh_token String?
+  /// Trạng thái tài khoản
+  status        UserStatus @default(ACTIVE)
 
   /// Các phiên nhận dạng được thực hiện bởi account này
   identify_sessions identify_sessions[]
+  /// Các file audio được upload bởi account này
+  uploaded_files    audio_files[]
 
   @@map("auth_accounts")
 }
@@ -79,13 +98,12 @@ model users {
   job                    String?
   /// Số hộ chiếu (nullable)
   passport               String?
-  /// Tiền án tiền sự dạng JSON: [{case: string, year: number}]
-  /// Example: [{"case": "Trộm cắp tài sản", "year": 2021}]
+  /// Tiền án tiền sự dạng JSON string: [{case: string, year: number}]
   criminal_record        Json?   @db.JsonB
 
   /// Hồ sơ giọng nói liên kết với người dùng này
-  voice_records    voice_records[]
-  /// Danh sách job cập nhật giọng nói
+  voice_records     voice_records[]
+  /// Danh sách job cập nhật giọng nói liên quan
   update_voice_jobs update_voice_jobs[]
 
   /// Index tìm kiếm theo tên, CCCD, số điện thoại
@@ -95,27 +113,60 @@ model users {
   @@map("users")
 }
 
+/// Quản lý metadata của các file audio lưu trên local filesystem
+model audio_files {
+  id           String    @id @default(uuid()) @db.Uuid
+  /// Đường dẫn thực thể trên disk (vd: /uploads/voices/uuid.wav)
+  file_path    String    @unique
+  /// Tên file gốc người dùng upload
+  file_name    String
+  /// MIME Type (audio/wav, audio/mpeg, v.v.)
+  mime_type    String
+  /// Kích thước file (bytes)
+  size_bytes   Int
+  /// Thời lượng audio tính bằng giây (điền sau khi AI Service xử lý)
+  duration_sec Float?
+  /// Mục đích upload file này
+  purpose      AudioPurpose
+  /// ID của operator đã upload file
+  uploaded_by  String    @db.Uuid
+
+  /// Thời điểm upload
+  created_at DateTime  @default(now())
+  /// Soft-delete — đánh dấu khi file đã bị xóa khỏi disk
+  deleted_at DateTime?
+
+  operator auth_accounts @relation(fields: [uploaded_by], references: [id], onDelete: Restrict)
+
+  /// Các quan hệ tham chiếu tới file này
+  voice_records     voice_records[]
+  identify_sessions identify_sessions[]
+
+  @@index([purpose])
+  @@index([uploaded_by])
+  @@index([deleted_at])
+  @@map("audio_files")
+}
+
 /// Hồ sơ giọng nói — hỗ trợ versioning, mỗi user có 1 bản active
 model voice_records {
-  id        String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid()) @db.Uuid
   /// Khóa ngoại tới users.id
-  user_id   String   @db.Uuid
-  /// Point ID trong Qdrant do AI Service cấp (thường là UUID dạng string)
-  voice_id  String
-  /// URL file audio lưu trên Storage (S3, MinIO, v.v.)
-  audio_url String
+  user_id       String   @db.Uuid
+  /// Point ID trong Qdrant do AI Service cấp
+  voice_id      String
+  /// Khóa ngoại tới audio_files.id — mẫu audio dùng để trích xuất embedding này
+  audio_file_id String   @db.Uuid
   /// true = bản đang được dùng để so khớp nhận dạng
-  /// CHỈ MỘT bản is_active = true được phép tồn tại cho mỗi user_id
-  /// (đảm bảo bằng PARTIAL INDEX, xem migration note ở đầu file)
-  is_active Boolean  @default(true)
-  /// Số thứ tự phiên bản, tăng dần (1, 2, 3...)
-  version   Int      @default(1)
-  /// Thời điểm tạo bản ghi này
-  created_at DateTime @default(now())
+  is_active     Boolean  @default(true)
+  /// Số thứ tự phiên bản (1, 2, 3...)
+  version       Int      @default(1)
+  /// Thời điểm tạo bản ghi
+  created_at    DateTime @default(now())
 
-  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user       users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  audio_file audio_files @relation(fields: [audio_file_id], references: [id], onDelete: Restrict)
 
-  /// Index thường dùng trong filter voice records
   @@index([user_id])
   @@index([is_active])
   @@index([user_id, is_active])
@@ -124,59 +175,49 @@ model voice_records {
 
 /// Lịch sử các phiên nhận dạng giọng nói
 model identify_sessions {
-  id      String @id @default(uuid()) @db.Uuid
-  /// FK tới auth_accounts.id — operator thực hiện phiên này
-  user_id String @db.Uuid
+  id            String      @id @default(uuid()) @db.Uuid
+  /// FK tới auth_accounts.id — operator thực hiện
+  user_id       String      @db.Uuid
+  /// Loại phiên: SINGLE hoặc MULTI
+  session_type  SessionType
+  /// FK tới audio_files.id — file audio input dùng để nhận dạng
+  audio_file_id String      @db.Uuid
+  /// Kết quả AI dạng JSON: [{voice_id, score, name, ...}]
+  results       Json        @db.JsonB
+  /// Thời điểm thực hiện
+  identified_at DateTime    @default(now())
 
-  /// Loại phiên: SINGLE (1 người) hoặc MULTI (nhiều người)
-  session_type SessionType
+  operator   auth_accounts @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  audio_file audio_files   @relation(fields: [audio_file_id], references: [id], onDelete: Restrict)
 
-  /// URL file audio đã upload lên Storage để đưa vào AI nhận dạng
-  audio_url String
-
-  /// Kết quả trả về từ AI service dạng JSON array
-  /// Example: [{"voice_id": "uuid", "score": 0.97, "name": "Nguyen Van A", "start_sec": 0, "end_sec": 5.2}]
-  results Json @db.JsonB
-
-  /// Thời điểm thực hiện nhận dạng
-  identified_at DateTime @default(now())
-
-  operator auth_accounts @relation(fields: [user_id], references: [id], onDelete: Restrict)
-
-  /// Index tìm kiếm theo operator và thời điểm nhận dạng
   @@index([user_id])
   @@index([identified_at])
   @@index([user_id, identified_at])
   @@map("identify_sessions")
 }
 
-/// Hàng đợi các job cập nhật embedding giọng nói (async processing)
+/// Hàng đợi các job cập nhật embedding (async processing)
 model update_voice_jobs {
-  id      String @id @default(uuid()) @db.Uuid
-  /// voice_id (Point ID trong Qdrant) cần cập nhật embedding
-  voice_id String
-  /// FK tới users.id — người sở hữu giọng nói cần cập nhật
-  user_id  String @db.Uuid
-
-  /// Mảng URL các đoạn audio mới để extract embedding
-  /// Example: ["https://storage/audio1.wav", "https://storage/audio2.wav"]
-  audio_urls Json @db.JsonB
-
-  /// Trạng thái xử lý của job
-  status    JobStatus @default(PENDING)
-  /// Tiến độ xử lý 0–100 (%)
-  progress  Int       @default(0)
-  /// Thông báo lỗi nếu status = FAILED
-  error_msg String?
-
+  id             String    @id @default(uuid()) @db.Uuid
+  /// voice_id cần cập nhật embedding
+  voice_id       String
+  /// FK tới users.id — người sở hữu giọng nói
+  user_id        String    @db.Uuid
+  /// Mảng ID các audio_files mới: ["uuid", "uuid"]
+  audio_file_ids Json      @db.JsonB
+  /// Trạng thái job
+  status         JobStatus @default(PENDING)
+  /// Tiến độ 0-100
+  progress       Int       @default(0)
+  /// Thông báo lỗi nếu thất bại
+  error_msg      String?
   /// Thời điểm tạo job
-  created_at DateTime @default(now())
-  /// Thời điểm cập nhật gần nhất (tự động)
-  updated_at DateTime @updatedAt
+  created_at     DateTime  @default(now())
+  /// Thời điểm cập nhật gần nhất
+  updated_at     DateTime  @updatedAt
 
   user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  /// Index tìm kiếm job theo voice_id và trạng thái
   @@index([voice_id])
   @@index([status])
   @@index([user_id])

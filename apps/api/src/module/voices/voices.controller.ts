@@ -9,20 +9,20 @@ export class VoicesController {
   constructor(private readonly voicesService: VoicesService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new voice record' })
+  @ApiOperation({ summary: 'Tạo hồ sơ giọng nói mới' })
   @ApiResponse({
     status: 201,
-    description: 'Voice record successfully created',
+    description: 'Hồ sơ giọng nói đã được tạo thành công',
   })
   async create(@Body() dto: CreateVoiceRecordDto) {
     return this.voicesService.create(dto);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a voice record by ID' })
-  @ApiParam({ name: 'id', description: 'Voice record UUID' })
-  @ApiResponse({ status: 200, description: 'Voice record found' })
-  @ApiResponse({ status: 404, description: 'Voice record not found' })
+  @ApiOperation({ summary: 'Lấy hồ sơ giọng nói theo ID' })
+  @ApiParam({ name: 'id', description: 'UUID của hồ sơ giọng nói' })
+  @ApiResponse({ status: 200, description: 'Tìm thấy hồ sơ giọng nói' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy hồ sơ giọng nói' })
   async findOne(@Param('id') id: string) {
     return this.voicesService.findOne(id);
   }

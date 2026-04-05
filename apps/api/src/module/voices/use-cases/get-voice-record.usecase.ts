@@ -12,7 +12,7 @@ export class GetVoiceRecordUseCase implements BaseUseCase<string, any> {
     });
 
     if (!record) {
-      throw new NotFoundException('Voice record not found');
+      throw new NotFoundException('Không tìm thấy hồ sơ giọng nói');
     }
 
     return record;

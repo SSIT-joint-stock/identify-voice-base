@@ -8,7 +8,7 @@ import { Queue } from 'bullmq';
 interface StartIdentifyInput {
   userId: string;
   session_type: SessionType;
-  audio_url: string;
+  audio_file_id: string;
 }
 
 @Injectable()
@@ -26,15 +26,18 @@ export class StartIdentifySessionUseCase implements BaseUseCase<
       data: {
         user_id: input.userId,
         session_type: input.session_type,
-        audio_url: input.audio_url,
+        audio_file_id: input.audio_file_id,
         results: [],
+      },
+      include: {
+        audio_file: true,
       },
     });
 
     // Enqueue job for background processing
     await this.voiceQueue.add('identify-voice', {
       sessionId: session.id,
-      audioUrl: session.audio_url,
+      audioUrl: session.audio_file.file_path, // Temporary using file_path, should be converted to URL if needed by AI service
       sessionType: session.session_type,
     });
 

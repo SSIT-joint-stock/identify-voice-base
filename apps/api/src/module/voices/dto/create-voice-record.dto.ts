@@ -20,10 +20,10 @@ export class CreateVoiceRecordDto {
   @IsNotEmpty()
   voice_id: string;
 
-  @ApiProperty({ example: 'https://storage.example.com/voices/voice1.wav' })
-  @IsString()
+  @ApiProperty({ example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' })
+  @IsUUID()
   @IsNotEmpty()
-  audio_url: string;
+  audio_file_id: string;
 
   @ApiProperty({ example: true, required: false })
   @IsBoolean()

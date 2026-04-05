@@ -1,5 +1,4 @@
 import { ApiSuccess } from '@/common/decorators';
-import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { cookieConfig } from '@/config';
 import {
@@ -15,7 +14,6 @@ import {
 } from '@nestjs/common';
 import { type ConfigType } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { type auth_accounts } from '@prisma/client';
 import express from 'express';
 import { LoginUserDto } from './dto/login-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -77,12 +75,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Đăng xuất người dùng' })
   @ApiSuccess('Đăng xuất thành công')
-  async logout(
-    @User() user: auth_accounts,
-    @Res({ passthrough: true }) res: express.Response,
-  ) {
-    await this.authService.logout(user.id);
-    res.clearCookie('refresh_token');
+  async logout(@Req() req: { user: { id: string } }) {
+    return this.authService.logout(req.user.id);
   }
 
   @Post('reset-password')
@@ -92,9 +86,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Đặt lại mật khẩu người dùng' })
   @ApiSuccess('Đặt lại mật khẩu thành công')
   async resetPassword(
-    @User() user: auth_accounts,
+    @Req() req: { user: { id: string } },
     @Body() dto: ResetPasswordDto,
   ) {
-    return this.authService.resetPassword(user.id, dto);
+    return this.authService.resetPassword(req.user.id, dto);
   }
 }
