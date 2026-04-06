@@ -1,0 +1,107 @@
+import { HttpService } from '@nestjs/axios';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+import { AxiosError } from 'axios';
+import FormData from 'form-data';
+import * as fs from 'fs';
+import { catchError, firstValueFrom } from 'rxjs';
+
+import aiConfig from '@/config/ai.config';
+
+@Injectable()
+export class AiService {
+  private readonly logger = new Logger(AiService.name);
+
+  constructor(
+    private readonly httpService: HttpService,
+    @Inject(aiConfig.KEY)
+    private readonly config: ConfigType<typeof aiConfig>,
+  ) {}
+
+  /**
+   * Gửi file audio lên AI Service để xử lý Enrollment (Đăng ký giọng nói).
+   * @param filePath Đường dẫn tuyệt đối của file audio trên đĩa
+   * @param name Tên định danh cho giọng nói (thường là account id hoặc uuid)
+   */
+  async uploadVoice(filePath: string, name: string): Promise<any> {
+    const formData = new FormData();
+
+    if (!fs.existsSync(filePath)) {
+      throw new InternalServerErrorException(`File không tồn tại: ${filePath}`);
+    }
+
+    formData.append('file', fs.createReadStream(filePath));
+    formData.append('name', name);
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService
+          .post(`${this.config.url}/upload-voice`, formData, {
+            headers: {
+              ...formData.getHeaders(),
+              ...(this.config.apiKey && { 'X-API-KEY': this.config.apiKey }),
+            },
+            timeout: this.config.timeout,
+          })
+          .pipe(
+            catchError((error: AxiosError) => {
+              this.logger.error(
+                `AI Service Error [POST /upload-voice]: ${error.message}`,
+                error.response?.data,
+              );
+
+              // Bạn có thể tùy biến mapping lỗi ở đây
+              throw new InternalServerErrorException(
+                error.response?.data?.['message'] ||
+                  'Lỗi khi kết nối tới AI Service',
+              );
+            }),
+          ),
+      );
+
+      return data;
+    } catch (error) {
+      if (error instanceof InternalServerErrorException) throw error;
+
+      throw new InternalServerErrorException(
+        `Lỗi không xác định khi gọi AI Service: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Ví dụ phương thức khác: Nhận diện giọng nói
+   */
+  async identifyVoice(filePath: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', fs.createReadStream(filePath));
+
+    const { data } = await firstValueFrom(
+      this.httpService
+        .post(`${this.config.url}/identify`, formData, {
+          headers: {
+            ...formData.getHeaders(),
+            ...(this.config.apiKey && { 'X-API-KEY': this.config.apiKey }),
+          },
+          timeout: this.config.timeout,
+        })
+        .pipe(
+          catchError((error: AxiosError) => {
+            this.logger.error(
+              `AI Service Error [POST /identify]: ${error.message}`,
+            );
+            throw new InternalServerErrorException(
+              'Lỗi nhận diện giọng nói từ AI Service',
+            );
+          }),
+        ),
+    );
+
+    return data;
+  }
+}

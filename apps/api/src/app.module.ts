@@ -7,6 +7,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 // config
 import {
+  aiConfig,
   appConfig,
   bullConfigFactory,
   clientConfig,
@@ -27,13 +28,15 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 // modules
 import { LoggerModule } from './common/logger/logger.module';
 import { PrismaModule } from './database/prisma/prisma.module';
+import { AiModule } from './module/ai/ai.module';
 import { AuthModule } from './module/auth/auth.module';
-import { UserAuthModule } from './module/user-auth/user-auth.module';
+import { DocsModule } from './module/docs/docs.module';
+import { EnrollModule } from './module/enroll/enroll.module';
 import { IdentifyModule } from './module/identify/identify.module';
 import { StorageModule } from './module/storage/storage.module';
 import { UploadModule } from './module/upload/upload.module';
+import { UserAuthModule } from './module/user-auth/user-auth.module';
 import { VoicesModule } from './module/voices/voices.module';
-import { DocsModule } from './module/docs/docs.module';
 
 @Module({
   imports: [
@@ -59,6 +62,7 @@ import { DocsModule } from './module/docs/docs.module';
         clientConfig,
         redisConfig,
         storageConfig,
+        aiConfig,
       ],
     }),
     ThrottlerModule.forRootAsync({
@@ -83,6 +87,8 @@ import { DocsModule } from './module/docs/docs.module';
     UploadModule,
     VoicesModule,
     IdentifyModule,
+    AiModule,
+    EnrollModule,
     DocsModule,
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
