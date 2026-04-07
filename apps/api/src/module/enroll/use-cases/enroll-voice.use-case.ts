@@ -5,6 +5,7 @@ import {
   Logger,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import * as path from 'path';
 import type { ConfigType } from '@nestjs/config';
 import { AudioPurpose, Prisma } from '@prisma/client';
 
@@ -49,10 +50,16 @@ export class EnrollVoiceUseCase {
       // Lưu ý: AiService dùng absolute path để stream file từ đĩa (nếu dùng Local Driver)
       // Hoặc nó stream trực tiếp nếu driver là S3 (cần cải tiến AiService sau này)
       // Hiện tại LocalStorageDriver ghi file vào STORAGE_ROOT_DIR.
+      const absolutePath = path.resolve(
+        process.cwd(),
+        this.config.rootDir,
+        audioFile.file_path,
+      );
 
       const aiResponse = await this.aiService.uploadVoice(
-        audioFile.file_path, // storageKey/filePath
+        absolutePath,
         dto.name,
+        audioFile.mime_type,
       );
 
       voiceId = aiResponse.voice_id;

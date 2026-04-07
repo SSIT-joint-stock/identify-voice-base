@@ -9,6 +9,7 @@ import type { ConfigType } from '@nestjs/config';
 import { AxiosError } from 'axios';
 import FormData from 'form-data';
 import * as fs from 'fs';
+import * as path from 'path';
 import { catchError, firstValueFrom } from 'rxjs';
 
 import aiConfig from '@/config/ai.config';
@@ -27,31 +28,40 @@ export class AiService {
    * Gửi file audio lên AI Service để xử lý Enrollment (Đăng ký giọng nói).
    * @param filePath Đường dẫn tuyệt đối của file audio trên đĩa
    * @param name Tên định danh cho giọng nói (thường là account id hoặc uuid)
+   * @param mimeType (Optional) Mime type của file để server nhận diện chính xác
    */
-  async uploadVoice(filePath: string, name: string): Promise<any> {
+  async uploadVoice(
+    filePath: string,
+    name: string,
+    mimeType?: string,
+  ): Promise<any> {
     const formData = new FormData();
 
     if (!fs.existsSync(filePath)) {
       throw new InternalServerErrorException(`File không tồn tại: ${filePath}`);
     }
 
-    formData.append('file', fs.createReadStream(filePath));
-    formData.append('name', name);
+    formData.append('file', fs.createReadStream(filePath), {
+      filename: fs.existsSync(filePath) ? path.basename(filePath) : 'audio.wav',
+      contentType: mimeType,
+    });
+    // formData.append('name', name); // Gửi qua query params thay vì body
 
     try {
       const { data } = await firstValueFrom(
         this.httpService
-          .post(`${this.config.url}/upload-voice`, formData, {
+          .post(`${this.config.url}/upload_voice`, formData, {
+            params: { name }, // Gửi name qua query string (?name=...)
             headers: {
               ...formData.getHeaders(),
-              ...(this.config.apiKey && { 'X-API-KEY': this.config.apiKey }),
+              // ...(this.config.apiKey && { 'X-API-KEY': this.config.apiKey }),
             },
             timeout: this.config.timeout,
           })
           .pipe(
             catchError((error: AxiosError) => {
               this.logger.error(
-                `AI Service Error [POST /upload-voice]: ${error.message}`,
+                `AI Service Error [POST /upload_voice]: ${error.message}`,
                 error.response?.data,
               );
 

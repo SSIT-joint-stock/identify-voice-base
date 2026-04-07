@@ -6,8 +6,13 @@ import { registerAs } from '@nestjs/config';
  */
 const AUDIO_MIME_MAP: Record<string, string> = {
   'audio/wav': 'wav',
+  'audio/wave': 'wav',
   'audio/x-wav': 'wav',
   'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
+  'audio/mp4': 'm4a',
+  'video/mp4': 'm4a',
+  'audio/x-m4a': 'm4a',
   'audio/flac': 'flac',
   'audio/x-flac': 'flac',
   'audio/ogg': 'ogg',
