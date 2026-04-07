@@ -74,8 +74,8 @@ interface EnrollResponse {
   data: {
     voice_id: string; // UUID — do AI Service cấp, lưu trong Qdrant
     user_id: string; // = voice_id — đồng nhất trong hệ thống
-    audio_url: string; // URL truy cập file audio trên Local Storage
-    name: string; // Đã lưu vào DB
+    audio_url: string; // URL truy cập file audio (VD: http://localhost:3000/cdn/voices/xxx.m4a)
+    name: string; // Tên người dùng
     enrolled_at: string; // ISO 8601 — thời điểm tạo voice_record
   };
 }
@@ -90,7 +90,7 @@ interface EnrollResponse {
   "data": {
     "voice_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
     "user_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "audio_url": "http://localhost:3000/uploads/voices/f47ac10b.wav",
+    "audio_url": "http://localhost:3000/cdn/voices/f47ac10b.m4a",
     "name": "Nguyễn Văn A",
     "enrolled_at": "2026-04-05T10:00:00.000Z"
   }
@@ -136,9 +136,9 @@ Bước 1: Validate đầu vào
   ├─ Nếu file tồn tại: kiểm tra duration ≤ 10 phút (ffprobe)
   └─ Nếu vi phạm → trả lỗi ngay, không lưu file
 
-Bước 2: Lưu file audio local
-  └─ Multer lưu vào /uploads/voices/<uuid>.<ext>
-     audio_url = `http://<host>/uploads/voices/<uuid>.<ext>`
+Bước 2: Lưu file audio local (via UploadService & StorageService)
+  └─ File lưu vào /storage/voices/<uuid>.<ext>
+     audio_url = `http://<host>/cdn/voices/<uuid>.<ext>`
 
 Bước 3: Forward audio sang AI Service
   └─ POST http://localhost:1112/upload_voice/
@@ -159,12 +159,14 @@ Bước 5: INSERT trong Prisma transaction
   │    hometown,
   │    job,
   │    passport,
-  │    criminal_record        ← JSONB
+  │    criminal_record,       ← JSONB
+  │    audio_url              ← URL CDN
   │  }
   └─ INSERT voice_records {
        user_id: voice_id,
+       user_name: user.name,  ← Snapshot name
        voice_id: voice_id,
-       audio_url,
+       audio_file_id,         ← ID file từ bảng audio_files
        is_active: true,
        version: 1
      }

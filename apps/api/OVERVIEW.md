@@ -29,6 +29,7 @@ apps/api
 │   │   └── redis       # Redis connection provider
 │   ├── module          # Feature-based business logic
 │   │   ├── auth        # User Identity & Security
+│   │   ├── enroll      # Voice Registration & AI Enrolling
 │   │   ├── voices      # Profile & Record management
 │   │   └── identify    # AI Integration & Sessions
 │   ├── shared          # Global reusable artifacts
@@ -56,7 +57,14 @@ We use JWT-based authentication for secure access. The module follows the Use-Ca
 - **`LoginUserUseCase`**: Verifies credentials and generates a signed access token.
 - **`AuthService`**: Orchestrates these use-cases.
 
-### 2. Voices Module (`/voices`)
+### 2. Enroll Module (`/voices/enroll`)
+
+Quản lý việc đăng ký thông tin người dùng mới cùng mẫu giọng nói mẫu.
+
+- **`EnrollVoiceUseCase`**: Thực hiện toàn bộ quy trình từ nhận file, gọi AI Service trích xuất đặc trưng, đến lưu trữ hồ sơ tập trung vào database.
+- **AI Service Integration**: Tự động đồng bộ `voice_id` từ hệ thống AI và lưu URL audio phục vụ tra cứu.
+
+### 3. Voices Module (`/voices`)
 
 This module manages the "Ground Truth" of voice records.
 

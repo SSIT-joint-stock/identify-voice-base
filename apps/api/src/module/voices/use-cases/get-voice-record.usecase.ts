@@ -9,6 +9,7 @@ export class GetVoiceRecordUseCase implements BaseUseCase<string, any> {
   async execute(id: string) {
     const record = await this.prisma.voice_records.findUnique({
       where: { id },
+      include: { user: true },
     });
 
     if (!record) {

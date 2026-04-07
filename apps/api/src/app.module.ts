@@ -3,10 +3,13 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { join } from 'path';
 
 // config
 import {
+  aiConfig,
   appConfig,
   bullConfigFactory,
   clientConfig,
@@ -15,6 +18,7 @@ import {
   jwtConfig,
   rateLimitConfig,
   redisConfig,
+  storageConfig,
   validateEnv,
 } from './config';
 
@@ -24,13 +28,17 @@ import { HttpLogInterceptor } from './common/interceptors/http-logger.intercepto
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 // modules
+import { AiCoreModule } from '@/module/ai-core/ai-core.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { PrismaModule } from './database/prisma/prisma.module';
 import { AuthModule } from './module/auth/auth.module';
-import { UserAuthModule } from './module/user-auth/user-auth.module';
-import { IdentifyModule } from './module/identify/identify.module';
-import { VoicesModule } from './module/voices/voices.module';
 import { DocsModule } from './module/docs/docs.module';
+import { EnrollModule } from './module/enroll/enroll.module';
+import { IdentifyModule } from './module/identify/identify.module';
+import { StorageModule } from './module/storage/storage.module';
+import { UploadModule } from './module/upload/upload.module';
+import { UserAuthModule } from './module/user-auth/user-auth.module';
+import { VoicesModule } from './module/voices/voices.module';
 
 @Module({
   imports: [
@@ -55,7 +63,13 @@ import { DocsModule } from './module/docs/docs.module';
         cookieConfig,
         clientConfig,
         redisConfig,
+        storageConfig,
+        aiConfig,
       ],
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'storage'),
+      serveRoot: '/cdn',
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -75,8 +89,12 @@ import { DocsModule } from './module/docs/docs.module';
     PrismaModule,
     AuthModule,
     UserAuthModule,
+    StorageModule,
+    UploadModule,
     VoicesModule,
     IdentifyModule,
+    AiCoreModule,
+    EnrollModule,
     DocsModule,
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({

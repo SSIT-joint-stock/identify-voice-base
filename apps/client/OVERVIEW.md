@@ -78,9 +78,9 @@ Located in `src/api/index.ts`, the interceptor handles:
 // src/feature/voice/api/use-get-voices.ts
 export const useGetVoices = () => {
   return useQuery({
-    queryKey: ['voices'],
+    queryKey: ["voices"],
     queryFn: async () => {
-      const { data } = await api.get('/voices');
+      const { data } = await api.get("/voices");
       return data;
     },
   });
@@ -95,7 +95,7 @@ The application uses **React Router v7** for declarative routing.
 
 ### Route Structure
 
-- **Public Routes**: `/login`, `/register`.
+- **Public Routes**: `/login`,
 - **Private Routes**: Protected by an `AuthGuard` layout.
   - `/dashboard`: Overview of system activity.
   - `/voices`: List of registered voice profiles.

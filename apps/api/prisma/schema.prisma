@@ -85,7 +85,7 @@ model auth_accounts {
 
 /// Thông tin người được định danh bởi hệ thống AI
 model users {
-  id                     String  @id @db.Uuid
+  id                     String  @id @default(uuid()) @db.Uuid
   /// Họ và tên đầy đủ
   name                   String
   /// Số CCCD / CMND (nullable)
@@ -100,6 +100,9 @@ model users {
   passport               String?
   /// Tiền án tiền sự dạng JSON string: [{case: string, year: number}]
   criminal_record        Json?   @db.JsonB
+
+  /// Url file audio for user enroll
+  audio_url              String?
 
   /// Hồ sơ giọng nói liên kết với người dùng này
   voice_records     voice_records[]
@@ -153,6 +156,9 @@ model voice_records {
   id            String   @id @default(uuid()) @db.Uuid
   /// Khóa ngoại tới users.id
   user_id       String   @db.Uuid
+  /// Snap shot for user info
+  user_name      String?
+  user_email     String?
   /// Point ID trong Qdrant do AI Service cấp
   voice_id      String
   /// Khóa ngoại tới audio_files.id — mẫu audio dùng để trích xuất embedding này

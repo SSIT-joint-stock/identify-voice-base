@@ -38,6 +38,7 @@ export class CreateVoiceRecordUseCase implements BaseUseCase<
     return this.prisma.voice_records.create({
       data: {
         user_id: dto.user_id,
+        user_name: user.name, // Snapshot name
         voice_id: dto.voice_id,
         audio_file_id: dto.audio_file_id,
         is_active: dto.is_active ?? true,

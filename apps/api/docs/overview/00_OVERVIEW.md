@@ -11,7 +11,7 @@
 
 Backend đóng vai trò **orchestration layer** trung tâm:
 
-- Nhận file audio từ Client, validate, lưu vào Local Storage
+- Nhận file audio từ Client, validate, lưu vào Storage (Local / S3)
 - Điều phối luồng xử lý giữa PostgreSQL (metadata), AI Service (embedding / Qdrant), và Redis (async jobs)
 - Cung cấp REST API cho Client (web / mobile) và WebSocket cho real-time notification
 
@@ -110,16 +110,14 @@ Backend đóng vai trò **orchestration layer** trung tâm:
 
 ```typescript
 interface AudioValidationRule {
-  maxSizeMb: 50; // ≤ 50MB — kiểm tra ở tầng Multer (limits.fileSize)
-  maxDurationSec: 600; // ≤ 10 phút — kiểm tra sau khi lưu file (ffprobe/fluent-ffmpeg)
+  maxSizeMb: 50; // ≤ 50MB — cấu hình qua STORAGE_MAX_SIZE (Multer memory)
+  maxDurationSec: 600; // ≤ 10 phút — kiểm tra qua music-metadata.parseBuffer
   allowedMimeTypes: [
     'audio/wav',
     'audio/mpeg', // mp3
     'audio/flac',
     'audio/ogg',
-    'audio/x-wav',
   ];
-  allowedExtensions: ['.wav', '.mp3', '.flac', '.ogg'];
 }
 ```
 
@@ -239,69 +237,14 @@ interface PaginatedResponse<T> {
 
 ---
 
-## 8. Cấu hình Local Storage
+## 8. Cấu hình Storage
 
-### Cấu trúc thư mục
+Hệ thống sử dụng **Storage Service (Facade)** để trừu tượng hóa việc lưu trữ.
 
-```
-<app_root>/
-└── uploads/
-    ├── voices/           # Audio đăng ký hồ sơ (enroll)
-    │   └── <uuid>.<ext>
-    ├── identify/         # Audio nhận dạng (identify)
-    │   └── <uuid>.<ext>
-    └── update-voice/     # Audio cập nhật giọng nói (tạm thời)
-        └── <job_id>/
-            ├── sample_1.<ext>
-            └── sample_2.<ext>
-```
+- **Multer Configuration:** Sử dụng `memoryStorage()` để nhận file vào RAM, sau đó stream trực tiếp tới Storage Driver.
+- **Tiền tố ENV:** Sử dụng `STORAGE_*` cho toàn bộ cấu hình (Driver, MaxSize, Mimes).
 
-### Static file serving
+Xem thêm chi tiết tại:
 
-```typescript
-// app.module.ts
-ServeStaticModule.forRoot({
-  rootPath: join(__dirname, '..', 'uploads'),
-  serveRoot: '/uploads',
-  // File audio được truy cập qua: GET /uploads/voices/<uuid>.wav
-});
-```
-
-**URL audio trả về cho Client:**
-
-```
-http://<backend_host>:3000/uploads/voices/<uuid>.wav
-http://<backend_host>:3000/uploads/identify/<uuid>.wav
-```
-
-### Phân quyền thư mục
-
-```bash
-# Backend process cần quyền đọc/ghi
-chmod -R 755 uploads/
-chown -R <app_user>:<app_group> uploads/
-
-# Thư mục update-voice tạm — tự động xóa sau khi job DONE/FAILED
-# Không phục vụ qua static endpoint (chỉ Worker đọc nội bộ)
-```
-
-### Multer configuration
-
-```typescript
-// common config dùng lại cho các module
-export const multerAudioOptions = (dest: string): MulterOptions => ({
-  storage: diskStorage({
-    destination: `./uploads/${dest}`,
-    filename: (_req, _file, cb) => {
-      const ext = extname(file.originalname);
-      cb(null, `${uuidv4()}${ext}`);
-    },
-  }),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
-  fileFilter: (_req, file, cb) => {
-    const allowed = /audio\/(wav|mpeg|flac|ogg|x-wav)/;
-    if (allowed.test(file.mimetype)) cb(null, true);
-    else cb(new BadRequestException('Invalid audio format'), false);
-  },
-});
-```
+- [02_UPLOAD.md](./02_UPLOAD.md) — Chi tiết về Module Upload.
+- [08_STORAGE.md](./08_STORAGE.md) — Kiến trúc Storage Driver.
