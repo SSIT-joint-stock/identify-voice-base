@@ -13,7 +13,6 @@ import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { UploadService } from '@/module/upload/upload.service';
 
-import { UploadFileResponse } from '@/common/types/ai-upload-file-response.type';
 import { AiCoreService } from '@/module/ai-core/ai-core.service';
 import { EnrollVoiceDto } from '../dto/enroll-voice.dto';
 
@@ -57,7 +56,7 @@ export class EnrollVoiceUseCase {
         audioFile.file_path,
       );
 
-      const aiResponse: UploadFileResponse = await this.core.uploadVoice(
+      const aiResponse = await this.core.uploadVoice(
         absolutePath,
         dto.name,
         audioFile.mime_type,

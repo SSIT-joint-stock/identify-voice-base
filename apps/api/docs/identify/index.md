@@ -1,14 +1,20 @@
-# Identification Engine
+# Identification Module
 
-The core process for matching incoming voice data against registered voice profiles.
+Tài liệu chi tiết về module nhận dạng giọng nói, bao gồm nhận dạng đơn và nhận dạng hội thoại.
 
-## Process Flow
+## Endpoints
 
-1. Capture voice input.
-2. Extract features via the Identify Worker.
-3. Match against the database via vector similarity.
+- [Single Identify](./single-identify.md) — Nhận dạng một người nói trong audio.
+- [Multi Identify (Diarization)](./multi-identify.md) — Phân tách và nhận dạng nhiều người nói.
+
+## Quy trình chung
+
+1. Thu thập dữ liệu âm thanh từ Client.
+2. Trích xuất đặc trưng và so khớp vector qua AI Service.
+3. Đồng bộ hóa dữ liệu User (Lazy Migration) nếu cần.
+4. Lưu trữ lịch sử phiên nhận dạng.
 
 ---
 
-> [!CAUTION]
-> Ensure high-quality audio recordings for optimal identification accuracy.
+> [!TIP]
+> Luôn đảm bảo chất lượng file ghi âm tốt (WAV format) để đạt độ chính xác cao nhất.

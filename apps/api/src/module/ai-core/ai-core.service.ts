@@ -1,111 +1,25 @@
-import { HttpService } from '@nestjs/axios';
-import {
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
-import { AxiosError } from 'axios';
-import FormData from 'form-data';
-import * as fs from 'fs';
-import * as path from 'path';
-import { catchError, firstValueFrom } from 'rxjs';
-
-import aiConfig from '@/config/ai.config';
+import { AICoreIdentifyMultiUseCase } from '@/module/ai-core/usecase/ai-identify-multi.usecase';
+import { AICoreIdentifySingleUseCase } from '@/module/ai-core/usecase/ai-identify-single.usecase';
+import { UploadVoiceUseCase } from '@/module/ai-core/usecase/ai-upload-voice.usecase';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AiCoreService {
-  private readonly logger = new Logger(AiCoreService.name);
-
   constructor(
-    private readonly httpService: HttpService,
-    @Inject(aiConfig.KEY)
-    private readonly config: ConfigType<typeof aiConfig>,
+    private readonly uploadVoiceUseCase: UploadVoiceUseCase,
+    private readonly identifySingleUseCase: AICoreIdentifySingleUseCase,
+    private readonly identifyMultiUseCase: AICoreIdentifyMultiUseCase,
   ) {}
 
-  /**
-   * Gửi file audio lên AI Service để xử lý Enrollment (Đăng ký giọng nói).
-   * @param filePath Đường dẫn tuyệt đối của file audio trên đĩa
-   * @param name Tên định danh cho giọng nói (thường là account id hoặc uuid)
-   * @param mimeType (Optional) Mime type của file để server nhận diện chính xác
-   */
-  async uploadVoice(
-    filePath: string,
-    name: string,
-    mimeType?: string,
-  ): Promise<any> {
-    const formData = new FormData();
-
-    if (!fs.existsSync(filePath)) {
-      throw new InternalServerErrorException(`File không tồn tại: ${filePath}`);
-    }
-
-    formData.append('file', fs.createReadStream(filePath), {
-      filename: fs.existsSync(filePath) ? path.basename(filePath) : 'audio.wav',
-      contentType: mimeType,
-    });
-
-    try {
-      const { data } = await firstValueFrom(
-        this.httpService
-          .post(`${this.config.url}/upload_voice`, formData, {
-            params: { name },
-            headers: {
-              ...formData.getHeaders(),
-            },
-            timeout: this.config.timeout,
-          })
-          .pipe(
-            catchError((error: AxiosError) => {
-              this.logger.error(
-                `AI Service Error [POST /upload_voice]: ${error.message}`,
-                error.response?.data,
-              );
-
-              throw new InternalServerErrorException(
-                error.response?.data?.['message'] ||
-                  'Lỗi khi kết nối tới AI Service',
-              );
-            }),
-          ),
-      );
-
-      return data;
-    } catch (error) {
-      if (error instanceof InternalServerErrorException) throw error;
-
-      throw new InternalServerErrorException(
-        `Lỗi không xác định khi gọi AI Service: ${error.message}`,
-      );
-    }
+  async uploadVoice(filePath: string, name: string, mimeType?: string) {
+    return this.uploadVoiceUseCase.execute(filePath, name, mimeType);
   }
 
-  async identifyVoice(filePath: string): Promise<any> {
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(filePath));
+  async identifySingle(filePath: string, mimeType?: string) {
+    return this.identifySingleUseCase.execute(filePath, mimeType);
+  }
 
-    const { data } = await firstValueFrom(
-      this.httpService
-        .post(`${this.config.url}/identify`, formData, {
-          headers: {
-            ...formData.getHeaders(),
-            ...(this.config.apiKey && { 'X-API-KEY': this.config.apiKey }),
-          },
-          timeout: this.config.timeout,
-        })
-        .pipe(
-          catchError((error: AxiosError) => {
-            this.logger.error(
-              `AI Service Error [POST /identify]: ${error.message}`,
-            );
-            throw new InternalServerErrorException(
-              'Lỗi nhận diện giọng nói từ AI Service',
-            );
-          }),
-        ),
-    );
-
-    return data;
+  async identifyMulti(filePath: string, mimeType?: string) {
+    return this.identifyMultiUseCase.execute(filePath, mimeType);
   }
 }

@@ -9,7 +9,7 @@ import { join } from 'path';
 
 // config
 import {
-  aiConfig,
+  aiCoreConfig,
   appConfig,
   bullConfigFactory,
   clientConfig,
@@ -35,6 +35,7 @@ import { AuthModule } from './module/auth/auth.module';
 import { DocsModule } from './module/docs/docs.module';
 import { EnrollModule } from './module/enroll/enroll.module';
 import { IdentifyModule } from './module/identify/identify.module';
+import { SessionsModule } from './module/sessions/sessions.module';
 import { StorageModule } from './module/storage/storage.module';
 import { UploadModule } from './module/upload/upload.module';
 import { UserAuthModule } from './module/user-auth/user-auth.module';
@@ -64,7 +65,7 @@ import { VoicesModule } from './module/voices/voices.module';
         clientConfig,
         redisConfig,
         storageConfig,
-        aiConfig,
+        aiCoreConfig,
       ],
     }),
     ServeStaticModule.forRoot({
@@ -93,6 +94,7 @@ import { VoicesModule } from './module/voices/voices.module';
     UploadModule,
     VoicesModule,
     IdentifyModule,
+    SessionsModule,
     AiCoreModule,
     EnrollModule,
     DocsModule,

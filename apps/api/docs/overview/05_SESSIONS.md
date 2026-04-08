@@ -1,6 +1,6 @@
 # 05 — Sessions Module (UC05)
 
-> **Last updated:** 2026-04-05
+> **Last updated:** 2026-04-08
 > **Related use cases:** UC05
 > **Module path:** `src/module/sessions/`
 
@@ -8,11 +8,11 @@
 
 ## Tổng quan
 
-Module lịch sử phiên nhận dạng cho phép tra cứu và xem lại kết quả của các lần nhận dạng đã thực hiện. Dữ liệu lưu trong bảng `identify_sessions` với trường `results` kiểu JSONB chứa toàn bộ kết quả AI.
+Module lịch sử phiên nhận dạng cho phép tra cứu và xem lại kết quả của các lần nhận dạng đã thực hiện. Dữ liệu lưu trong bảng `identify_sessions` với trường `results` kiểu JSONB chứa toàn bộ kết quả AI đã được BE làm giàu.
 
 ---
 
-## GET /api/sessions
+## GET /api/v1/sessions
 
 ### Mô tả
 
@@ -21,7 +21,7 @@ Lấy danh sách các phiên nhận dạng với hỗ trợ lọc theo loại ph
 ### Request
 
 ```
-GET /api/sessions?page=1&page_size=10&type=SINGLE&from_date=2026-04-01&to_date=2026-04-05
+GET /api/v1/sessions?page=1&page_size=10&type=SINGLE&from_date=2026-04-01&to_date=2026-04-05
 Authorization: Bearer <access_token>
 ```
 
@@ -30,7 +30,7 @@ Authorization: Bearer <access_token>
 | Param       | Type                  | Default | Mô tả                                             |
 | ----------- | --------------------- | ------- | ------------------------------------------------- |
 | `page`      | `number`              | `1`     | Số trang                                          |
-| `page_size` | `number`              | `10`    | Kích thước trang: `10` \| `25` \| `50`            |
+| `page_size` | `number`              | `10`    | Kích thước trang                                  |
 | `type`      | `'SINGLE' \| 'MULTI'` | —       | Lọc theo loại phiên                               |
 | `from_date` | `string`              | —       | Từ ngày (ISO 8601 date: `2026-04-01`)             |
 | `to_date`   | `string`              | —       | Đến ngày (ISO 8601 date: `2026-04-05`, inclusive) |
@@ -38,8 +38,8 @@ Authorization: Bearer <access_token>
 **cURL:**
 
 ```bash
-curl "http://localhost:3000/api/sessions?page=1&page_size=10&type=SINGLE&from_date=2026-04-01&to_date=2026-04-05" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+curl "http://localhost:3000/api/v1/sessions?page=1&page_size=10" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ### Response thành công — 200 OK
@@ -163,7 +163,7 @@ const enriched = items.map((session) => {
 
 ---
 
-## GET /api/sessions/:id
+## GET /api/v1/sessions/:id
 
 ### Mô tả
 
@@ -172,7 +172,7 @@ Lấy chi tiết đầy đủ một phiên nhận dạng, bao gồm toàn bộ n
 ### Request
 
 ```
-GET /api/sessions/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+GET /api/v1/sessions/a1b2c3d4-e5f6-7890-abcd-ef1234567890
 Authorization: Bearer <access_token>
 ```
 
@@ -181,8 +181,8 @@ Authorization: Bearer <access_token>
 **cURL:**
 
 ```bash
-curl "http://localhost:3000/api/sessions/a1b2c3d4-e5f6-7890-abcd-ef1234567890" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+curl "http://localhost:3000/api/v1/sessions/a1b2c3d4-e5f6-7890-abcd-ef1234567890" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ### Response thành công — 200 OK

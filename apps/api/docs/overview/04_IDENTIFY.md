@@ -1,6 +1,6 @@
 # 04 — Identify Module (UC02, UC03)
 
-> **Last updated:** 2026-04-05
+> **Last updated:** 2026-04-08
 > **Related use cases:** UC02 (Single Identify), UC03 (Multi Identify)
 > **Module path:** `src/module/identify/`
 
@@ -8,75 +8,52 @@
 
 ## Tổng quan
 
-Module nhận dạng giọng nói nhận file audio từ Client, forward sang AI Service để so khớp với tất cả embedding đã đăng ký trong Qdrant, rồi lưu kết quả vào DB và trả về cho Client.
+Module nhận dạng giọng nói nhận file audio từ Client, forward sang AI Service để so khớp với tất cả embedding đã đăng ký trong Qdrant, sau đó thực hiện **Lazy Migration** (tự động đồng bộ User từ AI sang BE) rồi lưu kết quả vào DB và trả về cho Client.
 
-| Endpoint                    | Use Case | Mô tả                                                   |
-| --------------------------- | -------- | ------------------------------------------------------- |
-| `POST /api/identify/single` | UC02     | Nhận dạng 1 người nói trong audio                       |
-| `POST /api/identify/multi`  | UC03     | Phân tách và nhận dạng tối đa 2 người nói (Diarization) |
-
-**Score trong kết quả:**
-
-- Range: `[-1, 1]` — cosine similarity giữa embedding audio input và embedding đã đăng ký
-- `≥ 0.85`: độ khớp cao (confident)
-- `0.6–0.85`: khớp trung bình (cần xác nhận thêm)
-- `< 0.6`: không khớp tin cậy
+| Endpoint                       | Use Case | Mô tả                                                   |
+| ------------------------------ | -------- | ------------------------------------------------------- |
+| `POST /api/v1/identify/single` | UC02     | Nhận dạng 1 người nói trong audio                       |
+| `POST /api/v1/identify/multi`  | UC03     | Phân tách và nhận dạng tối đa 2 người nói (Diarization) |
 
 ---
 
-## POST /api/identify/single
+## Cơ chế Lazy Migration (Import tự động)
+
+Hệ thống được thiết kế để hoạt động với AI Service đã có sẵn dữ liệu voice từ trước. Khi nhận dạng:
+
+1. Nếu AI trả về `matched_voice_id` mà Backend chưa có User tương ứng trong bảng `users`.
+2. Backend sẽ tự động tạo một bản ghi User mới với `source = AI_IMPORTED`.
+3. Các thông tin enrich (name, phone, criminal_record) sẽ được lấy từ dữ liệu AI trả về và lưu vào DB.
+
+---
+
+## POST /api/v1/identify/single
 
 ### Mô tả (UC02)
 
-Nhận dạng 1 người nói từ file audio. Trả về top-5 kết quả khớp nhất được sắp xếp theo score giảm dần.
-
-### Request
-
-```
-POST /api/identify/single
-Authorization: Bearer <access_token>
-Content-Type: multipart/form-data
-```
-
-**Form fields:**
-
-| Field   | Type   | Required | Mô tả                                             |
-| ------- | ------ | -------- | ------------------------------------------------- |
-| `audio` | `File` | ✅       | File âm thanh WAV/MP3/FLAC/OGG, ≤ 50MB, ≤ 10 phút |
-
-**cURL:**
-
-```bash
-curl -X POST http://localhost:3000/api/identify/single \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -F "audio=@/path/to/audio_to_identify.wav"
-```
-
-### Response thành công — 200 OK
-
-```typescript
 interface SingleIdentifyResponse {
-  statusCode: 200;
-  message: string;
-  data: {
-    session_id: string; // UUID — ID của identify_session vừa tạo trong DB
-    session_type: 'SINGLE';
-    audio_url: string; // URL audio đã upload (để debug/replay)
-    identified_at: string; // ISO 8601
-    results: SingleResult[];
-  };
+statusCode: 200;
+message: string;
+data: {
+session_id: string; // UUID — ID của identify_session vừa tạo trong DB
+session_type: 'SINGLE';
+audio_url: string; // URL audio đã upload (để debug/replay)
+identified_at: string; // ISO 8601
+results: SingleResult[];
+};
 }
 
 interface SingleResult {
-  rank: number; // 1–5, sắp xếp theo score giảm dần
-  voice_id: string; // UUID — Qdrant point ID
-  score: number; // [-1, 1]
-  name: string; // từ DB users
-  citizen_identification: string | null;
-  phone_number: string | null;
-  criminal_record: Array<{ case: string; year: number }> | null;
+rank: number; // 1–5, sắp xếp theo score giảm dần
+voice_id: string; // UUID — Qdrant point ID
+score: number; // [-1, 1]
+name: string; // từ DB users
+citizen_identification: string | null;
+phone_number: string | null;
+criminal_record: Array<{ case: string; year: number }> | null;
 }
-```
+
+````
 
 **Example response — tìm thấy kết quả:**
 
@@ -111,7 +88,7 @@ interface SingleResult {
     ]
   }
 }
-```
+````
 
 **Example response — không tìm thấy:**
 
@@ -215,7 +192,7 @@ async identifySingle(operatorId: string, audioPath: string, audioUrl: string) {
 
 ---
 
-## POST /api/identify/multi
+## POST /api/v1/identify/multi
 
 ### Mô tả (UC03)
 
@@ -224,25 +201,25 @@ Nhận dạng hội thoại tối đa 2 người (Speaker Diarization). AI Servi
 ### Request
 
 ```
-POST /api/identify/multi
+POST /api/v1/identify/multi
 Authorization: Bearer <access_token>
 Content-Type: multipart/form-data
 ```
 
 **Form fields:**
 
-| Field   | Type   | Required | Mô tả                                                       |
-| ------- | ------ | -------- | ----------------------------------------------------------- |
-| `audio` | `File` | ✅       | File hội thoại 2 người, WAV/MP3/FLAC/OGG, ≤ 50MB, ≤ 10 phút |
+| Field  | Type   | Required | Mô tả                                                       |
+| ------ | ------ | -------- | ----------------------------------------------------------- |
+| `file` | `File` | ✅       | File hội thoại 2 người, WAV/MP3/FLAC/OGG, ≤ 50MB, ≤ 10 phút |
 
 > ⚠️ **Diarization rất tốn tài nguyên.** Backend **phải** validate size + duration trước khi gọi AI Service.
 
 **cURL:**
 
 ```bash
-curl -X POST http://localhost:3000/api/identify/multi \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -F "audio=@/path/to/conversation.wav"
+curl -X POST http://localhost:3000/api/v1/identify/multi \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@/path/to/conversation.wav"
 ```
 
 ### Response thành công — 200 OK

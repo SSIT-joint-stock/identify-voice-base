@@ -55,6 +55,12 @@ enum AudioPurpose {
   UPDATE_VOICE
 }
 
+enum UserSource {
+  SYSTEM
+  AI_IMPORTED
+}
+
+
 // ============================================================
 // MODELS
 // ============================================================
@@ -100,6 +106,9 @@ model users {
   passport               String?
   /// Tiền án tiền sự dạng JSON string: [{case: string, year: number}]
   criminal_record        Json?   @db.JsonB
+
+  /// Nguồn gốc tạo user
+  source                 UserSource @default(SYSTEM)
 
   /// Url file audio for user enroll
   audio_url              String?
