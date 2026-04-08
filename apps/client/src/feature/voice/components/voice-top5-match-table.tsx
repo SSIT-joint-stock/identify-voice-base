@@ -1,4 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -6,9 +12,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import type { VoiceIdentifyItem } from '../types/voice.types';
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import type { VoiceIdentifyItem } from "../types/voice.types";
 
 interface VoiceTop5MatchTableProps {
   title: string;
@@ -22,7 +28,7 @@ export function VoiceTop5MatchTable({
   title,
   description,
   items,
-  emptyText = 'Không có dữ liệu.',
+  emptyText = "Không có dữ liệu.",
   speakerIndex = 0,
 }: VoiceTop5MatchTableProps) {
   return (
@@ -34,7 +40,9 @@ export function VoiceTop5MatchTable({
 
       <CardContent>
         {items.length === 0 ? (
-          <div className="rounded-xl border p-4 text-sm text-muted-foreground">{emptyText}</div>
+          <div className="rounded-xl border p-4 text-sm text-muted-foreground">
+            {emptyText}
+          </div>
         ) : (
           <Table>
             <TableHeader>
@@ -50,17 +58,20 @@ export function VoiceTop5MatchTable({
               {items.map((item, index) => (
                 <TableRow
                   key={`speaker-${speakerIndex}-match-${
-                    item.matched_voice_id || item.name || 'unknown'
+                    item.matched_voice_id || item.name || "unknown"
                   }-${index}`}
                 >
                   <TableCell>{index + 1}</TableCell>
-                  <TableCell>{item.message || '-'}</TableCell>
-                  <TableCell className="font-medium">{item.name || '-'}</TableCell>
-                  <TableCell>{item.citizen_identification || '-'}</TableCell>
-                  <TableCell>{item.phone_number || '-'}</TableCell>
+                  <TableCell className="font-medium">
+                    {item.name || "-"}
+                  </TableCell>
+                  <TableCell>{item.citizen_identification || "-"}</TableCell>
+                  <TableCell>{item.phone_number || "-"}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {typeof item.score === 'number' ? item.score.toFixed(4) : '-'}
+                      {typeof item.score === "number"
+                        ? item.score.toFixed(4)
+                        : "-"}
                     </Badge>
                   </TableCell>
                 </TableRow>

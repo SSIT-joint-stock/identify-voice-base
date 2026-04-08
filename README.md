@@ -97,6 +97,12 @@ This project is built as a **Turborepo Monorepo** managed by **pnpm workspaces**
 
 ---
 
+## 🔐 Login Feature Setup
+
+- Team checklist sau khi pull để login chạy ổn định: `docs/dev-login-setup.md`
+
+---
+
 ## 🚀 Development Scripts
 
 The monorepo uses centralized scripts in the root `package.json` to manage all apps and packages.

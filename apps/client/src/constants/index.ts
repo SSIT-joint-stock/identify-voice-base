@@ -9,6 +9,8 @@ export const QUERY_KEYS = {
 } as const;
 
 export const ROUTES = {
+  LOGIN: "/login",
+  REGISTER: "/register",
   HOME: "/",
   VOICE: "/voice",
   VOICE_ENROLL: "/voice/enroll",

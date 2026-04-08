@@ -80,6 +80,7 @@ async function bootstrap() {
         'Authorization',
         'X-Requested-With',
         'apollo-require-preflight',
+        'ngrok-skip-browser-warning',
       ],
     });
 

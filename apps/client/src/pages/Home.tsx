@@ -20,13 +20,13 @@ const quickActions = [
 export default function Home() {
   return (
     <div className="flex h-full flex-col gap-6">
-      <section className="flex flex-[5] items-center rounded-[32px] bg-white px-8 py-6 shadow-[0_8px_30px_rgba(15,23,42,0.08)] md:px-12 md:py-10 lg:px-16 lg:py-12">
+      <section className="flex flex-5 items-center rounded-[32px] bg-white px-8 py-6 shadow-[0_8px_30px_rgba(15,23,42,0.08)] md:px-12 md:py-10 lg:px-16 lg:py-12">
         <div className="grid w-full items-center gap-8 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[480px_minmax(0,1fr)]">
           <div className="flex justify-center xl:justify-start">
             <img
               src={micWave}
               alt="Microphone and waveform"
-              className="h-auto w-full max-w-[320px] object-contain lg:max-w-[400px] xl:max-w-[460px] 2xl:max-w-[500px]"
+              className="h-auto w-full max-w-[320px] object-contain lg:max-w-100 xl:max-w-115 2xl:max-w-125"
             />
           </div>
 
@@ -39,7 +39,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="grid flex-[4] gap-6 sm:grid-cols-2">
+      <section className="grid flex-4 gap-6 sm:grid-cols-2">
         {quickActions.map((item) => {
           const Icon = item.icon;
 
