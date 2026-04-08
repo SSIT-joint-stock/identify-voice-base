@@ -1,60 +1,56 @@
-# GET /api/v1/sessions
+# List Identify Sessions
 
-Lấy danh sách lịch sử các phiên nhận dạng giọng nói đã thực hiện trong hệ thống.
+Lấy danh sách các phiên nhận dạng đã thực hiện từ trước tới nay.
 
-## Endpoint
+`GET /api/v1/sessions`
 
-- **Path:** `/api/v1/sessions`
-- **Method:** `GET`
-- **Auth:** Required (Bearer Token)
+## Request
 
-## Query Parameters
+**Headers:**
 
-| Field       | Type              | Default | Description                   |
-| :---------- | :---------------- | :------ | :---------------------------- |
-| `page`      | `number`          | `1`     | Trang hiện tại                |
-| `page_size` | `number`          | `10`    | Số bản ghi trên mỗi trang     |
-| `type`      | `SINGLE \| MULTI` |         | Lọc theo loại phiên nhận diện |
-| `from_date` | `string (ISO)`    |         | Lọc các phiên từ ngày này     |
-| `to_date`   | `string (ISO)`    |         | Lọc các phiên đến ngày này    |
+- `Authorization: Bearer <access_token>`
+
+**Query Parameters:**
+| Param | Type | Default | Mô tả |
+| ----------- | --------------------- | ------- | ------------------------------------------------- |
+| `page` | `number` | `1` | Số trang |
+| `page_size` | `number` | `10` | Kích thước trang |
+| `from_date` | `string` | — | Từ ngày (ISO 8601 date: `2026-04-01`) |
+| `to_date` | `string` | — | Đến ngày (ISO 8601 date: `2026-04-05`, inclusive) |
 
 ## Response
 
-### Cấu trúc dữ liệu (200 OK)
+Returns a `200 OK`
 
-Hệ thống trả về danh sách đã được rút gọn thông tin để tối ưu tốc độ tải.
-
-```typescript
+```json
 {
   "statusCode": 200,
+  "message": "success",
   "data": {
     "items": [
       {
-        "id": "string (uuid)",
-        "session_type": "SINGLE | MULTI",
-        "audio_url": "string (url)",
-        "identified_at": "string (iso_date)",
+        "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "audio_url": "http://localhost:3000/uploads/identify/xyz789.wav",
+        "identified_at": "2026-04-05T14:30:00.000Z",
         "operator": {
-          "id": "string",
-          "username": "string"
+          "id": "op-uuid-here",
+          "username": "admin"
         },
-        "result_count": "number", // số lượng kết quả tìm thấy
-        "top_score": "number | null" // điểm số cao nhất trong các match
+        "result_count": 5,
+        "top_score": 0.94
       }
     ],
     "pagination": {
       "page": 1,
       "page_size": 10,
-      "total": 52,
-      "total_pages": 6
+      "total": 28,
+      "total_pages": 3
     }
   }
 }
 ```
 
-## Logic làm giàu dữ liệu (Summary Enrichment)
+## Lỗi
 
-Tại tầng Repository, ứng dụng thực hiện các bước sau để tối ưu danh sách:
-
-1. **Top Score Calculation:** Duyệt qua trường `results` JSONB để tìm giá trị `score` lớn nhất, giúp Frontend hiển thị độ tin cậy nhanh chóng mà không cần parse toàn bộ JSON.
-2. **Audio URL:** Chuyển đổi `file_path` nội bộ thành URL truy cập được từ bên ngoài thông qua CDN URL cấu hình trong hệ thống.
+- **401 Unauthorized** Token sai
+- **400 Bad request** Thiếu/Sai param

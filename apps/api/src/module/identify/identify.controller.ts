@@ -2,6 +2,7 @@ import { ApiSuccess } from '@/common/decorators';
 import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import {
+  Body,
   Controller,
   Post,
   UploadedFile,
@@ -17,8 +18,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { MultiIdentifyDataDto } from './dto/multi-identify-response.dto';
-import { SingleIdentifyDataDto } from './dto/single-identify-response.dto';
 import { IdentifyService } from './service/identify.service';
 
 @ApiTags('identify')
@@ -28,54 +27,36 @@ import { IdentifyService } from './service/identify.service';
 export class IdentifyController {
   constructor(private readonly identifyService: IdentifyService) {}
 
-  @Post('single')
+  @Post()
   @ApiOperation({
-    summary: 'Nhận dạng giọng nói (1 người)',
-    description: 'Tải lên 1 file audio để tìm kiếm danh tính trong DB. SLA: 5s',
+    summary: 'Nhận dạng giọng nói',
+    description:
+      'Tải lên 1 file audio. Hệ thống tự động xác định 1-2 người nói, tách tiếng và nhận dạng từng người.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
+        type: {
+          type: 'string',
+          enum: ['SINGLE', 'MULTI'],
+          description: 'Loại nhận dạng (1 người hoặc 2 người)',
+          default: 'MULTI',
+        },
         file: { type: 'string', format: 'binary', description: 'File ghi âm' },
       },
       required: ['file'],
     },
   })
-  @ApiResponse({ status: 200, type: SingleIdentifyDataDto })
+  @ApiResponse({ status: 200 }) // Dto currently isn't uniform yet, can ignore or create a unified Dto later
   @ApiSuccess('Nhận dạng thành công')
   @UseInterceptors(FileInterceptor('file'))
-  async identifySingle(
+  async identify(
     @UploadedFile() file: Express.Multer.File,
     @User('id') userId: string,
+    @Body('type') type: 'SINGLE' | 'MULTI' = 'MULTI',
   ) {
-    return this.identifyService.identifySingle(file, userId);
-  }
-
-  @Post('multi')
-  @ApiOperation({
-    summary: 'Nhận dạng hội thoại (Diarization + Identify)',
-    description:
-      'Tải lên 1 file audio hội thoại (tối đa 2 người). Hệ thống sẽ tách tiếng và nhận dạng từng người. SLA: 30s',
-  })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        file: { type: 'string', format: 'binary', description: 'File ghi âm' },
-      },
-      required: ['file'],
-    },
-  })
-  @ApiResponse({ status: 200, type: MultiIdentifyDataDto })
-  @ApiSuccess('Nhận dạng hội thoại thành công')
-  @UseInterceptors(FileInterceptor('file'))
-  async identifyMulti(
-    @UploadedFile() file: Express.Multer.File,
-    @User('id') userId: string,
-  ) {
-    return this.identifyService.identifyMulti(file, userId);
+    return this.identifyService.identify(file, userId, type);
   }
 }

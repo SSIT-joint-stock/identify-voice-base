@@ -1,12 +1,22 @@
+import { AuthTokenService } from '@/module/auth/service/auth-token.service';
 import { Module } from '@nestjs/common';
-import { VoicesController } from './voices.controller';
+import { VoicesRepository } from './repository/voices.repository';
 import { VoicesService } from './service/voices.service';
-import { CreateVoiceRecordUseCase } from './use-cases/create-voice-record.usecase';
-import { GetVoiceRecordUseCase } from './use-cases/get-voice-record.usecase';
+import { FindAllVoicesUseCase } from './use-cases/find-all-voices.usecase';
+import { GetVoiceDetailUseCase } from './use-cases/get-voice-detail.usecase';
+import { UpdateVoiceInfoUseCase } from './use-cases/update-voice-info.usecase';
+import { VoicesController } from './voices.controller';
 
 @Module({
   controllers: [VoicesController],
-  providers: [VoicesService, CreateVoiceRecordUseCase, GetVoiceRecordUseCase],
+  providers: [
+    VoicesService,
+    VoicesRepository,
+    FindAllVoicesUseCase,
+    GetVoiceDetailUseCase,
+    UpdateVoiceInfoUseCase,
+    AuthTokenService,
+  ],
   exports: [VoicesService],
 })
 export class VoicesModule {}

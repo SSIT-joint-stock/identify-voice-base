@@ -11,8 +11,8 @@ import {
 import type {
   StorageDriver,
   StorageSaveResult,
-} from './interfaces/storage-driver.interface';
-import { STORAGE_DRIVER_TOKEN } from './interfaces/storage-driver.interface';
+} from '../interfaces/storage-driver.interface';
+import { STORAGE_DRIVER_TOKEN } from '../interfaces/storage-driver.interface';
 
 /**
  * StorageService — application-layer facade cho storage.

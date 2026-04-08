@@ -11,9 +11,9 @@ import * as path from 'path';
 
 import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
-import { UploadService } from '@/module/upload/upload.service';
+import { UploadService } from '@/module/upload/service/upload.service';
 
-import { AiCoreService } from '@/module/ai-core/ai-core.service';
+import { AiCoreService } from '@/module/ai-core/service/ai-core.service';
 import { EnrollVoiceDto } from '../dto/enroll-voice.dto';
 
 @Injectable()

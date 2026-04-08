@@ -34,12 +34,6 @@ enum UserStatus {
   INACTIVE
 }
 
-/// Loại phiên nhận dạng: đơn giọng hoặc đa giọng
-enum SessionType {
-  SINGLE
-  MULTI
-}
-
 /// Trạng thái của job cập nhật embedding giọng nói (Async)
 enum JobStatus {
   PENDING
@@ -125,6 +119,25 @@ model users {
   @@map("users")
 }
 
+// AI chỉ “đề xuất danh tính”. Không bao giờ được phép đụng vào users.
+model ai_identities_cache {
+  /// Voice ID do AI trả về (Qdrant point id)
+  voice_id String @id
+
+  name                   String?
+  citizen_identification String?
+  phone_number           String?
+  hometown               String?
+  job                    String?
+  passport               String?
+  criminal_record        Json?   @db.JsonB
+
+  raw                    Json    @db.JsonB
+  first_seen_at          DateTime @default(now())
+
+  @@map("ai_identities_cache")
+}
+
 /// Quản lý metadata của các file audio lưu trên local filesystem
 model audio_files {
   id           String    @id @default(uuid()) @db.Uuid
@@ -193,8 +206,6 @@ model identify_sessions {
   id            String      @id @default(uuid()) @db.Uuid
   /// FK tới auth_accounts.id — operator thực hiện
   user_id       String      @db.Uuid
-  /// Loại phiên: SINGLE hoặc MULTI
-  session_type  SessionType
   /// FK tới audio_files.id — file audio input dùng để nhận dạng
   audio_file_id String      @db.Uuid
   /// Kết quả AI dạng JSON: [{voice_id, score, name, ...}]

@@ -13,4 +13,4 @@ Lịch sử nhận dạng được lưu trữ trong bảng `identify_sessions` v
 
 - **Operator:** Người thực hiện nhận dạng (`user_id`).
 - **Audio File:** Bản ghi âm gốc được sử dụng (`audio_file_id`).
-- **Results:** Kết quả nhận dạng từ AI đã được BE làm giàu thông tin cá nhân (lưu dưới dạng JSONB).
+- **Results:** Kết quả nhận dạng từ AI RAW (AI Truth) được lưu dưới dạng array JSON. (Quá trình làm giàu thông tin/gắn kết Business Truth dựa vào voice_id được tự động mapping khi query).

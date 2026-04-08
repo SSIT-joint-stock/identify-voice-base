@@ -1,29 +1,57 @@
-import { Controller, Post, Get, Body, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiSuccess } from '@/common/decorators';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { UpdateVoiceInfoDto } from './dto/update-voice-info.dto';
+import { VoiceFilterDto } from './dto/voice-filter.dto';
 import { VoicesService } from './service/voices.service';
-import { CreateVoiceRecordDto } from './dto/create-voice-record.dto';
 
 @ApiTags('voices')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('voices')
 export class VoicesController {
   constructor(private readonly voicesService: VoicesService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Tạo hồ sơ giọng nói mới' })
-  @ApiResponse({
-    status: 201,
-    description: 'Hồ sơ giọng nói đã được tạo thành công',
-  })
-  async create(@Body() dto: CreateVoiceRecordDto) {
-    return this.voicesService.create(dto);
+  @Get()
+  @ApiOperation({ summary: 'Lấy danh sách hồ sơ giọng nói (UC06)' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiSuccess('Lấy danh sách giọng nói thành công!')
+  async findAll(@Query() filter: VoiceFilterDto) {
+    return this.voicesService.findAll(filter);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Lấy hồ sơ giọng nói theo ID' })
-  @ApiParam({ name: 'id', description: 'UUID của hồ sơ giọng nói' })
-  @ApiResponse({ status: 200, description: 'Tìm thấy hồ sơ giọng nói' })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy hồ sơ giọng nói' })
+  @ApiOperation({ summary: 'Lấy chi tiết hồ sơ giọng nói (UC06)' })
+  @ApiParam({ name: 'id', description: 'UUID của user' })
+  @ApiResponse({ status: 200, description: 'Success' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy hồ sơ' })
+  @ApiSuccess('Lấy chi tiết giọng nói thành công!')
   async findOne(@Param('id') id: string) {
     return this.voicesService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Cập nhật thông tin cá nhân (UC06)' })
+  @ApiParam({ name: 'id', description: 'UUID của user' })
+  @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
+  @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
+  @ApiSuccess('Cập nhật thông tin cá nhân thành công!')
+  async update(@Param('id') id: string, @Body() dto: UpdateVoiceInfoDto) {
+    return this.voicesService.update(id, dto);
   }
 }

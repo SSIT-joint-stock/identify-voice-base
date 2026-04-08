@@ -19,8 +19,8 @@ import { ApiSuccess } from '@/common/decorators';
 import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
+import { EnrollService } from '@/module/enroll/service/enroll.service';
 import { EnrollVoiceDto } from './dto/enroll-voice.dto';
-import { EnrollService } from './enroll.service';
 
 @ApiTags('enroll')
 @ApiBearerAuth()
@@ -67,6 +67,7 @@ export class EnrollController {
   })
   @ApiSuccess('Đăng ký giọng nói thành công')
   @UseInterceptors(FileInterceptor('audio'))
+  @ApiSuccess('Đăng kí hồ sơ giọng nói thành công!')
   async enroll(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: EnrollVoiceDto,

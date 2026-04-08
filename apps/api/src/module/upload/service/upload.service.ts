@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
-import { StorageService } from '@/module/storage/storage.service';
+import { StorageService } from '@/module/storage/service/storage.service';
 
 /** Map AudioPurpose → thư mục con trong storage root */
 const PURPOSE_DIR: Record<AudioPurpose, string> = {

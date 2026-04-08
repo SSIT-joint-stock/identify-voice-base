@@ -1,25 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { IdentifySingleUseCase } from '../use-cases/identify-single.use-case';
-import { IdentifyMultiUseCase } from '../use-cases/identify-multi.use-case';
+import { IdentifyUseCase } from '../use-cases/identify.use-case';
 
 @Injectable()
 export class IdentifyService {
-  constructor(
-    private readonly identifySingleUseCase: IdentifySingleUseCase,
-    private readonly identifyMultiUseCase: IdentifyMultiUseCase,
-  ) {}
+  constructor(private readonly identifyUseCase: IdentifyUseCase) {}
 
   /**
-   * Nhận dạng 1 người nói (Single Identify).
+   * Nhận dạng nhận dạng giọng nói (tự động phân rã speaker 1-2 người)
    */
-  async identifySingle(file: Express.Multer.File, operatorId: string) {
-    return this.identifySingleUseCase.execute(file, operatorId);
-  }
-
-  /**
-   * Nhận dạng tối đa 2 người nói (Multi Identify/Diarization).
-   */
-  async identifyMulti(file: Express.Multer.File, operatorId: string) {
-    return this.identifyMultiUseCase.execute(file, operatorId);
+  async identify(
+    file: Express.Multer.File,
+    operatorId: string,
+    type: 'SINGLE' | 'MULTI',
+  ) {
+    return this.identifyUseCase.execute(file, operatorId, type);
   }
 }

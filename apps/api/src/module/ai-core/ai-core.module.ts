@@ -1,9 +1,9 @@
-import { AiCoreService } from '@/module/ai-core/ai-core.service';
+import { AiCoreService } from '@/module/ai-core/service/ai-core.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AICoreIdentifyMultiUseCase } from './usecase/ai-identify-multi.usecase';
-import { AICoreIdentifySingleUseCase } from './usecase/ai-identify-single.usecase';
+import { AiIdentifyMultiUseCase } from './usecase/ai-identify-multi.usecase';
+import { AiIdentifySingleUseCase } from './usecase/ai-identify-single.usecase';
 import { UploadVoiceUseCase } from './usecase/ai-upload-voice.usecase';
 
 @Module({
@@ -11,8 +11,8 @@ import { UploadVoiceUseCase } from './usecase/ai-upload-voice.usecase';
   providers: [
     AiCoreService,
     UploadVoiceUseCase,
-    AICoreIdentifyMultiUseCase,
-    AICoreIdentifySingleUseCase,
+    AiIdentifySingleUseCase,
+    AiIdentifyMultiUseCase,
   ],
   exports: [AiCoreService],
 })

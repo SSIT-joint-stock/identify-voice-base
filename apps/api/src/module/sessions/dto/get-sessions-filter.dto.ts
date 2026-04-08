@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { SessionType } from '@prisma/client';
+
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
@@ -24,14 +24,6 @@ export class GetSessionsFilterDto {
   @IsOptional()
   @Type(() => Number)
   page_size?: number = 10;
-
-  @ApiPropertyOptional({
-    description: 'Lọc theo loại phiên',
-    enum: SessionType,
-  })
-  @IsEnum(SessionType)
-  @IsOptional()
-  type?: SessionType;
 
   @ApiPropertyOptional({
     description: 'Lọc từ ngày (ISO 8601: 2026-04-01)',

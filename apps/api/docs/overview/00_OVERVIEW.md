@@ -76,23 +76,22 @@ Backend đóng vai trò **orchestration layer** trung tâm:
 
 ## 4. Bảng tổng hợp toàn bộ API Endpoints
 
-| Method   | Path                              | Module      | Use Case | Auth | Mô tả                           |
-| -------- | --------------------------------- | ----------- | -------- | ---- | ------------------------------- |
-| `POST`   | `/api/v1/auth/login`              | Auth        | UC00     | ❌   | Đăng nhập, nhận JWT             |
-| `POST`   | `/api/v1/auth/refresh`            | Auth        | UC00     | ❌   | Cấp lại access token            |
-| `POST`   | `/api/v1/auth/logout`             | Auth        | UC00     | ✅   | Vô hiệu hóa refresh token       |
-| `POST`   | `/api/v1/auth/reset-password`     | Auth        | UC00     | ✅   | Đổi mật khẩu                    |
-| `POST`   | `/api/v1/enroll`                  | Enroll      | UC01     | ✅   | Đăng ký giọng nói mới           |
-| `GET`    | `/api/v1/voices`                  | Voices      | UC06     | ✅   | Danh sách hồ sơ giọng nói       |
-| `GET`    | `/api/v1/voices/:id`              | Voices      | UC06     | ✅   | Chi tiết hồ sơ + lịch sử        |
-| `PUT`    | `/api/v1/voices/:id`              | Voices      | UC06     | ✅   | Cập nhật thông tin cá nhân      |
-| `DELETE` | `/api/v1/voices/:id`              | Voices      | UC06     | ✅   | Xóa hồ sơ (DB + Qdrant + file)  |
-| `PATCH`  | `/api/v1/voices/:id/update-voice` | UpdateVoice | UC04     | ✅   | Khởi tạo job cập nhật giọng nói |
-| `POST`   | `/api/v1/identify/single`         | Identify    | UC02     | ✅   | Nhận dạng 1 người               |
-| `POST`   | `/api/v1/identify/multi`          | Identify    | UC03     | ✅   | Nhận dạng hội thoại 2 người     |
-| `GET`    | `/api/v1/sessions`                | Sessions    | UC05     | ✅   | Danh sách phiên nhận dạng       |
-| `GET`    | `/api/v1/sessions/:id`            | Sessions    | UC05     | ✅   | Chi tiết kết quả AI một phiên   |
-| `GET`    | `/api/v1/jobs/:id`                | UpdateVoice | UC04     | ✅   | Theo dõi tiến độ job            |
+| Method   | Path                              | Module      | Use Case | Auth | Mô tả                                          |
+| -------- | --------------------------------- | ----------- | -------- | ---- | ---------------------------------------------- |
+| `POST`   | `/api/v1/auth/login`              | Auth        | UC00     | ❌   | Đăng nhập, nhận JWT                            |
+| `POST`   | `/api/v1/auth/refresh`            | Auth        | UC00     | ❌   | Cấp lại access token                           |
+| `POST`   | `/api/v1/auth/logout`             | Auth        | UC00     | ✅   | Vô hiệu hóa refresh token                      |
+| `POST`   | `/api/v1/auth/reset-password`     | Auth        | UC00     | ✅   | Đổi mật khẩu                                   |
+| `POST`   | `/api/v1/enroll`                  | Enroll      | UC01     | ✅   | Đăng ký giọng nói mới                          |
+| `GET`    | `/api/v1/voices`                  | Voices      | UC06     | ✅   | Danh sách hồ sơ giọng nói                      |
+| `GET`    | `/api/v1/voices/:id`              | Voices      | UC06     | ✅   | Chi tiết hồ sơ + lịch sử                       |
+| `PUT`    | `/api/v1/voices/:id`              | Voices      | UC06     | ✅   | Cập nhật thông tin cá nhân                     |
+| `DELETE` | `/api/v1/voices/:id`              | Voices      | UC06     | ✅   | Xóa hồ sơ (DB + Qdrant + file)                 |
+| `PATCH`  | `/api/v1/voices/:id/update-voice` | UpdateVoice | UC04     | ✅   | Khởi tạo job cập nhật giọng nói                |
+| `POST`   | `/api/v1/identify`                | Identify    | UC02/03  | ✅   | Nhận dạng giọng nói (truyền type=SINGLE/MULTI) |
+| `GET`    | `/api/v1/sessions`                | Sessions    | UC05     | ✅   | Danh sách phiên nhận dạng                      |
+| `GET`    | `/api/v1/sessions/:id`            | Sessions    | UC05     | ✅   | Chi tiết kết quả AI một phiên                  |
+| `GET`    | `/api/v1/jobs/:id`                | UpdateVoice | UC04     | ✅   | Theo dõi tiến độ job                           |
 
 ---
 

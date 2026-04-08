@@ -2,8 +2,8 @@ import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { Prisma, SessionType } from '@prisma/client';
-import { GetSessionsFilterDto } from './dto/get-sessions-filter.dto';
+import { Prisma } from '@prisma/client';
+import { GetSessionsFilterDto } from '../dto/get-sessions-filter.dto';
 
 @Injectable()
 export class SessionsRepository {
@@ -28,14 +28,13 @@ export class SessionsRepository {
   async findAll(filter: GetSessionsFilterDto) {
     const page = filter.page ?? 1;
     const page_size = filter.page_size ?? 10;
-    const { type, from_date, to_date } = filter;
+    const { from_date, to_date } = filter;
 
     const where: Prisma.identify_sessionsWhereInput = {
-      ...(type && { session_type: type }),
       ...((from_date || to_date) && {
         identified_at: {
           ...(from_date && { gte: new Date(from_date) }),
-          ...(to_date && { lte: new Date(`${to_date}T23:59:59.999Z`) }),
+          ...(to_date && { lte: new Date(to_date) }),
         },
       }),
     };
@@ -58,28 +57,15 @@ export class SessionsRepository {
       const results = (session.results as any[]) || [];
       let topScore: number | null = null;
 
-      if (session.session_type === SessionType.SINGLE) {
-        if (results.length > 0) {
-          const scores = results
-            .map((r) => r.score)
-            .filter((s): s is number => typeof s === 'number');
-          if (scores.length > 0) {
-            topScore = Math.max(...scores);
-          }
-        }
-      } else {
-        // Multi identify speaker score
-        const scores = results
-          .map((s) => s.score)
-          .filter((s): s is number => typeof s === 'number');
-        if (scores.length > 0) {
-          topScore = Math.max(...scores);
-        }
+      const scores = results
+        .map((s) => s.score)
+        .filter((s): s is number => typeof s === 'number');
+      if (scores.length > 0) {
+        topScore = Math.max(...scores);
       }
 
       return {
         id: session.id,
-        session_type: session.session_type,
         audio_url: `${this.storage.cdnUrl}/${session.audio_file.file_path}`,
         identified_at: session.identified_at,
         operator: session.operator,
@@ -119,7 +105,6 @@ export class SessionsRepository {
 
     return {
       id: session.id,
-      session_type: session.session_type,
       audio_url: `${this.storage.cdnUrl}/${session.audio_file.file_path}`,
       identified_at: session.identified_at,
       operator: session.operator,

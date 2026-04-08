@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SessionType } from '@prisma/client';
 
 export class SessionOperatorDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
@@ -12,9 +11,6 @@ export class SessionOperatorDto {
 export class SessionSummaryDto {
   @ApiProperty({ example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
   id: string;
-
-  @ApiProperty({ enum: SessionType, example: SessionType.SINGLE })
-  session_type: SessionType;
 
   @ApiProperty({ example: 'http://localhost:3000/uploads/identify/xyz789.wav' })
   audio_url: string;

@@ -1,80 +1,55 @@
-# GET /api/v1/sessions/:id
+# Get Identify Session Details
 
-Chi tiết đầy đủ về một phiên nhận dạng giọng nói, bao gồm toàn bộ dữ liệu so khớp kỹ thuật.
+Lấy chi tiết đầy đủ 1 phiên identify, kích hoạt Lazy Enrichment để tổng hợp dữ liệu metadata.
 
-## Endpoint
+`GET /api/v1/sessions/:id`
 
-- **Path:** `/api/v1/sessions/:id`
-- **Method:** `GET`
-- **Auth:** Required (Bearer Token)
+## Request
+
+**Headers:**
+
+- `Authorization: Bearer <access_token>`
+
+**Path Parameter:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `uuid` | ID của session nhận diện |
 
 ## Response
 
-### Cấu trúc dữ liệu (200 OK)
+Returns a `200 OK`
 
-Cung cấp thông tin chi tiết nhất có thể để phục vụ việc đối soát và phân tích kỹ thuật.
-
-```typescript
+```json
 {
   "statusCode": 200,
+  "message": "success",
   "data": {
-    "id": "string (uuid)",
-    "session_type": "SINGLE | MULTI",
-    "audio_url": "string (url)",
-    "identified_at": "string (iso_date)",
+    "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "audio_url": "http://localhost:3000/uploads/identify/conv456.wav",
+    "identified_at": "2026-04-05T15:00:00.000Z",
     "operator": {
-      "id": "string",
-      "username": "string"
+      "id": "op-uuid-here",
+      "username": "admin"
     },
-    "results": "Json (Cấu trúc chi tiết tùy theo session_type)"
+    "results": [
+      {
+        "speaker_label": "SPEAKER_00",
+        "matched_voice_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "score": 0.91,
+        "name": "Nguyễn Văn A",
+        "citizen_identification": "012345678901",
+        "phone_number": "0912345678",
+        "is_business_truth": true,
+        "segments": [{ "start": 0.5, "end": 4.2 }]
+      }
+    ]
   }
 }
 ```
 
-### Cấu trúc `results` theo Session Type
+**Trường `is_business_truth`:** Xác định dữ liệu định danh của speaker này là kết quả trích xuất từ bảng `users` thực tế chứa (Business Truth = true), hay chỉ là metadata bộ nhớ tạm từ `ai_identities_cache` (Business Truth = false).
 
-#### 1. SINGLE SESSION
+## Lỗi
 
-Mảng chứa danh sách các ứng viên có giọng nói tương đồng nhất.
-
-```json
-[
-  {
-    "rank": 1,
-    "voice_id": "uuid",
-    "score": 0.98,
-    "name": "Nguyen Van A",
-    "citizen_identification": "012345678901",
-    "phone_number": "0987654321",
-    "criminal_record": [...]
-  }
-]
-```
-
-#### 2. MULTI SESSION
-
-Mảng chứa danh sách các người nói được tách ra từ hội thoại.
-
-```json
-[
-  {
-    "speaker_label": "SPEAKER_00",
-    "voice_id": "uuid",
-    "score": 0.95,
-    "name": "Nguyen Van A",
-    "segments": [{ "start": 0.5, "end": 10.2 }]
-  },
-  {
-    "speaker_label": "SPEAKER_01",
-    "voice_id": null,
-    "score": null,
-    "name": "Unknown",
-    "segments": [{ "start": 10.5, "end": 15.0 }]
-  }
-]
-```
-
-## Error Codes
-
-- `404 Not Found`: Không tìm thấy phiên nhận dạng với ID cung cấp.
-- `401 Unauthorized`: Token không hợp lệ hoặc thiếu.
+- **401 Unauthorized:** Token không hợp lệ.
+- **404 Not Found:** Không tìm thấy session tương ứng.

@@ -24,7 +24,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 
 import { UploadAudioDto } from './dto/upload-audio.dto';
 import { AudioValidationPipe } from './pipes/audio-validation.pipe';
-import { UploadService } from './upload.service';
+import { UploadService } from './service/upload.service';
 
 @ApiTags('upload')
 @ApiBearerAuth()

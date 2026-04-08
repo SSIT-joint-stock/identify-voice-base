@@ -1,5 +1,5 @@
-import { AICoreIdentifyMultiUseCase } from '@/module/ai-core/usecase/ai-identify-multi.usecase';
-import { AICoreIdentifySingleUseCase } from '@/module/ai-core/usecase/ai-identify-single.usecase';
+import { AiIdentifyMultiUseCase } from '@/module/ai-core/usecase/ai-identify-multi.usecase';
+import { AiIdentifySingleUseCase } from '@/module/ai-core/usecase/ai-identify-single.usecase';
 import { UploadVoiceUseCase } from '@/module/ai-core/usecase/ai-upload-voice.usecase';
 import { Injectable } from '@nestjs/common';
 
@@ -7,8 +7,8 @@ import { Injectable } from '@nestjs/common';
 export class AiCoreService {
   constructor(
     private readonly uploadVoiceUseCase: UploadVoiceUseCase,
-    private readonly identifySingleUseCase: AICoreIdentifySingleUseCase,
-    private readonly identifyMultiUseCase: AICoreIdentifyMultiUseCase,
+    private readonly identifySingleUseCase: AiIdentifySingleUseCase,
+    private readonly identifyMultiUseCase: AiIdentifyMultiUseCase,
   ) {}
 
   async uploadVoice(filePath: string, name: string, mimeType?: string) {

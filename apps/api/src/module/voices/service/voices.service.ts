@@ -1,25 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { CreateVoiceRecordUseCase } from '../use-cases/create-voice-record.usecase';
-import { GetVoiceRecordUseCase } from '../use-cases/get-voice-record.usecase';
-import { CreateVoiceRecordDto } from '../dto/create-voice-record.dto';
+import { UpdateVoiceInfoDto } from '../dto/update-voice-info.dto';
+import { VoiceFilterDto } from '../dto/voice-filter.dto';
+import { FindAllVoicesUseCase } from '../use-cases/find-all-voices.usecase';
+import { GetVoiceDetailUseCase } from '../use-cases/get-voice-detail.usecase';
+import { UpdateVoiceInfoUseCase } from '../use-cases/update-voice-info.usecase';
 
 @Injectable()
 export class VoicesService {
   constructor(
-    private readonly createVoiceRecordUseCase: CreateVoiceRecordUseCase,
-    private readonly getVoiceRecordUseCase: GetVoiceRecordUseCase,
+    private readonly findAllVoicesUseCase: FindAllVoicesUseCase,
+    private readonly getVoiceDetailUseCase: GetVoiceDetailUseCase,
+    private readonly updateVoiceInfoUseCase: UpdateVoiceInfoUseCase,
   ) {}
 
-  async create(dto: CreateVoiceRecordDto) {
-    return this.createVoiceRecordUseCase.execute(dto);
+  async findAll(filter: VoiceFilterDto) {
+    return this.findAllVoicesUseCase.execute(filter);
   }
 
   async findOne(id: string) {
-    return this.getVoiceRecordUseCase.execute(id);
+    return this.getVoiceDetailUseCase.execute(id);
   }
 
-  async findAll() {
-    // Standard service can still call prisma directly for simple queries if needed,
-    // but here we follow the UC pattern if it's complex.
+  async update(id: string, dto: UpdateVoiceInfoDto) {
+    return this.updateVoiceInfoUseCase.execute({ id, dto });
   }
 }
