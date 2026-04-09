@@ -111,6 +111,9 @@ export class VoicesRepository {
     });
   }
 
+  /**
+   * Tìm kiếm lịch sử nhận dạng.
+   */
   async findIdentifyHistory(voiceId: string) {
     const sessions = await this.prisma.identify_sessions.findMany({
       where: {
@@ -123,5 +126,57 @@ export class VoicesRepository {
     });
 
     return sessions;
+  }
+
+  /**
+   * Tìm kiếm thông tin giọng nói kèm theo file audio để phục vụ việc xóa.
+   */
+  async findVoiceWithFiles(userId: string) {
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      include: {
+        voice_records: {
+          include: { audio_file: true },
+        },
+      },
+    });
+
+    if (!user) return null;
+
+    return {
+      userId: user.id,
+      voiceIds: user.voice_records.map((vr) => vr.voice_id),
+      audioFileIds: user.voice_records.map((vr) => vr.audio_file_id),
+      audioPaths: user.voice_records.map((vr) => vr.audio_file.file_path),
+    };
+  }
+
+  /**
+   * Xóa hoàn toàn dữ liệu user và voice_records khỏi database.
+   * Audio files sẽ được xóa mềm (soft-delete) trong DB thông qua UploadService
+   * hoặc xóa cứng tùy cấu hình, nhưng tại đây bản thân record User và VoiceRecord sẽ biến mất.
+   */
+  async hardDeleteVoice(userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      // Lấy danh sách voice_records để biết audio_file_id cần cleanup
+      const voiceRecords = await tx.voice_records.findMany({
+        where: { user_id: userId },
+      });
+
+      const audioFileIds = voiceRecords.map((vr) => vr.audio_file_id);
+
+      // Xóa voice_records trước (vì có FK Restrict từ audio_files nếu có)
+      // Mặc dù user onDelete: Cascade, nhưng ta làm tường minh
+      await tx.voice_records.deleteMany({
+        where: { user_id: userId },
+      });
+
+      // Xóa user
+      await tx.users.delete({
+        where: { id: userId },
+      });
+
+      return { audioFileIds };
+    });
   }
 }

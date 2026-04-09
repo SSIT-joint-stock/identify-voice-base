@@ -3,7 +3,10 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Query,
@@ -53,5 +56,16 @@ export class VoicesController {
   @ApiSuccess('Cập nhật thông tin cá nhân thành công!')
   async update(@Param('id') id: string, @Body() dto: UpdateVoiceInfoDto) {
     return this.voicesService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Xóa hoàn toàn hồ sơ giọng nói (UC07)' })
+  @ApiParam({ name: 'id', description: 'UUID của user' })
+  @ApiResponse({ status: 200, description: 'Xóa thành công' })
+  @ApiResponse({ status: 404, description: 'Không tìm thấy hồ sơ' })
+  @ApiSuccess('Xóa hồ sơ giọng nói thành công!')
+  async remove(@Param('id') id: string) {
+    return this.voicesService.remove(id);
   }
 }

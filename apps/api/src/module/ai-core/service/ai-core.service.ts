@@ -1,3 +1,4 @@
+import { AiDeleteVoiceUseCase } from '@/module/ai-core/usecase/ai-delete-voice.usecase';
 import { AiIdentifyMultiUseCase } from '@/module/ai-core/usecase/ai-identify-multi.usecase';
 import { AiIdentifySingleUseCase } from '@/module/ai-core/usecase/ai-identify-single.usecase';
 import { UploadVoiceUseCase } from '@/module/ai-core/usecase/ai-upload-voice.usecase';
@@ -9,6 +10,7 @@ export class AiCoreService {
     private readonly uploadVoiceUseCase: UploadVoiceUseCase,
     private readonly identifySingleUseCase: AiIdentifySingleUseCase,
     private readonly identifyMultiUseCase: AiIdentifyMultiUseCase,
+    private readonly deleteVoiceUseCase: AiDeleteVoiceUseCase,
   ) {}
 
   async uploadVoice(filePath: string, name: string, mimeType?: string) {
@@ -21,5 +23,9 @@ export class AiCoreService {
 
   async identifyMulti(filePath: string, mimeType?: string) {
     return this.identifyMultiUseCase.execute(filePath, mimeType);
+  }
+
+  async deleteVoice(voiceId: string) {
+    return this.deleteVoiceUseCase.execute(voiceId);
   }
 }
