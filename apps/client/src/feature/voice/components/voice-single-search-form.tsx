@@ -2,13 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { LoaderCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -54,7 +48,6 @@ export function VoiceSingleSearchForm({
     <Card className="rounded-2xl">
       <CardHeader>
         <CardTitle>Tra cứu 1 người</CardTitle>
-        <CardDescription>Tải một file audio để nhận diện</CardDescription>
       </CardHeader>
 
       <CardContent>

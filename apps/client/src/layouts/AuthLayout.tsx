@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
 import { ROUTES } from "@/constants";
+import { isAccessTokenExpired } from "@/utils/auth-token";
 
 /**
  * Layout for auth pages (Login, Register).
@@ -9,8 +10,10 @@ import { ROUTES } from "@/constants";
  */
 export function AuthLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const hasValidToken = !isAccessTokenExpired(accessToken, 0);
 
-  if (isAuthenticated) {
+  if (isAuthenticated && hasValidToken) {
     return <Navigate to={ROUTES.HOME} replace />;
   }
 

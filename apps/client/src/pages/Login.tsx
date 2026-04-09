@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, AudioWaveform } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +66,7 @@ export default function Login() {
     <div className="flex min-h-screen w-full">
       {/* ─── Left Branding Panel ─────────────────────────────────── */}
       <div
-        className="relative hidden w-[52%] flex-col items-center justify-center overflow-hidden lg:flex"
+        className="relative hidden lg:flex lg:w-[65%] lg:flex-none flex-col items-center justify-center overflow-hidden"
         style={{
           backgroundImage: `url(${headerBg})`,
           backgroundSize: "cover",
@@ -98,14 +98,13 @@ export default function Login() {
           <div className="mx-auto h-px w-32 bg-linear-to-r from-transparent via-[#fad29e]/40 to-transparent" />
 
           <div className="flex items-center gap-3 text-white/70">
-            <AudioWaveform className="h-5 w-5" />
             <p className="text-base font-light">Hệ thống nhận diện giọng nói</p>
           </div>
         </div>
       </div>
 
       {/* ─── Right Form Panel ────────────────────────────────────── */}
-      <div className="flex flex-1 items-center justify-center bg-[#f8f9fb] px-6 py-12 lg:px-16">
+      <div className="flex flex-1 items-center justify-center bg-[#f8f9fb] px-6 py-12 lg:w-[35%] lg:flex-none lg:px-16">
         <div className="w-full max-w-110">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
@@ -158,7 +157,7 @@ export default function Login() {
                 <Input
                   id="login-password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="Nhập mật khẩu"
                   autoComplete="current-password"
                   className="h-12 rounded-xl border-[#e5e7eb] bg-white px-4 pr-12 text-base shadow-sm transition-all duration-200 placeholder:text-[#9ca3af] focus:border-[#4b1d18] focus:ring-2 focus:ring-[#4b1d18]/10"
                   {...register("password")}

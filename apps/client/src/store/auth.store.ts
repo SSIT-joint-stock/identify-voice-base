@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { AuthUser } from "@/types/auth.types";
+import { isAccessTokenExpired } from "@/utils/auth-token";
 
 interface AuthState {
   user: AuthUser | null;
@@ -14,9 +15,9 @@ interface AuthState {
  * Auth state store.
  * Hydrates from localStorage on creation so sessions survive page refreshes.
  */
-export const useAuthStore = create<AuthState>((set) => {
+export const useAuthStore = create<AuthState>((set, get) => {
   // Hydrate from localStorage
-  const storedToken = localStorage.getItem("access_token");
+  let storedToken = localStorage.getItem("access_token");
   const storedUser = localStorage.getItem("auth_user");
 
   let user: AuthUser | null = null;
@@ -24,6 +25,13 @@ export const useAuthStore = create<AuthState>((set) => {
     user = storedUser ? (JSON.parse(storedUser) as AuthUser) : null;
   } catch {
     user = null;
+  }
+
+  if (!storedToken || !user || isAccessTokenExpired(storedToken, 0)) {
+    storedToken = null;
+    user = null;
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("auth_user");
   }
 
   return {
@@ -38,8 +46,16 @@ export const useAuthStore = create<AuthState>((set) => {
     },
 
     setAccessToken: (token) => {
+      if (isAccessTokenExpired(token, 0)) {
+        get().clearAuth();
+        return;
+      }
+
       localStorage.setItem("access_token", token);
-      set({ accessToken: token });
+      set({
+        accessToken: token,
+        isAuthenticated: !!token && !!get().user,
+      });
     },
 
     clearAuth: () => {
