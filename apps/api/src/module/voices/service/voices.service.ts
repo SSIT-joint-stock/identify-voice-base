@@ -28,6 +28,7 @@ export class VoicesService {
   }
 
   async remove(id: string) {
-    return this.deleteVoiceUseCase.execute(id);
+    await this.deleteVoiceUseCase.execute(id);
+    return { deleted_id: id };
   }
 }
