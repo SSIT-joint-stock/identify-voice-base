@@ -92,7 +92,6 @@ export class AiIdentifySingleUseCase {
       )) as AxiosResponse<any>;
 
       aiResults = response.data;
-      console.log('AI SINGLE RAW:', response.data);
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
       throw new InternalServerErrorException(

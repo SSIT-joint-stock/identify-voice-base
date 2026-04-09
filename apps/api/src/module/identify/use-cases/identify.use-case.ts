@@ -65,7 +65,6 @@ export class IdentifyUseCase {
           audioFile.mime_type,
         );
       }
-      console.log(aiResponse);
 
       // 3. Upsert vào ai_identities_cache metadata từ AI thay vì dính líu đến users
       if (aiResponse.speakers.length > 0) {

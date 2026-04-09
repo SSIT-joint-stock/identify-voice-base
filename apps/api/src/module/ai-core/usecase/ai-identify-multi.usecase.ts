@@ -80,7 +80,6 @@ export class AiIdentifyMultiUseCase {
       )) as AxiosResponse<any>;
 
       aiResults = response.data;
-      console.log('AI MULTI RAW:', response.data);
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
       throw new InternalServerErrorException(

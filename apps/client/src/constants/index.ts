@@ -48,9 +48,8 @@ export const MAX_AUDIO_FILE_SIZE_MB = 25;
 export const MAX_AUDIO_FILE_SIZE_BYTES = MAX_AUDIO_FILE_SIZE_MB * 1024 * 1024;
 
 export const VOICE_API_ENDPOINTS = {
-  UPLOAD: "/upload_voice/",
-  IDENTIFY: "/identify_voice/",
-  IDENTIFY_TWO: "/identify_2_voice/",
+  ENROLL: "/voices/enroll",
+  IDENTIFY: "/identify",
 } as const;
 
 export const VOICE_TABS = {

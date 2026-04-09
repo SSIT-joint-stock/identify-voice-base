@@ -56,7 +56,6 @@ export function VoiceSpeakerResultCard({
   const [isTimestampOpen, setIsTimestampOpen] = useState(true);
   const isUnknown = isUnknownSpeaker(item);
   const top5Items: VoiceIdentifyItem[] = isUnknown ? [] : [item];
-  console.log(item.audio_segment);
   return (
     <Card className="rounded-2xl">
       <CardHeader>
