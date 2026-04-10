@@ -29,6 +29,7 @@ datasource db {
 enum Role {
   ADMIN
 }
+
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -54,22 +55,21 @@ enum UserSource {
   AI_IMPORTED
 }
 
-
 // ============================================================
 // MODELS
 // ============================================================
 
 /// Tài khoản đăng nhập hệ thống — dành cho operator/admin
 model auth_accounts {
-  id       String @id @default(uuid()) @db.Uuid
+  id            String     @id @default(uuid()) @db.Uuid
   /// Email tài khoản, phải là duy nhất trong hệ thống
-  email    String @unique
+  email         String     @unique
   /// Tên đăng nhập, phải là duy nhất trong hệ thống
-  username   String? @unique
+  username      String?    @unique
   /// Mật khẩu đã hash bằng bcrypt, không bao giờ lưu plain text
-  password String
+  password      String
   /// Phân quyền tài khoản
-  role          Role   @default(ADMIN)
+  role          Role       @default(ADMIN)
   /// Refresh token đã hash (nullable)
   refresh_token String?
   /// Trạng thái tài khoản
@@ -79,6 +79,8 @@ model auth_accounts {
   identify_sessions identify_sessions[]
   /// Các file audio được upload bởi account này
   uploaded_files    audio_files[]
+
+  voice_update_logs voice_update_logs[]
 
   @@map("auth_accounts")
 }
@@ -102,13 +104,13 @@ model users {
   criminal_record        Json?   @db.JsonB
 
   /// Nguồn gốc tạo user
-  source                 UserSource @default(SYSTEM)
+  source UserSource @default(SYSTEM)
 
   /// Url file audio for user enroll
-  audio_url              String?
+  audio_url String?
 
   /// Hồ sơ giọng nói liên kết với người dùng này
-  voice_records     voice_records[]
+  voice_record     voice_records?
   /// Danh sách job cập nhật giọng nói liên quan
   update_voice_jobs update_voice_jobs[]
 
@@ -132,17 +134,17 @@ model ai_identities_cache {
   passport               String?
   criminal_record        Json?   @db.JsonB
 
-  raw                    Json    @db.JsonB
-  first_seen_at          DateTime @default(now())
+  raw           Json     @db.JsonB
+  first_seen_at DateTime @default(now())
 
   @@map("ai_identities_cache")
 }
 
 /// Quản lý metadata của các file audio lưu trên local filesystem
 model audio_files {
-  id           String    @id @default(uuid()) @db.Uuid
+  id           String       @id @default(uuid()) @db.Uuid
   /// Đường dẫn thực thể trên disk (vd: /uploads/voices/uuid.wav)
-  file_path    String    @unique
+  file_path    String       @unique
   /// Tên file gốc người dùng upload
   file_name    String
   /// MIME Type (audio/wav, audio/mpeg, v.v.)
@@ -154,7 +156,7 @@ model audio_files {
   /// Mục đích upload file này
   purpose      AudioPurpose
   /// ID của operator đã upload file
-  uploaded_by  String    @db.Uuid
+  uploaded_by  String       @db.Uuid
 
   /// Thời điểm upload
   created_at DateTime  @default(now())
@@ -166,6 +168,7 @@ model audio_files {
   /// Các quan hệ tham chiếu tới file này
   voice_records     voice_records[]
   identify_sessions identify_sessions[]
+  voice_update_logs voice_update_logs[]
 
   @@index([purpose])
   @@index([uploaded_by])
@@ -179,39 +182,38 @@ model voice_records {
   /// Khóa ngoại tới users.id
   user_id       String   @db.Uuid
   /// Snap shot for user info
-  user_name      String?
-  user_email     String?
+  user_name     String?
+  user_email    String?
   /// Point ID trong Qdrant do AI Service cấp
   voice_id      String
   /// Khóa ngoại tới audio_files.id — mẫu audio dùng để trích xuất embedding này
   audio_file_id String   @db.Uuid
-  /// true = bản đang được dùng để so khớp nhận dạng
+  /// Trạng thái hoạt động của giọng nói
   is_active     Boolean  @default(true)
-  /// Số thứ tự phiên bản (1, 2, 3...)
-  version       Int      @default(1)
   /// Thời điểm tạo bản ghi
   created_at    DateTime @default(now())
 
-  user       users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  audio_file audio_files @relation(fields: [audio_file_id], references: [id], onDelete: Restrict)
+  user              users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  audio_file        audio_files         @relation(fields: [audio_file_id], references: [id], onDelete: Restrict)
+  voice_update_logs voice_update_logs[]
 
+  @@unique([user_id])
+  @@unique([voice_id])
   @@index([user_id])
-  @@index([is_active])
-  @@index([user_id, is_active])
   @@map("voice_records")
 }
 
 /// Lịch sử các phiên nhận dạng giọng nói
 model identify_sessions {
-  id            String      @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid()) @db.Uuid
   /// FK tới auth_accounts.id — operator thực hiện
-  user_id       String      @db.Uuid
+  user_id       String   @db.Uuid
   /// FK tới audio_files.id — file audio input dùng để nhận dạng
-  audio_file_id String      @db.Uuid
+  audio_file_id String   @db.Uuid
   /// Kết quả AI dạng JSON: [{voice_id, score, name, ...}]
-  results       Json        @db.JsonB
+  results       Json     @db.JsonB
   /// Thời điểm thực hiện
-  identified_at DateTime    @default(now())
+  identified_at DateTime @default(now())
 
   operator   auth_accounts @relation(fields: [user_id], references: [id], onDelete: Restrict)
   audio_file audio_files   @relation(fields: [audio_file_id], references: [id], onDelete: Restrict)
@@ -249,4 +251,21 @@ model update_voice_jobs {
   @@index([user_id])
   @@index([voice_id, status])
   @@map("update_voice_jobs")
+}
+
+/// Lịch sử cập nhật model giọng nói (khi admin quyết định enrich thêm data)
+model voice_update_logs {
+  id            String   @id @default(uuid()) @db.Uuid
+  voice_id      String
+  audio_file_id String   @db.Uuid
+  updated_by    String   @db.Uuid
+  created_at    DateTime @default(now())
+
+  audio_file   audio_files   @relation(fields: [audio_file_id], references: [id], onDelete: Restrict)
+  operator     auth_accounts @relation(fields: [updated_by], references: [id], onDelete: Restrict)
+  voice_record voice_records @relation(fields: [voice_id], references: [voice_id], onDelete: Cascade)
+
+  @@index([voice_id])
+  @@index([audio_file_id])
+  @@map("voice_update_logs")
 }

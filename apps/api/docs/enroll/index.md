@@ -1,63 +1,71 @@
-# Enroll Module
+# Module Đăng ký giọng nói (Enrollment)
 
-Quy trình đăng ký định danh giọng nói mới vào hệ thống, bao gồm việc thu thập thông tin cá nhân và trích xuất đặc trưng giọng nói (embedding) thông qua AI Service.
-
-## 1. Quy trình thực hiện (Workflow)
-
-1.  **Nhận yêu cầu**: Operator gửi file âm thanh cùng thông tin cá nhân của người dùng.
-2.  **Xử lý file**: Hệ thống kiểm tra định dạng, kích thước và độ dài file âm thanh.
-3.  **Trích xuất đặc trưng**: File audio được gửi sang **AI Service** (FastAPI) để tạo vector đặc trưng và nhận diện ID duy nhất (`voice_id`).
-4.  **Lưu trữ**:
-    - Lưu file audio vào Storage (Local/S3).
-    - Lưu thông tin người dùng vào bảng `users`.
-    - Lưu bản ghi giọng nói vào bảng `voice_records` (Phiên bản 1, Trạng thái: Active).
-5.  **Phục vụ**: Tạo `audio_url` để có thể phát lại voice bằng trình duyệt.
+Chào mừng bạn đến với tài liệu kỹ thuật của module **Enroll**. Đây là điểm khởi đầu cho toàn bộ hệ sinh thái định danh sinh trắc học trong hệ thống, chịu trách nhiệm cho việc "khai sinh" một danh tính mới.
 
 ---
 
-## 2. API Endpoints
+## 1. Triết lý thiết kế (Enrollment Standards)
 
-### Đăng ký giọng nói mới (Enroll)
+Quá trình Enrollment là quá trình quan trọng nhất vì nó xác định "Mẫu chuẩn" (Golden Template) để đối soát cho tất cả các giao dịch trong tương lai.
 
-Thực hiện đăng ký một người dùng mới cùng với mẫu giọng nói của họ.
+### 1.1 Tính nhất quán dữ liệu (Data Integrity)
 
-- **URL**: `POST /api/v1/voices/enroll`
-- **Authentication**: Yêu cầu Bearer Token (JWT)
-- **Content-Type**: `multipart/form-data`
+Khi một người dùng thực hiện Enroll, hệ thống thực hiện đồng bộ hóa dữ liệu trên 3 thành phần:
 
-#### Tham số Request (Body):
+1. **Lớp Hồ sơ (Prisma/PostgreSQL)**: Lưu thông tin định danh cá nhân mở rộng.
+2. **Lớp Sinh trắc (AI Core/Qdrant)**: Lưu trữ các đặc trưng sóng âm dưới dạng một Vector toán học.
+3. **Lớp Media (Local/S3 Storage)**: Lưu trữ tệp âm thanh gốc làm bằng chứng pháp lý và đối soát thủ công.
 
-| Tham số                  | Loại        | Bắt buộc | Mô tả                                                                           |
-| :----------------------- | :---------- | :------- | :------------------------------------------------------------------------------ |
-| `audio`                  | File        | Có       | File âm thanh (WAV, MP3, FLAC, OGG). Tối đa 50MB, tối thiểu 3s, tối đa 10 phút. |
-| `name`                   | String      | Có       | Họ và tên đầy đủ. Tối đa 100 ký tự.                                             |
-| `citizen_identification` | String      | Không    | Số CCCD/CMND (9-12 chữ số).                                                     |
-| `phone_number`           | String      | Không    | Số điện thoại (10-11 chữ số).                                                   |
-| `hometown`               | String      | Không    | Quê quán.                                                                       |
-| `job`                    | String      | Không    | Nghề nghiệp hiện tại.                                                           |
-| `passport`               | String      | Không    | Số hộ chiếu (nếu có).                                                           |
-| `criminal_record`        | JSON String | Không    | Danh sách tiền án tiền sự. Ví dụ: `[{"case":"Trộm cắp","year":2021}]`           |
+### 1.2 Biometric Quality Gate (Cửa chặn chất lượng)
 
-#### Kết quả trả về (Success 201):
+Hệ thống không chấp nhận mọi loại file âm thanh. AI của chúng tôi có các bộ lọc tự động để kiểm tra:
 
-```json
-{
-  "success": true,
-  "data": {
-    "voice_id": "8d4be585-a892-4600-ba0c-32aff3e3b0be",
-    "user_id": "8d4be585-a892-4600-ba0c-32aff3e3b0be",
-    "audio_url": "http://localhost:3000/cdn/voices/f6285cde-71ca-4ee2-9a29-065f3a1cd00d.mp4",
-    "name": "Nguyễn Văn A",
-    "enrolled_at": "2026-04-07T06:59:05.463Z"
-  }
-}
-```
+- **Thời lượng**: Phải đủ dài (> 5s) để trích xuất đủ đặc trưng.
+- **Tỉ lệ tín hiệu trên nhiễu (SNR)**: Âm thanh quá ồn sẽ bị từ chối để tránh làm nhiễm bẩn kho dữ liệu.
+- **Tính duy nhất**: Hệ thống tự động kiểm tra xem giọng nói này đã tồn tại dưới một danh tính khác chưa (Cơ chế chống giả mạo danh tính - Anti-spoofing/De-duplication).
 
 ---
 
-## 3. Ràng buộc & Lưu ý
+## 2. Danh mục tài liệu chi tiết
 
-- **Độ dài Audio**: Phải từ 3 giây trở lên để đảm bảo AI Service có đủ dữ liệu trích xuất đặc trưng chính xác.
-- **Định dạng**: Hệ thống ưu tiên định dạng `.wav` hoặc `.mp4` (AAC). File `.mp4` sẽ được hệ thống tự động chuẩn hóa sang `.m4a` khi lưu trữ.
-- **Duy nhất**: Mỗi người dùng (`user_id`) sẽ được định danh bằng `voice_id` trả về từ AI Service. Trong phiên bản hiện tại, `user_id` và `voice_id` được đồng bộ là một.
-- **Bảo mật**: Chỉ các Operator có quyền (Token hợp lệ) mới có thể thực hiện đăng ký giọng nói.
+Module Enroll được tổ chức thành các hướng dẫn chuyên sâu sau:
+
+| Tài liệu                                        | Nội dung chính                                                                         | Đối tượng   |
+| :---------------------------------------------- | :------------------------------------------------------------------------------------- | :---------- |
+| **[Quy trình Đăng ký mới](./create-enroll.md)** | Hướng dẫn chi tiết API `POST /enroll`, cấu trúc Multipart và các bước xử lý liên tầng. | FE / Mobile |
+| **[Tiêu chuẩn âm thanh](./standards.md)**       | Các thông số kỹ thuật (Bitrate, Sample rate) và môi trường thu âm khuyến nghị.         | Media / QA  |
+
+---
+
+## 3. Workflow tổng quát (High-level Workflow)
+
+1. **Nhận diện nhu cầu**: Người dùng mới cần được định danh vào hệ thống.
+2. **Thu thập dữ liệu**: Operator sử dụng thiết bị thu âm để lấy mẫu giọng nói và nhập thông tin cá nhân.
+3. **Xử lý AI**: Hệ thống gọi tới AI Service để trả về một `voice_id` duy nhất và lưu Vector vào Qdrant.
+4. **Đóng gói dữ liệu**: Toàn bộ metadata, audio path và voice_id được gói vào một transaction DB để đảm bảo tính nguyên tử.
+5. **Kích hoạt danh tính**: Sau khi thành công, người dùng chính thức trở thành một bản ghi **Business Truth** và có thể được nhận diện ngay lập tức.
+
+---
+
+## 4. Các thực thể dữ liệu liên quan
+
+- **Users**: Bản ghi định danh chính.
+- **Voice Records**: Bản ghi liên kết User với Voice ID AI.
+- **Audio Files**: Bản ghi quản lý tệp tin vật lý dùng để Enroll.
+
+---
+
+## 5. Lưu ý dành cho Frontend
+
+- **Xử lý File nhị phân**: Luôn gửi dữ liệu qua `FormData`. Hãy đảm bảo file audio không bị nén hoặc can thiệp bởi các thư viện JS làm thay đổi chất lượng âm thanh gốc.
+- **Validation**: Kiểm tra các trường `citizen_identification` và `phone_number` ngay tại FE để mang lại trải nghiệm mượt mà, tránh đợi Server phản hồi lỗi trùng lặp.
+- **Feedback UI**: Quy trình Enroll có thể mất 1-2 giây vì cần tương tác với AI Service. Hãy hiển thị UI "Đang trích xuất đặc trưng sinh trắc học..." thay vì chỉ hiển thị biểu tượng Loading đơn giản.
+
+---
+
+> [!IMPORTANT]
+> Một phiên Enrollment thành công là điều kiện tiên quyết để hệ thống có thể hoạt động chính xác. Chất lượng âm thanh đầu vào tại bước này quyết định 90% độ chính xác của toàn bộ hệ thống sau này.
+
+---
+
+> **Tài liệu tham khảo tiếp theo:** [Quy trình Đăng ký mới](./create-enroll.md)

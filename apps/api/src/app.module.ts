@@ -28,6 +28,7 @@ import { HttpLogInterceptor } from './common/interceptors/http-logger.intercepto
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 // modules
+import { AiVoicesModule } from '@/module/ai-voices/ai-voices.module';
 import { AiCoreModule } from '@/module/ai-core/ai-core.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { PrismaModule } from './database/prisma/prisma.module';
@@ -40,7 +41,6 @@ import { StorageModule } from './module/storage/storage.module';
 import { UploadModule } from './module/upload/upload.module';
 import { UserAuthModule } from './module/user-auth/user-auth.module';
 import { VoicesModule } from './module/voices/voices.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -97,6 +97,7 @@ import { VoicesModule } from './module/voices/voices.module';
     SessionsModule,
     AiCoreModule,
     EnrollModule,
+    AiVoicesModule,
     DocsModule,
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({

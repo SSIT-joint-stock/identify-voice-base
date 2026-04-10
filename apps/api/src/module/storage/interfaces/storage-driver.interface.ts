@@ -43,6 +43,13 @@ export interface StorageDriver {
   exists(storageKey: string): Promise<boolean>;
 
   /**
+   * Truy xuất file dưới dạng ReadStream.
+   * @param storageKey Key duy nhất của file
+   * @returns Khối dữ liệu dạng Readable stream
+   */
+  getReadStream?(storageKey: string): Promise<Readable>;
+
+  /**
    * (Tùy chọn) Khởi tạo môi trường (thư mục, bucket)
    */
   onInit?(subDirs: string[]): Promise<void>;

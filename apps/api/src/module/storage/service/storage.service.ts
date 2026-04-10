@@ -80,4 +80,19 @@ export class StorageService implements OnModuleInit {
       return false;
     }
   }
+
+  /**
+   * Truy xuất file dưới dạng ReadStream.
+   */
+  async getReadStream(storageKey: string): Promise<Readable> {
+    if (!storageKey) {
+      throw new Error('storageKey rỗng');
+    }
+    if (!this.driver.getReadStream) {
+      throw new ServiceUnavailableException(
+        'Storage driver chưa hỗ trợ getReadStream',
+      );
+    }
+    return this.driver.getReadStream(storageKey);
+  }
 }

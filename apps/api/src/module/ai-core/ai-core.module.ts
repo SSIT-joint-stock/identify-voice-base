@@ -1,3 +1,4 @@
+import { AudioSegmentService } from './service/audio-segment.service';
 import { AiCoreService } from '@/module/ai-core/service/ai-core.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -11,11 +12,12 @@ import { UploadVoiceUseCase } from './usecase/ai-upload-voice.usecase';
   imports: [HttpModule, ConfigModule],
   providers: [
     AiCoreService,
+    AudioSegmentService,
     UploadVoiceUseCase,
     AiIdentifySingleUseCase,
     AiIdentifyMultiUseCase,
     AiDeleteVoiceUseCase,
   ],
-  exports: [AiCoreService],
+  exports: [AiCoreService, AudioSegmentService],
 })
 export class AiCoreModule {}

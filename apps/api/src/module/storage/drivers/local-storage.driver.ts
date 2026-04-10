@@ -86,6 +86,17 @@ export class LocalStorageDriver implements StorageDriver {
   }
 
   /**
+   * Truy xuất file dưới dạng ReadStream.
+   */
+  async getReadStream(storageKey: string): Promise<Readable> {
+    const fullPath = path.join(this.rootDir, storageKey);
+    if (!(await this.exists(storageKey))) {
+      throw new Error(`File không tồn tại: ${storageKey}`);
+    }
+    return fs.createReadStream(fullPath);
+  }
+
+  /**
    * Khởi tạo các thư mục (thay thế ensureDirectories).
    */
   async onInit(subDirs: string[]): Promise<void> {

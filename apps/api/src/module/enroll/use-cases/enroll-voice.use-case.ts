@@ -117,8 +117,6 @@ export class EnrollVoiceUseCase {
             user_name: user.name, // Snapshot name
             voice_id: voiceId,
             audio_file_id: audioFile.id,
-            is_active: true,
-            version: 1,
           },
         });
 

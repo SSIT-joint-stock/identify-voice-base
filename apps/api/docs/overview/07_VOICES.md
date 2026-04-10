@@ -8,12 +8,12 @@
 
 ## Tổng quan
 
-Module quản lý hồ sơ giọng nói cung cấp các thao tác CRUD trên dữ liệu đã đăng ký. **Quan trọng:** Các thao tác trong module này chỉ thay đổi metadata trong PostgreSQL và/hoặc embedding trong Qdrant — **không** thay đổi model AI.
+Module quản lý hồ sơ giọng nói cung cấp các thao tác quản lý dữ liệu **Business Truth** (đã được xác thực). Dữ liệu tại đây là nguồn tin cậy nhất để định danh người dùng trong các phiên nhận dạng.
 
-- `GET /api/voices` — Danh sách hồ sơ (phân trang + tìm kiếm)
+- `GET /api/voices` — Danh sách hồ sơ (Active only)
 - `GET /api/voices/:id` — Chi tiết hồ sơ + lịch sử nhận dạng
-- `PUT /api/voices/:id` — Cập nhật thông tin cá nhân (không ảnh hưởng embedding)
-- `DELETE /api/voices/:id` — Xóa đồng bộ: DB + Qdrant + file audio local (Biometric Destruction)
+- `PUT /api/voices/:id` — Cập nhật thông tin cá nhân
+- `PATCH /api/voices/:id/deactivate` — Vô hiệu hóa hồ sơ (Archive)
 
 ---
 
@@ -69,8 +69,7 @@ interface VoiceSummary {
   citizen_identification: string | null;
   phone_number: string | null;
   audio_url: string; // URL phát lại
-  is_active: boolean; // true = bản embedding đang dùng
-  version: number; // phiên bản hiện tại
+  is_active: boolean; // true = cho phép nhận dạng
   enrolled_at: string; // created_at của voice_record — ISO 8601
 }
 ```
@@ -89,9 +88,8 @@ interface VoiceSummary {
         "name": "Nguyễn Văn A",
         "citizen_identification": "012345678901",
         "phone_number": "0912345678",
-        "audio_url": "http://localhost:3000/uploads/voices/abc123.wav",
+        "audio_url": "http://localhost:3000/api/v1/sessions/.../audio",
         "is_active": true,
-        "version": 2,
         "enrolled_at": "2026-04-05T10:00:00.000Z"
       }
     ],
@@ -131,10 +129,11 @@ const [items, total] = await Promise.all([
     take: page_size,
   }),
   prisma.voice_records.count({ where }),
-]);
+// 4. Transform kết quả trả về cho Client
+const transformed = records.map(r => ({ ... }));
 ```
 
-> Chỉ trả về bản `is_active = true` của mỗi user trong danh sách. Lịch sử phiên bản xem ở `GET /api/voices/:id`.
+> **Lưu ý:** Chỉ trả về các bản ghi có `is_active = true`. Các bản ghi bị vô hiệu hóa sẽ bị ẩn khỏi danh sách này.
 
 ---
 
@@ -179,17 +178,9 @@ interface VoiceDetailResponse {
     criminal_record: Array<{ case: string; year: number }> | null;
     // Hồ sơ giọng nói hiện tại — từ voice_records (is_active=true)
     audio_url: string;
-    audio_available: boolean; // false nếu file không tồn tại trên disk
+    audio_available: boolean; // true nếu audio_file_id hợp lệ
     is_active: boolean;
-    version: number;
     enrolled_at: string;
-    // Lịch sử phiên bản giọng nói
-    voice_history: Array<{
-      version: number;
-      audio_url: string;
-      is_active: boolean;
-      created_at: string;
-    }>;
     // Lịch sử nhận dạng (5 phiên gần nhất)
     identify_history: Array<{
       session_id: string;
@@ -216,25 +207,10 @@ interface VoiceDetailResponse {
     "job": "Kỹ sư phần mềm",
     "passport": null,
     "criminal_record": [{ "case": "Trộm cắp tài sản", "year": 2021 }],
-    "audio_url": "http://localhost:3000/uploads/voices/abc123.wav",
+    "audio_url": "http://localhost:3000/api/v1/...",
     "audio_available": true,
     "is_active": true,
-    "version": 2,
     "enrolled_at": "2026-04-05T10:00:00.000Z",
-    "voice_history": [
-      {
-        "version": 1,
-        "audio_url": "http://localhost:3000/uploads/voices/abc000.wav",
-        "is_active": false,
-        "created_at": "2026-03-01T08:00:00.000Z"
-      },
-      {
-        "version": 2,
-        "audio_url": "http://localhost:3000/uploads/voices/abc123.wav",
-        "is_active": true,
-        "created_at": "2026-04-05T10:00:00.000Z"
-      }
-    ],
     "identify_history": [
       {
         "session_id": "uuid-xxx",
@@ -253,17 +229,14 @@ interface VoiceDetailResponse {
 const user = await prisma.users.findUniqueOrThrow({
   where: { id },
   include: {
-    voice_records: { orderBy: { version: 'asc' } },
+    voice_records: { orderBy: { created_at: 'asc' } },
   },
 });
 
 // 2. Kiểm tra file audio tồn tại trên disk
-const activeRecord = user.voice_records.find((r) => r.is_active);
-const audioPath = resolve('./uploads/voices', basename(activeRecord.audio_url));
-const audioAvailable = await fs
-  .access(audioPath)
-  .then(() => true)
-  .catch(() => false);
+const activeRecord = user.voice_record;
+// Kiểm tra sự tồn tại của audio_file_id
+const audioAvailable = !!activeRecord?.audio_file_id;
 
 // 3. Lấy 5 phiên nhận dạng gần nhất có voice_id này trong results JSONB
 // (raw query nếu cần filter JSONB)
@@ -383,78 +356,13 @@ const updated = await prisma.users.update({
 
 ---
 
-## DELETE /api/voices/:id
-
-### Mô tả
-
-Xóa hoàn toàn hồ sơ giọng nói (Biometric Destruction): metadata trong PostgreSQL, embedding trong Qdrant, và các file audio. Quy trình được thiết kế theo thứ tự ưu tiên tiêu hủy biometric data trước để đảm bảo tính riêng tư.
-
-### Request
-
-```
-DELETE /api/voices/f47ac10b-58cc-4372-a567-0e02b2c3d479
-Authorization: Bearer <access_token>
-```
-
-**cURL:**
-
-```bash
-curl -X DELETE "http://localhost:3000/api/voices/f47ac10b-58cc-4372-a567-0e02b2c3d479" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-### Response thành công — 200 OK
-
-```json
-{
-  "statusCode": 200,
-  "message": "Đã xóa hồ sơ giọng nói thành công",
-  "data": {
-    "deleted_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-  }
-}
-```
-
-### Response lỗi
-
-| Status                      | Điều kiện                                       |
-| --------------------------- | ----------------------------------------------- |
-| `401 Unauthorized`          | Token thiếu/hết hạn                             |
-| `404 Not Found`             | Không tìm thấy user                             |
-| `500 Internal Server Error` | Lỗi khi gọi AI Service xóa Qdrant (có rollback) |
-
-async execute(userId: string): Promise<void> {
-// 1. Lấy thông tin cần thiết trước khi xóa (voiceIds, audioFileIds)
-const voiceData = await this.voicesRepository.findVoiceWithFiles(userId);
-const { voiceIds, audioFileIds } = voiceData;
-
-// 2. AI Destruction (Critical - Phải chạy đầu tiên)
-// Nếu AI Service lỗi, quá trình dừng lại và DB vẫn giữ nguyên để đảm bảo traceability.
-for (const voiceId of voiceIds) {
-await this.aiCoreService.deleteVoice(voiceId);
-}
-
-// 3. File Destruction (Best effort)
-// Xóa các file vật lý. Nếu lỗi, log lại nhưng vẫn tiến hành bước tiếp theo.
-for (const fileId of audioFileIds) {
-await this.uploadService.deleteFile(fileId);
-}
-
-// 4. DB Destruction (Final Step)
-// Xóa trắng record User và VoiceRecord khỏi hệ thống.
-await this.voicesRepository.hardDeleteVoice(userId);
-}
-
-````
-
-**Thứ tự xóa và lý do (Biometric Destruction Priority):**
-
-| Bước | Hành động       | Lý do                                                                    |
-| ---- | --------------- | ------------------------------------------------------------------------ |
-| 1    | Lấy data đầy đủ | Cần danh sách `voice_ids` (Qdrant) và `audio_file_ids` trước khi xóa     |
-| 2    | Xóa Qdrant      | **Quan trọng nhất:** Tiêu hủy dữ liệu biometric. Nếu lỗi → Dừng lại ngay |
-| 3    | Xóa file local  | Dọn dẹp tài nguyên vật lý (Best effort)                                  |
-| 4    | Hard-delete DB  | Bước cuối cùng để dọn dẹp metadata sau khi biometric data đã bị hủy      |
+| Bước | Hành động       | Lý do                                              |
+| ---- | --------------- | -------------------------------------------------- |
+| 1    | Lấy data đầy đủ | Cần audio paths và voice_id trước khi xóa          |
+| 2    | Soft-delete DB  | Ngăn request mới truy cập record này trong khi xóa |
+| 3    | Xóa Qdrant      | Phụ thuộc `voice_id` đang còn trong DB             |
+| 4    | Xóa file local  | Không phụ thuộc DB                                 |
+| 5    | Hard-delete DB  | Chỉ thực hiện khi các bước trước thành công        |
 
 ---
 

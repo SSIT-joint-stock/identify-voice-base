@@ -1,6 +1,6 @@
 # 06 — Update Voice Module (UC04)
 
-> **Last updated:** 2026-04-05
+> **Last updated:** 2026-04-09
 > **Related use cases:** UC04
 > **Module path:** `src/module/update-voice/`
 
@@ -8,53 +8,51 @@
 
 ## Tổng quan và bối cảnh nghiệp vụ
 
-Khi hệ thống nhận dạng hoạt động không chính xác (trả về kết quả sai người, hoặc không nhận ra người đã đăng ký), operator có thể thực hiện **cập nhật giọng nói** — quy trình ghi đè embedding cũ trong Qdrant bằng embedding mới được trích xuất từ các đoạn audio mẫu mới.
+Khi hệ thống nhận dạng hoạt động không chính xác (trả về kết quả sai người, hoặc không nhận ra người đã đăng ký), operator có thể thực hiện **cập nhật giọng nói** — quy trình bổ sung thông tin mẫu âm thanh mới để cải thiện và cập nhật chất lượng embedding trong Qdrant.
 
-> **Lưu ý thuật ngữ:** Đây **không phải** huấn luyện lại model AI. Đây chỉ là cập nhật vector đặc trưng (embedding) của một người cụ thể trong cơ sở dữ liệu Qdrant — model AI không thay đổi.
+**Rules cốt lõi của chức năng này:**
 
-**Khi nào cần cập nhật giọng nói?**
-
-- Chất lượng audio đăng ký ban đầu kém (quá nhiều noise)
-- Giọng nói của người thay đổi đáng kể (bệnh, tuổi tác)
-- Hệ thống nhận dạng liên tục sai với một người cụ thể
-
-**Luồng xử lý:** Bất đồng bộ (Async) — Backend nhận yêu cầu và trả phản hồi ngay, xử lý nặng thực hiện ở Bull Worker trong background.
+1. Mỗi user chỉ có đúng **MỘT** bản ghi âm giọng nói active duy nhất (`voice_id`).
+2. Quá trình xử lý chạy dưới nền (Background Job qua Bull Queue) và cập nhật tiến trình qua WebSocket theo room riêng của user.
+3. **KHÔNG BAO GIỜ** được phép merge (gộp) các file audio. AI engine sẽ nhận một mảng danh sách các files riêng biệt để trích xuất đặc trưng chính xác.
+4. Client không gửi `voice_id`, Backend tự động phân định thông qua `user_id` tra cứu trong Database (Single Source of Truth).
+5. Chiến lược **Optimistic Versioning** ở tầng DB: phải tạo record DB mới ở trạng thái `is_active = false` trước khi gọi AI. Chỉ activate khi AI trả về thành công bằng cách so sánh version.
 
 ---
 
-## PATCH /api/voices/:id/update-voice
+## PATCH /api/users/:userId/voice/update
 
 ### Mô tả
 
 Khởi tạo job cập nhật embedding giọng nói. Trả về `202 Accepted` ngay lập tức kèm `job_id` để theo dõi tiến độ.
 
-> **`:id`** là UUID của user (= voice_id). Backend resolve `voice_id` từ `:id` để gửi sang AI Service.
+> Chú ý: API không còn yêu cầu Frontend gửi `voice_id` nhằm chống bảo mật spoofing. Backend sẽ tự tra cứu bản ghi cuối cùng của user để lấy `voice_id`.
 
 ### Request
 
 ```
-PATCH /api/voices/f47ac10b-58cc-4372-a567-0e02b2c3d479/update-voice
+PATCH /api/users/f47ac10b-58cc-4372-a567-0e02b2c3d479/voice/update
 Authorization: Bearer <access_token>
 Content-Type: multipart/form-data
 ```
 
+**Path params:**
+| Param | Type | Required | Mô tả |
+| -------- | -------- | -------- | ------------------------- |
+| `userId` | `string` | ✅ | UUID của user cần cập nhật|
+
 **Form fields:**
-
-| Field         | Type     | Required | Mô tả                                                |
+| Field | Type | Required | Mô tả |
 | ------------- | -------- | -------- | ---------------------------------------------------- |
-| `audio_files` | `File[]` | ✅       | Mảng file audio mẫu mới (1–10 file), mỗi file ≤ 50MB |
-| `voice_id`    | `string` | ✅       | voice_id cần cập nhật (= Qdrant point ID)            |
-
-> `audio_files` là mảng — dùng `FilesInterceptor('audio_files', 10)` trong NestJS.
+| `audio_files` | `File[]` | ✅ | Mảng file audio mẫu mới (1–10 file), mỗi file ≤ 50MB |
 
 **cURL:**
 
 ```bash
-curl -X PATCH "http://localhost:3000/api/voices/f47ac10b-58cc-4372-a567-0e02b2c3d479/update-voice" \
+curl -X PATCH "http://localhost:3000/api/users/f47ac10b-58cc-4372-a567-0e02b2c3d479/voice/update" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -F "audio_files=@/path/to/sample_1.wav" \
-  -F "audio_files=@/path/to/sample_2.wav" \
-  -F "voice_id=f47ac10b-58cc-4372-a567-0e02b2c3d479"
+  -F "audio_files=@/path/to/sample_2.wav"
 ```
 
 ### Response thành công — 202 Accepted
@@ -66,100 +64,60 @@ interface UpdateVoiceAcceptedResponse {
   data: {
     job_id: string; // UUID — do Backend sinh, dùng để tracking
     status: 'PENDING';
-    voice_id: string; // Qdrant point ID sẽ được cập nhật
     created_at: string; // ISO 8601
   };
 }
 ```
 
-**Example response:**
-
-```json
-{
-  "statusCode": 202,
-  "message": "Yêu cầu cập nhật giọng nói đã được tiếp nhận. Theo dõi tiến độ tại GET /api/jobs/{job_id}",
-  "data": {
-    "job_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-    "status": "PENDING",
-    "voice_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "created_at": "2026-04-05T16:00:00.000Z"
-  }
-}
-```
-
-**Nguồn gốc dữ liệu:**
-
-- `job_id`: **Backend** sinh (`@default(uuid())` trong Prisma)
-- `status`: **Backend** set = `PENDING` khi tạo job
-- `voice_id`: **Frontend** cung cấp trong form field
-
-### Response lỗi
-
-| Status                     | Điều kiện                                            |
-| -------------------------- | ---------------------------------------------------- |
-| `400 Bad Request`          | Thiếu `audio_files` hoặc `voice_id`, sai format file |
-| `401 Unauthorized`         | Token thiếu/hết hạn                                  |
-| `404 Not Found`            | `voice_id` không tồn tại trong DB                    |
-| `413 Payload Too Large`    | Tổng kích thước files vượt 50MB/file                 |
-| `422 Unprocessable Entity` | Số lượng files > 10                                  |
-
 ---
 
-## Luồng xử lý bất đồng bộ — Chi tiết
+## Luồng xử lý bất đồng bộ — Chi tiết (Worker Flow)
 
 ### Bước 1: Tiếp nhận (Backend Controller/Service)
 
 ```typescript
 // update-voice.controller.ts
-@Patch(':id/update-voice')
+@Patch('users/:userId/voice/update')
 @UseGuards(JwtAuthGuard)
 @UseInterceptors(FilesInterceptor('audio_files', 10, multerAudioOptions('update-voice/tmp')))
 async updateVoice(
-  @Param('id') userId: string,
+  @Param('userId') userId: string,
   @UploadedFiles() files: Express.Multer.File[],
-  @Body('voice_id') voiceId: string,
-) { ... }
+) {
+  return this.updateVoiceService.initiateUpdateVoice(userId, files);
+}
 
-// update-voice.service.ts — Bước tiếp nhận
-async initiateUpdateVoice(userId: string, voiceId: string, files: Express.Multer.File[]) {
-  // 1. Verify user + voice tồn tại
+// update-voice.service.ts
+async initiateUpdateVoice(userId: string, files: Express.Multer.File[]) {
+  // 1. Verify user có tồn tại
   const user = await prisma.users.findUniqueOrThrow({ where: { id: userId } });
 
-  // 2. Tạo job ID (UUID từ Prisma @default)
-  const audioUrls = files.map(f => f.path); // đường dẫn local tạm
+  // 2. Gom đường dẫn file tạm
+  const audioUrls = files.map(f => f.path);
 
-  // 3. Di chuyển files vào thư mục job cụ thể
-  // /uploads/update-voice/tmp/<file> → /uploads/update-voice/<job_id>/<file>
-  // (thực hiện sau khi có job_id)
-
-  // 4. INSERT update_voice_jobs
+  // 3. INSERT job update
   const job = await prisma.update_voice_jobs.create({
     data: {
-      voice_id: voiceId,
       user_id: userId,
-      audio_urls: audioUrls as Prisma.JsonArray,
+      voice_id: '', // Sẽ resolved ở bước worker query DB
+      audio_file_ids: audioUrls as Prisma.JsonArray, // Tạm mượn dòng này để chuyển đường đẫn logic
       status: JobStatus.PENDING,
       progress: 0,
     },
   });
 
-  // 5. Di chuyển files vào /uploads/update-voice/<job.id>/
-  await this.organizeJobFiles(job.id, files);
-
-  // 6. Push vào Bull Queue
+  // 4. Push vào Bull Queue
   await this.updateVoiceQueue.add('update-voice-job', {
     jobId: job.id,
     userId,
-    voiceId,
-    audioUrls: updatedAudioUrls,
+    tmpFilePaths: audioUrls,
   });
 
-  // 7. Trả 202 ngay — không chờ
-  return { job_id: job.id, status: 'PENDING', voice_id: voiceId };
+  return { job_id: job.id, status: 'PENDING' };
 }
 ```
 
-### Bước 2: Xử lý nền (Bull Worker)
+### Bước 2: Xử lý nền (Bull Worker) - Cốt Lõi Race Condition Safe
 
 ```typescript
 // update-voice.processor.ts
@@ -167,103 +125,136 @@ async initiateUpdateVoice(userId: string, voiceId: string, files: Express.Multer
 export class UpdateVoiceProcessor {
   @Process('update-voice-job')
   async handleUpdateVoice(job: Job<UpdateVoiceJobData>) {
-    const { jobId, userId, voiceId, audioUrls } = job.data;
+    const { jobId, userId, tmpFilePaths } = job.data;
 
     try {
-      // --- progress: 0 — bắt đầu ---
+      // --- Progress: 0 - Lấy thông tin & Resolve voice_id ---
+      await this.updateJobProgress(jobId, JobStatus.PROCESSING, 0);
+
+      // Tra cứu version đang active hiện tại
+      const currentActiveVoice = await prisma.voice_records.findFirst({
+        where: { user_id: userId, is_active: true },
+      });
+      if (!currentActiveVoice)
+        throw new Error('User does not have an active voice.');
+
+      const currentVersion = currentActiveVoice.version;
+      const newVersion = currentVersion + 1;
+      const voiceId = currentActiveVoice.voice_id;
+
+      // Update lại job_id có chứa voice_id chính xác
       await prisma.update_voice_jobs.update({
         where: { id: jobId },
+        data: { voice_id: voiceId },
+      });
+
+      // --- Progress: 10 - Tổ chức File Structure theo Version ---
+      // Chiến lược tổ chức file dựa trên VERSION người dùng, không phải jobId
+      // Dịch chuyển file từ tmp -> uploads/users/userId/voices/v{newVersion}/<file>
+      const savedAudioPaths = await this.fileService.moveToVersionFolder(
+        userId,
+        newVersion,
+        tmpFilePaths,
+      );
+
+      // Khởi tạo các records cho file ở DB bảng audio_files
+      const audioRecords = await this.fileService.createAudioDbRecords(
+        savedAudioPaths,
+        userId,
+      );
+
+      await this.updateJobProgress(jobId, JobStatus.PROCESSING, 20);
+
+      // --- Progress: 20 - Tạo Voice Record Tạm (Prepare) ---
+      // CHUẨN BỊ RECORD DB TRƯỚC KHI GỌI AI
+      const pendingRecord = await prisma.voice_records.create({
         data: {
-          status: JobStatus.PROCESSING,
-          progress: 0,
-          updated_at: new Date(),
+          user_id: userId,
+          voice_id: voiceId,
+          audio_file_id: audioRecords[0].id, // Cấu trúc cũ bắt lưu 1 file
+          is_active: false, // <-- QUAN TRỌNG: Vẫn unactive
+          version: newVersion,
         },
       });
 
-      // --- progress: 20 — forward sang AI Service ---
-      const mergedAudioPath = await this.audioService.mergeFiles(
-        audioUrls,
-        jobId,
-      );
-      await this.updateJobProgress(jobId, 20);
+      // --- Progress: 30 - Call AI Service (Heavy lift) ---
+      // QUAN TRỌNG: Gửi NHIỀU files thay vì file merged.
+      await this.aiService.updateVoiceMultipleFiles(savedAudioPaths, voiceId);
 
-      // --- progress: 40 — call AI Service ---
-      await this.aiService.updateVoice(mergedAudioPath, voiceId);
-      // POST http://localhost:1112/update_voice/
-      // body: multipart — audio file + voice_id
-      // AI Service ghi đè embedding tương ứng trong Qdrant
-      await this.updateJobProgress(jobId, 70);
+      // 80% completion since AI is the heavily processing task
+      await this.updateJobProgress(jobId, JobStatus.PROCESSING, 80);
 
-      // --- progress: 70 — cập nhật DB ---
-      await prisma.$transaction([
-        // Tạo voice_record phiên bản mới
-        prisma.voice_records.create({
-          data: {
-            user_id: userId,
-            voice_id: voiceId,
-            audio_url: this.buildAudioUrl(mergedAudioPath),
-            is_active: true,
-            version: await this.getNextVersion(userId),
-          },
-        }),
-        // Deactivate bản cũ
-        prisma.voice_records.updateMany({
+      // --- Progress: 80 - Kích Hoạt Phiên Bản (Database Transaction Safe) ---
+      await prisma.$transaction(async (tx) => {
+        // [Race condition protection]: Deactivate using exact old version number!
+        const deactivateResult = await tx.voice_records.updateMany({
           where: {
             user_id: userId,
-            is_active: true,
-            NOT: { id: newRecord.id },
+            version: currentVersion, // Explicit version condition instead of is_active
           },
           data: { is_active: false },
-        }),
-      ]);
-      await this.updateJobProgress(jobId, 90);
+        });
 
-      // --- progress: 90 — dọn dẹp file tạm ---
-      await this.cleanupTempFiles(jobId, audioUrls);
+        if (deactivateResult.count === 0) {
+          // Nếu có >= 2 jobs đang update cho cùng 1 user,
+          // 1 job đã done và đổi version -> Job này sẽ fail. Retry safe
+          throw new Error(
+            `Race condition detected: Version ${currentVersion} is no longer active.`,
+          );
+        }
 
-      // --- progress: 100 — DONE ---
-      await prisma.update_voice_jobs.update({
-        where: { id: jobId },
-        data: { status: JobStatus.DONE, progress: 100, updated_at: new Date() },
+        // Kích hoạt version mới
+        await tx.voice_records.update({
+          where: { id: pendingRecord.id },
+          data: { is_active: true },
+        });
       });
 
-      // --- Emit WebSocket event ---
-      this.eventsGateway.emit('update_voice.completed', {
+      await this.updateJobProgress(jobId, JobStatus.DONE, 100);
+
+      // --- Emit WebSocket event to specific user room ---
+      this.eventsGateway.emitToUserRoom(userId, 'update_voice.completed', {
         job_id: jobId,
         voice_id: voiceId,
-        user_id: userId,
       });
     } catch (error) {
-      // --- FAILED: lưu lỗi + emit event ---
       await prisma.update_voice_jobs.update({
         where: { id: jobId },
-        data: {
-          status: JobStatus.FAILED,
-          error_msg: error.message,
-          updated_at: new Date(),
-        },
+        data: { status: JobStatus.FAILED, error_msg: error.message },
       });
-
-      this.eventsGateway.emit('update_voice.failed', {
+      // Fallback cho Bull có chế độ retry -> Retry-safe
+      this.eventsGateway.emitToUserRoom(userId, 'update_voice.failed', {
         job_id: jobId,
         error_msg: error.message,
       });
+      // Re-throw for Bull Queue tracking
+      throw error;
     }
   }
 }
 ```
 
-### Bước 3: Thông báo Client (WebSocket)
+### Bước 3: Thông báo Client bằng WebSocket Room-Based
+
+Để đảm bảo hiệu trình truyền tải, Websocket không sử dụng Broadcast global, mà join vào room tương ứng của `user_id`.
 
 ```typescript
 // events.gateway.ts
 @WebSocketGateway({ namespace: '/jobs', cors: true })
-export class EventsGateway {
+export class EventsGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
 
-  emit(event: string, payload: object) {
-    this.server.emit(event, payload);
+  handleConnection(client: Socket) {
+    // Decode JWT token logic => lấy userId
+    const userId = this.extractUserIdFromToken(client.handshake.auth.token);
+    if (userId) {
+      client.join(`user_${userId}`);
+    }
+  }
+
+  emitToUserRoom(userId: string, event: string, payload: object) {
+    this.server.to(`user_${userId}`).emit(event, payload);
   }
 }
 ```
@@ -271,30 +262,8 @@ export class EventsGateway {
 **Client-side (Socket.IO):**
 
 ```javascript
-const socket = io('http://localhost:3000/jobs', {
-  auth: { token: accessToken },
-});
-
-socket.on('update_voice.completed', ({ job_id, voice_id, user_id }) => {
-  console.log(`Job ${job_id} hoàn tất — voice_id: ${voice_id}`);
-  // Cập nhật UI, refresh danh sách hồ sơ
-});
-
-socket.on('update_voice.failed', ({ job_id, error_msg }) => {
-  console.error(`Job ${job_id} thất bại: ${error_msg}`);
-  // Hiển thị thông báo lỗi cho người dùng
-});
-
-// Fallback: reconnect với exponential backoff
-socket.on('disconnect', () => {
-  let delay = 1000;
-  const reconnect = () => {
-    setTimeout(() => {
-      socket.connect();
-      delay = Math.min(delay * 2, 8000); // 1s → 2s → 4s → 8s (max)
-    }, delay);
-  };
-  reconnect();
+socket.on('update_voice.completed', ({ job_id, voice_id }) => {
+  console.log(`Job ${job_id} cập nhật embedding cho ID ${voice_id} hoàn tất.`);
 });
 ```
 
@@ -302,192 +271,36 @@ socket.on('disconnect', () => {
 
 ## GET /api/jobs/:id
 
-### Mô tả
-
-Theo dõi tiến độ xử lý của một job. Dùng làm fallback polling khi WebSocket mất kết nối.
-
-### Request
-
-```
-GET /api/jobs/c3d4e5f6-a7b8-9012-cdef-123456789012
-Authorization: Bearer <access_token>
-```
-
-**Path parameter:** `id` — UUID của job (từ response của `PATCH /api/voices/:id/update-voice`)
-
-**cURL:**
-
-```bash
-curl "http://localhost:3000/api/jobs/c3d4e5f6-a7b8-9012-cdef-123456789012" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-### Response thành công — 200 OK
+Duy trì behavior chung của `Job Polling`:
 
 ```typescript
-interface JobStatusResponse {
-  statusCode: 200;
-  message: string;
-  data: {
-    job_id: string;
-    status: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
-    progress: number; // 0–100, chỉ có ý nghĩa khi status = PROCESSING hoặc DONE
-    voice_id: string; // Qdrant point ID đang được cập nhật
-    user_id: string; // UUID người sở hữu
-    error_msg: string | null; // null nếu chưa lỗi
-    created_at: string; // ISO 8601
-    updated_at: string; // ISO 8601 — thời điểm cập nhật gần nhất
-  };
-}
-```
-
-**Example — đang xử lý:**
-
-```json
-{
-  "statusCode": 200,
-  "message": "success",
-  "data": {
-    "job_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-    "status": "PROCESSING",
-    "progress": 60,
-    "voice_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "user_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "error_msg": null,
-    "created_at": "2026-04-05T16:00:00.000Z",
-    "updated_at": "2026-04-05T16:00:05.000Z"
-  }
-}
-```
-
-**Example — thành công:**
-
-```json
-{
-  "statusCode": 200,
-  "message": "success",
-  "data": {
-    "job_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-    "status": "DONE",
-    "progress": 100,
-    "voice_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "user_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "error_msg": null,
-    "created_at": "2026-04-05T16:00:00.000Z",
-    "updated_at": "2026-04-05T16:00:12.000Z"
-  }
-}
-```
-
-**Example — thất bại:**
-
-```json
-{
-  "statusCode": 200,
-  "message": "success",
-  "data": {
-    "job_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-    "status": "FAILED",
-    "progress": 40,
-    "voice_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "user_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "error_msg": "AI Service timeout after 30 seconds",
-    "created_at": "2026-04-05T16:00:00.000Z",
-    "updated_at": "2026-04-05T16:00:42.000Z"
-  }
-}
-```
-
-### Response lỗi
-
-| Status             | Điều kiện           |
-| ------------------ | ------------------- |
-| `401 Unauthorized` | Token thiếu/hết hạn |
-| `404 Not Found`    | Job không tồn tại   |
-
----
-
-## Vòng đời Job
-
-```
-PENDING ──→ PROCESSING ──→ DONE
-                │
-                └──────────→ FAILED
-```
-
-| Status       | Mô tả                             | progress    |
-| ------------ | --------------------------------- | ----------- |
-| `PENDING`    | Job đã tạo, chờ Worker nhận       | `0`         |
-| `PROCESSING` | Worker đang xử lý                 | `0` → `100` |
-| `DONE`       | Hoàn tất thành công               | `100`       |
-| `FAILED`     | Thất bại, `error_msg` có chi tiết | tùy (0–90)  |
-
-**Polling strategy (Client):**
-
-```
-Client: PENDING/PROCESSING → poll mỗi 3 giây
-Client: DONE/FAILED → dừng poll
-Timeout: nếu sau 5 phút job vẫn PROCESSING → Client hiển thị cảnh báo
+// Trả về logic GET /api/jobs/:id y như định nghĩa (đã ẩn chi tiết vì không khác biệt)
+// Tuy nhiên lúc này progress 0->20 là tạo Record DB, 20->80 là AI xử lý, và 80->100 là commit DB transaction
 ```
 
 ---
 
-## WebSocket Event Specification
+## Retry Safety & Race Conditions Constraints
 
-**Namespace:** `/jobs`
-**Transport:** Socket.IO
-
-### Event: `update_voice.completed`
-
-Phát khi job hoàn tất thành công.
-
-```typescript
-interface UpdateVoiceCompletedEvent {
-  job_id: string; // UUID của job — từ DB
-  voice_id: string; // Qdrant point ID đã được cập nhật — từ DB
-  user_id: string; // UUID người sở hữu — từ DB
-}
-```
-
-### Event: `update_voice.failed`
-
-Phát khi job thất bại.
-
-```typescript
-interface UpdateVoiceFailedEvent {
-  job_id: string; // UUID của job — từ DB
-  error_msg: string; // Mô tả lỗi — từ exception hoặc AI Service response
-}
-```
+1. **Split-Brain Prevention:** Flow quy định luôn tạo model `voice_records` version mới ở trạng thái offline (inactive) trước. Backend không update Record hiện tại. Nếu AI Service throw logic lỗi hoặc timeout, DB sẽ bỏ dở version không active đó -> Không bị dirty state giữa Qdrant & Database. Qdrant chỉ write đè đặc trưng khi thực sự pass qua hàm AI Core.
+2. **Race condition Prevention:** Lệnh `$transaction` áp dụng kỹ thuật **Optimistic Concurrency Control**. Chỉ thực hiện de-activate khi `version` query xuống mapping bằng version cũ đã phát hiện ở bước 1. Nếu `count === 0` (bị 1 thread khác cướp), transaction ném lỗi và huỷ toàn bộ. Bull trigger xử lý retry logic.
+3. **Retry-safe File Mover:** Ném file tmp vào thư mục `v<version>`, nếu retry với version mới `newVersion` do concurrent logic failed, nó sẽ tạo ra thư mục `version + 1` độc lập. Rác file offline (record offline) có thể batch script quét xóa định kỳ 1 tuần/lần, hoàn toàn không gây bug hệ thống.
+4. **WebSocket Notification Isolation:** Không lo lộ lọt metrics và data jobs của user khác khi chỉ gửi Socket IO Notification xuống `user_${userId}` room channel.
 
 ---
 
-## Error Handling
-
-| Tình huống                   | Hành động                                                                                                      |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| AI Service timeout           | status=FAILED, error_msg="AI Service timeout after {N}s", emit `update_voice.failed`                           |
-| AI Service từ chối audio     | status=FAILED, error_msg từ AI response, emit `update_voice.failed`                                            |
-| Lỗi ghi DB sau AI thành công | status=FAILED, log error chi tiết (embedding đã update trong Qdrant nhưng DB chưa sync — cần manual reconcile) |
-| Mất kết nối WebSocket        | Client tự reconnect exponential backoff, dùng `GET /api/jobs/:id` để lấy trạng thái                            |
-| Worker crash giữa chừng      | Bull tự retry theo cấu hình (`attempts: 3, backoff: 5000ms`)                                                   |
-
----
-
-## Cấu hình Bull Queue
+## Cấu hình Bull Queue (Vẫn giữ Retry Mechanism)
 
 ```typescript
-// update-voice.module.ts
 BullModule.registerQueue({
   name: 'update-voice',
   defaultJobOptions: {
-    attempts: 3, // retry tối đa 3 lần nếu Worker throw error
+    attempts: 3,
     backoff: {
       type: 'exponential',
-      delay: 5000, // bắt đầu từ 5 giây, tăng theo exponential
+      delay: 5000,
     },
-    removeOnComplete: false, // giữ lại job DONE để audit
-    removeOnFail: false, // giữ lại job FAILED để debug
+    removeOnComplete: true, // Auto clean Queue jobs successfully handled
   },
 });
 ```

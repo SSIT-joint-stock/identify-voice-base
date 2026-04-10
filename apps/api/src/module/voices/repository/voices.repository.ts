@@ -18,7 +18,7 @@ export class VoicesRepository {
     const { page = 1, page_size = 10, search } = filter;
 
     const where: Prisma.voice_recordsWhereInput = {
-      // is_active: true,
+      is_active: true,
       ...(search && {
         user: {
           OR: [
@@ -58,8 +58,6 @@ export class VoicesRepository {
       criminal_record: record.user.criminal_record,
       phone_number: record.user.phone_number,
       audio_url: `${this.storage.cdnUrl}/${record.audio_file.file_path}`,
-      is_active: record.is_active,
-      version: record.version,
       enrolled_at: record.created_at,
     }));
 
@@ -81,9 +79,8 @@ export class VoicesRepository {
     const user = await this.prisma.users.findUnique({
       where: { id: userId },
       include: {
-        voice_records: {
+        voice_record: {
           include: { audio_file: true },
-          orderBy: { version: 'desc' },
         },
       },
     });
@@ -135,7 +132,7 @@ export class VoicesRepository {
     const user = await this.prisma.users.findUnique({
       where: { id: userId },
       include: {
-        voice_records: {
+        voice_record: {
           include: { audio_file: true },
         },
       },
@@ -145,38 +142,26 @@ export class VoicesRepository {
 
     return {
       userId: user.id,
-      voiceIds: user.voice_records.map((vr) => vr.voice_id),
-      audioFileIds: user.voice_records.map((vr) => vr.audio_file_id),
-      audioPaths: user.voice_records.map((vr) => vr.audio_file.file_path),
+      voiceIds: user.voice_record ? [user.voice_record.voice_id] : [],
+      audioFileIds: user.voice_record ? [user.voice_record.audio_file_id] : [],
+      audioPaths: user.voice_record
+        ? [user.voice_record.audio_file.file_path]
+        : [],
     };
   }
 
   /**
-   * Xóa hoàn toàn dữ liệu user và voice_records khỏi database.
-   * Audio files sẽ được xóa mềm (soft-delete) trong DB thông qua UploadService
-   * hoặc xóa cứng tùy cấu hình, nhưng tại đây bản thân record User và VoiceRecord sẽ biến mất.
+   * Vô hiệu hóa hồ sơ giọng nói thay vì xóa cứng.
    */
-  async hardDeleteVoice(userId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      // Lấy danh sách voice_records để biết audio_file_id cần cleanup
-      const voiceRecords = await tx.voice_records.findMany({
-        where: { user_id: userId },
-      });
+  async deactivate(userId: string) {
+    const user = await this.findDetail(userId);
+    if (!user.voice_record) {
+      throw new NotFoundException('Người dùng này không có hồ sơ giọng nói');
+    }
 
-      const audioFileIds = voiceRecords.map((vr) => vr.audio_file_id);
-
-      // Xóa voice_records trước (vì có FK Restrict từ audio_files nếu có)
-      // Mặc dù user onDelete: Cascade, nhưng ta làm tường minh
-      await tx.voice_records.deleteMany({
-        where: { user_id: userId },
-      });
-
-      // Xóa user
-      await tx.users.delete({
-        where: { id: userId },
-      });
-
-      return { audioFileIds };
+    return this.prisma.voice_records.update({
+      where: { id: user.voice_record.id },
+      data: { is_active: false },
     });
   }
 }

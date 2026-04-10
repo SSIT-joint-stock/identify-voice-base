@@ -140,6 +140,39 @@ const aiCaches = await this.prisma.ai_identities_cache.findMany({
 // Phối hợp kết quả lại, gắn cờ is_business_truth = true nếu lấy từ Users.
 ```
 
+---
+
+## GET /api/v1/sessions/:id/speakers/:label/audio
+
+### Mô tả
+
+Phát audio riêng biệt của một speaker trong phiên nhận dạng. Hệ thống sử dụng **On-demand Media Processing**: tự động cắt và ghép các đoạn segments dựa trên timestamps RAW của AI để tạo ra file audio duy nhất cho speaker đó.
+
+### Request
+
+```
+GET /api/v1/sessions/:session_id/speakers/:label/audio
+Authorization: Bearer <access_token>
+```
+
+- `:session_id`: UUID của phiên nhận dạng.
+- `:label`: Label của speaker (ví dụ: `SPEAKER_00`).
+
+### Phản hồi
+
+Trả về stream audio trực tiếp (`audio/wav`).
+
+### Business Logic (On-demand)
+
+Thay vì lưu trữ file audio đã cắt ghép vào database (làm nặng storage vô ích), hệ thống thực hiện:
+
+1. Đọc timestamps từ trường `results` của session.
+2. Sử dụng `fluent-ffmpeg` để thực hiện filter `atrim` và `concat` ngay khi có request.
+3. Pipe stream kết quả về cho Client.
+4. Xóa file tạm ngay sau khi stream hoàn tất.
+
+---
+
 ## Lưu ý nghiệp vụ
 
 - JSONB đã được chuyển về JSON thông thường do Prisma có sự cố typing với JSONB query phức tạp.

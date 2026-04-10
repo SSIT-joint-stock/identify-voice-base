@@ -119,20 +119,52 @@ export class IdentifyUseCase {
       results: aiResponse.speakers as any,
     });
 
-    // 5. Trả về kết quả (chỉ chứa metadata từ AI, chưa enrich Business Data ở đây)
+    // 5. Trả về kết quả
+    const enrichedSpeakers = await Promise.all(
+      aiResponse.speakers.map(async (s) => {
+        const base = {
+          speaker_label: s.speaker_label,
+          matched_voice_id: s.matched_voice_id,
+          score: s.score,
+          name: s.name,
+          citizen_identification: s.citizen_identification,
+          phone_number: s.phone_number,
+          segments: s.segments,
+        };
+
+        // Nếu là MULTI, cung cấp URL đến API streaming on-demand
+        if (type === 'MULTI' && s.segments && s.segments.length > 0) {
+          return {
+            ...base,
+            audio_url: `${this.config.cdnUrl.replace('/cdn', '/api/v1')}/sessions/${session.id}/speakers/${s.speaker_label}/audio`,
+          };
+        }
+
+        // Nếu là SINGLE và có matched_voice_id, lấy thêm enroll_audio_url từ Business Truth
+        if (type === 'SINGLE' && s.matched_voice_id) {
+          const voiceRecord = await this.prisma.voice_records.findUnique({
+            where: { voice_id: s.matched_voice_id },
+            include: { user: true },
+          });
+          if (voiceRecord?.user) {
+            return {
+              ...base,
+              name: voiceRecord.user.name,
+              enroll_audio_url: voiceRecord.user.audio_url,
+            };
+          }
+        }
+
+        return base;
+      }),
+    );
+
     return {
       session_id: session.id,
-      audio_url: `${this.config.cdnUrl}/${audioFile.file_path}`,
+      input_audio_url: `${this.config.cdnUrl}/${audioFile.file_path}`,
       identified_at: session.identified_at,
-      speakers: aiResponse.speakers.map((s) => ({
-        speaker_label: s.speaker_label,
-        matched_voice_id: s.matched_voice_id,
-        score: s.score,
-        name: s.name,
-        citizen_identification: s.citizen_identification,
-        phone_number: s.phone_number,
-        segments: s.segments,
-      })),
+      type,
+      speakers: enrichedSpeakers,
     };
   }
 }

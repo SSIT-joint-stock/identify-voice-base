@@ -1,224 +1,70 @@
-# Auth API Routes
+# Module Quản lý Định danh & Bảo mật (Auth & Identity)
 
-# Ghi chú về Token
-
-## ACCESS TOKEN
-
-### - Trả về trong response, client lưu ở Authorization Header dưới dạng: `Authorization: Bearer "access_token"`
-
-### - Thời hạn: 15 phút
-
-### - Dùng để gọi các API cần bảo mật hay cần đăng nhập để truy cập
-
-## REFRESH TOKEN
-
-### - Được trả về và lưu trong HTTP-only Cookie (server set qua Set-Cookie).
-
-### - Thời hạn: 7 ngày
-
-### - Không nên lưu trong localStorage/sessionStorage
-
-### - Dùng để lấy lại access token mới khi access token hết hạn
+Chào mừng bạn đến với tài liệu kỹ thuật của module **Authentication**. Đây là "cửa ngõ" bảo mật của toàn bộ hệ thống, đảm bảo chỉ những người dùng có thẩm quyền mới có thể truy cập vào dữ liệu sinh trắc học và quản lý hồ sơ giọng nói.
 
 ---
 
-## 1. Đăng ký tạo tài khoản (Register)
+## 1. Triết lý bảo mật (Security Philosophy)
 
-> [!NOTE]
-> Tính năng này hiện đang được triển khai. Dưới đây là đặc tả dự kiến.
+Hệ thống của chúng tôi áp dụng các tiêu chuẩn bảo mật hiện đại nhất dành cho ứng dụng Enterprise, tập trung vào tính toàn vẹn và khả năng kiểm soát truy cập.
 
-### 1.1 Mô tả
+### 1.1 Xác thực đa lớp (Hybrid Authentication)
 
-| **Thuộc tính** | **Giá trị**                    |
-| -------------- | ------------------------------ |
-| Request URL    | `/auth/register`               |
-| Request Method | POST                           |
-| Request Header | Content-Type: application/json |
-| Body data      | JSON schema bên dưới           |
+Chúng tôi sử dụng mô hình kết hợp giữa **JWT (JSON Web Token)** và **Secure Cookies**:
 
-**JSON Schema:**
+- **Access Token**: Được lưu trong bộ nhớ (Memory/State) của Frontend để truy cập API nhanh.
+- **Refresh Token**: Được lưu trong **HttpOnly Cookie** để đảm bảo an toàn tối đa trước các cuộc tấn công XSS (Cross-Site Scripting).
 
-```json
-{
-  "username": "string",
-  "password": "string",
-  "role": "ADMIN"
-}
-```
+### 1.2 Phân quyền dựa trên vai trò (Role-Based Access Control - RBAC)
 
-### 1.2 Dữ liệu đầu vào
+Mọi tài khoản trong hệ thống đều được gán một `Role` cụ thể, quyết định phạm vi dữ liệu có thể xem hoặc chỉnh sửa:
 
-| **Tên trường** | **Kiểu** | **Bắt buộc** | **Ghi chú**              |
-| -------------- | -------- | ------------ | ------------------------ |
-| username       | string   | ✓            | Tên người dùng, duy nhất |
-| password       | string   | ✓            | Mật khẩu (>= 6 ký tự)    |
-| role           | string   |              | ADMIN (mặc định)         |
-
-### 1.3 Dữ liệu đầu ra
-
-**Success Response (200):**
-
-```json
-{
-  "success": true,
-  "meta": {
-    "timestamp": "2026-04-05T04:32:19.574Z",
-    "version": "v1"
-  },
-  "message": "Account registered successfully."
-}
-```
+- **OPERATOR**: Người vận hành trực tiếp luồng Enroll và Identify.
+- **ADMIN**: Quản lý hệ thống, có quyền vô hiệu hóa hồ sơ và xem báo cáo tổng quát.
+- **SECURITY_AUDITOR**: Chỉ có quyền xem (Read-only) để phục vụ mục đích thanh tra dữ liệu.
 
 ---
 
-## 2. Đăng nhập (Login)
+## 2. Danh mục tài liệu chi tiết
 
-### 2.1 Mô tả
+Module Auth được chia thành 3 phần chính để phục vụ các mục đích phát triển khác nhau:
 
-| **Thuộc tính** | **Giá trị**                    |
-| -------------- | ------------------------------ |
-| Request URL    | `/auth/login`                  |
-| Request Method | POST                           |
-| Request Header | Content-Type: application/json |
-| Body data      | JSON schema bên dưới           |
-
-**JSON Schema:**
-
-```json
-{
-  "email": "string",
-  "password": "string"
-}
-```
-
-### 2.2 Dữ liệu đầu vào
-
-| **Tên trường** | **Kiểu** | **Bắt buộc** | **Ghi chú**             |
-| -------------- | -------- | ------------ | ----------------------- |
-| email          | string   | ✓            | Email đăng ký tài khoản |
-| password       | string   | ✓            | Mật khẩu (>= 6 ký tự)   |
-
-### 2.3 Dữ liệu đầu ra
-
-**Success Response (200):**
-
-```json
-{
-  "success": true,
-  "meta": {
-    "timestamp": "2026-04-05T05:54:42.650Z",
-    "version": "v1"
-  },
-  "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "user": {
-      "id": "7482e592-df67-4bf0-8a90-44486182d540",
-      "email": "email@gmail.com",
-      "username": "username",
-      "role": "ADMIN"
-    }
-  },
-  "message": "Login successful"
-}
-```
-
-**Cookies:**
-
-- Trả về `refresh_token` qua HTTP-only cookie.
+| Tài liệu                                                 | Nội dung chính                                                                   | Đối tượng      |
+| :------------------------------------------------------- | :------------------------------------------------------------------------------- | :------------- |
+| **[Đăng nhập & Quản lý Token](./login-tokens.md)**       | Hướng dẫn luồng đăng nhập, cơ chế Refresh Token và chính sách Cookie.            | FE / Mobile    |
+| **[Quản lý tài khoản cá nhân](./profile-management.md)** | Hướng dẫn sử dụng API `/user/me`, cập nhật thông tin và đổi mật khẩu.            | FE             |
+| **[Cấu trúc bảo mật hệ thống](./security-design.md)**    | Giải thích về mã hóa mật khẩu (Bcrypt), JWT Payload và các tầng bảo vệ (Guards). | BE / DevSecOps |
 
 ---
 
-## 3. Làm mới Token (Refresh)
+## 3. Workflow bảo mật chuẩn (Standard Workflow)
 
-### 3.1 Mô tả
-
-| **Thuộc tính** | **Giá trị**               |
-| -------------- | ------------------------- |
-| Request URL    | `/auth/refresh`           |
-| Request Method | POST                      |
-| Request Header | Cookie: refresh_token=... |
-
-### 3.2 Dữ liệu đầu ra
-
-**Success Response (200):**
-
-```json
-{
-  "success": true,
-  "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expires_in": 900
-  },
-  "message": "Làm mới token thành công"
-}
-```
+1. **Khởi tạo**: Người dùng đăng nhập bằng Username/Password qua kênh HTTPS.
+2. **Cấp phát**: Backend kiểm tra thông tin, nếu đúng sẽ sinh ra cặp Access/Refresh Token.
+3. **Thực thi**: Frontend sử dụng Header `Authorization: Bearer <token>` để gửi yêu cầu tới các module nghiệp vụ (Voices, Sessions...).
+4. **Duy trì**: Khi Access Token hết hạn (thường sau 15p), FE tự động sử dụng Refresh Token (trong cookie) để lấy Token mới mà không bắt người dùng đăng nhập lại.
+5. **Kết thúc**: Khi người dùng nhấn Logout, hệ thống thực hiện vô hiệu hóa Refresh Token trong Database và xóa Cookie tại Client.
 
 ---
 
-## 4. Đăng xuất (Logout)
+## 4. Các thực thể dữ liệu liên quan
 
-### 4.1 Mô tả
-
-| **Thuộc tính** | **Giá trị**                   |
-| -------------- | ----------------------------- |
-| Request URL    | `/auth/logout`                |
-| Request Method | POST                          |
-| Request Header | Authorization: Bearer <token> |
-
-### 4.2 Dữ liệu đầu ra
-
-**Success Response (200):**
-
-```json
-{
-  "success": true,
-  "message": "Logged out successfully"
-}
-```
+- **Auth Accounts**: Lưu trữ thông tin đăng nhập (Email/Username, Hashed Password, Salt).
+- **Refresh Tokens**: Lưu trữ danh sách các token đang hoạt động để hỗ trợ cơ chế Single Sign-On (SSO) hoặc thu hồi quyền truy cập từ xa.
 
 ---
 
-## 5. Thay đổi mật khẩu (Reset Password)
+## 5. Lưu ý dành cho Frontend
 
-> [!IMPORTANT]
-> API này yêu cầu người dùng phải đang đăng nhập (có Access Token).
-
-### 5.1 Mô tả
-
-| **Thuộc tính** | **Giá trị**                   |
-| -------------- | ----------------------------- |
-| Request URL    | `/auth/reset-password`        |
-| Request Method | POST                          |
-| Request Header | Authorization: Bearer <token> |
-| Body data      | JSON schema bên dưới          |
-
-**JSON Schema:**
-
-```json
-{
-  "old_password": "string",
-  "new_password": "string",
-  "confirm_new_password": "string"
-}
-```
-
-### 5.2 Dữ liệu đầu vào
-
-| **Tên trường**       | **Kiểu** | **Bắt buộc** | **Ghi chú**                |
-| -------------------- | -------- | ------------ | -------------------------- |
-| old_password         | string   | ✓            | Mật khẩu hiện tại          |
-| new_password         | string   | ✓            | Mật khẩu mới (>= 6 ký tự)  |
-| confirm_new_password | string   | ✓            | Phải khớp với mật khẩu mới |
+- **Cookie Management**: Vì Refresh Token nằm trong HttpOnly Cookie, FE không cần (và không thể) can thiệp vào cookie này bằng JS. Các API `/refresh` hoặc `/logout` sẽ tự động nhận và xử lý cookie này.
+- **Token Storage**: Tuyệt đối không lưu Access Token vào `localStorage` vì dễ bị tấn công XSS. Hãy lưu vào một biến Global State (Redux, Vuex, hoặc biến cục bộ).
+- **Interceptors**: Nên cài đặt một `Axios Interceptor` để tự động đính kèm Token vào Header và xử lý mã lỗi `401 Unauthorized` để thực hiện luồng Refresh Token một cách trong suốt (Transparently).
 
 ---
 
-## 6. Các tính năng khác (Planned)
+> [!CAUTION]
+> Luôn sử dụng giao thức HTTPS trong môi trường Production. Việc gửi mật khẩu hoặc Token qua HTTP thường sẽ bị hệ thống chặn đứng hoặc cảnh báo nghiêm trọng.
 
-> [!NOTE]
-> Các tính năng dưới đây nằm trong kế hoạch phát triển và chưa có trên môi trường Production.
+---
 
-### - Xác thực Email (Verify Email)
-
-### - Quên mật khẩu (Forgot Password)
-
-### - OAuth (Google Login)
+> **Tài liệu tham khảo tiếp theo:** [Đăng nhập & Quản lý Token](./login-tokens.md)
