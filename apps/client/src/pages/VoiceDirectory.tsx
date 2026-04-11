@@ -1,17 +1,16 @@
-import { Fragment, useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import {
+  ChevronRight,
+  IdCard,
+  Loader2,
+  Phone,
+  Search,
+  UserRound,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { QUERY_KEYS } from "@/constants";
 import { voiceDirectoryApi } from "@/feature/voice-directory/api/voice-directory.api";
 import { VoiceDirectoryDetailSheet } from "@/feature/voice-directory/components/VoiceDirectoryDetailSheet";
@@ -20,12 +19,26 @@ import {
   getDirectoryAlphaSection,
 } from "@/feature/voice-directory/utils/directory-alpha";
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
+const AVATAR_COLORS = [
+  "bg-violet-100 text-violet-700",
+  "bg-sky-100 text-sky-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700",
+  "bg-indigo-100 text-indigo-700",
+  "bg-teal-100 text-teal-700",
+  "bg-orange-100 text-orange-700",
+];
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]!;
+}
 
 export default function VoiceDirectory() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] =
-    useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -33,38 +46,61 @@ export default function VoiceDirectory() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const next = searchInput.trim();
-      setDebouncedSearch((prev) => {
-        if (prev === next) {
-          return prev;
-        }
-        queueMicrotask(() => {
-          setPage(1);
-        });
-        return next;
-      });
-    }, 500);
+      setDebouncedSearch(searchInput.trim());
+    }, 400);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
-  const listQuery = useQuery({
-    queryKey: QUERY_KEYS.voice.directory.list({
-      page,
-      pageSize,
-      search: debouncedSearch,
-    }),
-    queryFn: () =>
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = useInfiniteQuery({
+    queryKey: QUERY_KEYS.voice.directory.list({ search: debouncedSearch }),
+    queryFn: ({ pageParam }) =>
       voiceDirectoryApi.listVoices({
-        page,
-        page_size: pageSize,
-        search: debouncedSearch.trim() || undefined,
+        page: pageParam as number,
+        page_size: 30,
+        search: debouncedSearch || undefined,
       }),
+    getNextPageParam: (lastPage) => {
+      const { page, total_pages } = lastPage.pagination;
+      return page < total_pages ? page + 1 : undefined;
+    },
+    initialPageParam: 1,
   });
 
-  const items = listQuery.data?.items ?? [];
-  const pagination = listQuery.data?.pagination;
-  const totalPages = pagination?.total_pages ?? 1;
-  const total = pagination?.total ?? 0;
+  const items = data?.pages.flatMap((p) => p.items) ?? [];
+  const total = data?.pages[0]?.pagination.total ?? 0;
+
+  const sentinelRef = useRef<HTMLLIElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const attachSentinel = useCallback(
+    (node: HTMLLIElement | null) => {
+      if (observerRef.current) observerRef.current.disconnect();
+      sentinelRef.current = node;
+      if (!node) return;
+
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (
+            entries[0]?.isIntersecting &&
+            hasNextPage &&
+            !isFetchingNextPage
+          ) {
+            void fetchNextPage();
+          }
+        },
+        { threshold: 0.1 },
+      );
+      observerRef.current.observe(node);
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage],
+  );
 
   const openDetail = (id: string) => {
     setSelectedId(id);
@@ -73,182 +109,169 @@ export default function VoiceDirectory() {
 
   const handleSheetOpenChange = (open: boolean) => {
     setSheetOpen(open);
-    if (!open) {
-      setSelectedId(null);
-    }
+    if (!open) setSelectedId(null);
   };
 
   return (
-    <div className="flex h-full flex-col gap-6">
-      <header className="flex flex-col gap-2">
+    <div className="flex h-full flex-col gap-4">
+      {/* Header */}
+      <header className="flex flex-col gap-1">
         <h1 className="font-playfair text-2xl font-bold text-[#4b1d18] md:text-3xl">
           Danh bạ định danh
         </h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Danh sách của những người đã được định danh bằng giọng nói
+        <p className="text-sm text-muted-foreground">
+          Danh sách những người đã được định danh bằng giọng nói
         </p>
       </header>
 
-      <div className="flex flex-col gap-4 rounded-[24px] border border-slate-100 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-md flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Tìm theo tên, CCCD, SĐT…"
-            className="pl-9"
-            aria-label="Tìm kiếm danh bạ"
-          />
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Số dòng / trang</span>
-          <select
-            className="rounded-md border border-input bg-background px-2 py-1.5 text-foreground"
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(
-                Number(e.target.value) as (typeof PAGE_SIZE_OPTIONS)[number],
-              );
-              setPage(1);
-            }}
-            aria-label="Kích thước trang"
-          >
-            {PAGE_SIZE_OPTIONS.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Search bar */}
+      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
+        <Search className="size-4 shrink-0 text-slate-400" />
+        <Input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Tìm theo tên, CCCD, SĐT…"
+          className="h-auto border-none p-0 shadow-none focus-visible:ring-0 text-sm"
+          aria-label="Tìm kiếm danh bạ"
+        />
+        {total > 0 && !isLoading && (
+          <span className="shrink-0 text-xs text-slate-400 font-medium">
+            {total} liên hệ
+          </span>
+        )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-[24px] border border-slate-100 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
-        {listQuery.isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-20 text-muted-foreground">
-            <Loader2 className="size-6 animate-spin" />
-            Đang tải danh sách…
+      {/* List container */}
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {isLoading ? (
+          <div className="flex h-full min-h-48 items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="size-5 animate-spin" />
+            <span className="text-sm">Đang tải danh sách…</span>
           </div>
-        ) : listQuery.isError ? (
-          <p className="p-8 text-center text-sm text-destructive">
-            Không tải được danh sách. Kiểm tra kết nối hoặc đăng nhập lại.
-          </p>
-        ) : items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-            <p className="text-sm text-muted-foreground">
-              Không có hồ sơ phù hợp.
+        ) : isError ? (
+          <div className="flex h-full min-h-48 items-center justify-center p-8">
+            <p className="text-center text-sm text-destructive">
+              Không tải được danh sách. Kiểm tra kết nối hoặc đăng nhập lại.
             </p>
-            {debouncedSearch ? (
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 text-center">
+            <UserRound className="size-10 text-slate-300" />
+            <p className="text-sm text-muted-foreground">
+              {debouncedSearch
+                ? "Không có hồ sơ phù hợp."
+                : "Chưa có hồ sơ nào."}
+            </p>
+            {debouncedSearch && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setSearchInput("");
-                  setDebouncedSearch("");
-                }}
+                onClick={() => setSearchInput("")}
               >
-                Xóa bộ lọc tìm kiếm
+                Xóa tìm kiếm
               </Button>
-            ) : null}
+            )}
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Họ tên</TableHead>
-                <TableHead className="hidden md:table-cell">CCCD</TableHead>
-                <TableHead className="hidden sm:table-cell">
-                  Điện thoại
-                </TableHead>
-                <TableHead className="hidden lg:table-cell">
-                  Đăng ký giọng
-                </TableHead>
-                <TableHead className="w-30 text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((row, index) => {
-                const section = getDirectoryAlphaSection(row.name);
-                const prevSection =
-                  index > 0
-                    ? getDirectoryAlphaSection(items[index - 1]!.name)
-                    : null;
-                const showSectionHeader = section !== prevSection;
+          <ul className="divide-y divide-slate-100">
+            {items.map((row, index) => {
+              const section = getDirectoryAlphaSection(row.name);
+              const prevSection =
+                index > 0
+                  ? getDirectoryAlphaSection(items[index - 1]!.name)
+                  : null;
+              const showSectionHeader = section !== prevSection;
+              const avatarColor = getAvatarColor(row.name);
+              const initial = row.name.trim()[0]?.toUpperCase() ?? "?";
 
-                return (
-                  <Fragment key={row.id}>
-                    {showSectionHeader ? (
-                      <TableRow className="border-t-2 border-primary-200 bg-primary-50/60 hover:bg-primary-50/60">
-                        <TableCell
-                          colSpan={5}
-                          className="py-2.5 text-sm font-semibold tracking-wide text-primary-700"
-                        >
-                          {formatDirectorySectionLabel(section)}
-                        </TableCell>
-                      </TableRow>
-                    ) : null}
-                    <TableRow>
-                      <TableCell className="font-medium">{row.name}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {row.citizen_identification ?? "—"}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {row.phone_number ?? "—"}
-                      </TableCell>
-                      <TableCell className="hidden whitespace-nowrap text-xs text-muted-foreground lg:table-cell">
-                        {row.enrolled_at
-                          ? new Date(row.enrolled_at).toLocaleString("vi-VN")
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openDetail(row.id)}
-                        >
-                          Chi tiết
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  </Fragment>
-                );
-              })}
-            </TableBody>
-          </Table>
+              return (
+                <Fragment key={row.id}>
+                  {showSectionHeader && (
+                    <li
+                      className="sticky top-0 z-10 flex items-center gap-3 bg-slate-50/95 backdrop-blur-sm px-4 py-1.5"
+                      aria-hidden="true"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-200 text-xs font-bold text-slate-600">
+                        {formatDirectorySectionLabel(section)}
+                      </span>
+                      <span className="h-px flex-1 bg-slate-200" />
+                    </li>
+                  )}
+
+                  <li className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+                    {/* Avatar */}
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${avatarColor}`}
+                    >
+                      {initial}
+                    </div>
+
+                    {/* Name + info chips */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-slate-800 text-sm mb-1.5">
+                        {row.name}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {row.phone_number ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                            <Phone className="size-3 text-green-500" />
+                            {row.phone_number}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-400">
+                            Chưa có SĐT
+                          </span>
+                        )}
+                        {row.citizen_identification ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                            <IdCard className="size-3 text-blue-500" />
+                            {row.citizen_identification}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-400">
+                            Chưa có CCCD
+                          </span>
+                        )}
+                        {row.enrolled_at && (
+                          <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                            ✓{" "}
+                            {new Date(row.enrolled_at).toLocaleDateString(
+                              "vi-VN",
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 gap-1 text-slate-500 hover:text-slate-900"
+                      onClick={() => openDetail(row.id)}
+                    >
+                      Chi tiết
+                      <ChevronRight className="size-3.5" />
+                    </Button>
+                  </li>
+                </Fragment>
+              );
+            })}
+
+            {/* Infinite scroll sentinel */}
+            <li ref={attachSentinel} className="h-1" aria-hidden="true" />
+
+            {isFetchingNextPage && (
+              <li className="flex items-center justify-center gap-2 py-4 text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
+                <span className="text-xs">Đang tải thêm…</span>
+              </li>
+            )}
+          </ul>
         )}
       </div>
-
-      {pagination && items.length > 0 ? (
-        <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-          <p className="text-sm text-muted-foreground">
-            Tổng <span className="font-medium text-foreground">{total}</span> hồ
-            sơ — trang {pagination.page} / {totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft className="size-4" />
-              Trước
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Sau
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        </div>
-      ) : null}
 
       <VoiceDirectoryDetailSheet
         voiceId={selectedId}

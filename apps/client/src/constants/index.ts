@@ -6,7 +6,7 @@ export const QUERY_KEYS = {
     identify: ["voice", "identify"] as const,
     identifyTwo: ["voice", "identify-two"] as const,
     directory: {
-      list: (params: { page: number; pageSize: number; search: string }) =>
+      list: (params: { search: string }) =>
         ["voice", "directory", "list", params] as const,
       detail: (id: string) => ["voice", "directory", "detail", id] as const,
     },

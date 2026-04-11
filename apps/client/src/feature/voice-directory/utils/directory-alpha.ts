@@ -20,6 +20,6 @@ export function getDirectoryAlphaSection(name: string): string {
 }
 
 export function formatDirectorySectionLabel(section: string): string {
-  if (section === "#") return "Khác";
-  return `${section} ————————————————————`;
+  if (section === "#") return "#";
+  return section;
 }

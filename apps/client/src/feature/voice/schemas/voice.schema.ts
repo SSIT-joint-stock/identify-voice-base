@@ -3,13 +3,13 @@ import { ACCEPTED_AUDIO_TYPES, MAX_AUDIO_FILE_SIZE_BYTES } from "@/constants";
 
 const audioFileSchema = z
   .custom<File | null>((value) => value === null || value instanceof File, {
-    message: "Vui long chon file audio.",
+    message: "Vui lòng chọn file audio",
   })
   .superRefine((value, ctx) => {
     if (!(value instanceof File)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Vui long chon file audio.",
+        message: "Vui lòng chọn file audio",
       });
       return;
     }
