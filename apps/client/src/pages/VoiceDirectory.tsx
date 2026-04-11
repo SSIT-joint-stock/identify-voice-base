@@ -117,7 +117,7 @@ export default function VoiceDirectory() {
       {/* Header */}
       <header className="flex flex-col gap-1">
         <h1 className="font-playfair text-2xl font-bold text-[#4b1d18] md:text-3xl">
-          Danh bạ định danh
+          Hồ sơ giọng nói
         </h1>
         <p className="text-sm text-muted-foreground">
           Danh sách những người đã được định danh bằng giọng nói

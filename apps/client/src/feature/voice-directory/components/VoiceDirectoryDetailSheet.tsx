@@ -628,7 +628,7 @@ export function VoiceDirectoryDetailSheet({
           <DialogHeader>
             <DialogTitle>Vô hiệu hóa hồ sơ?</DialogTitle>
             <DialogDescription>
-              Hồ sơ sẽ ẩn khỏi danh bạ và không còn dùng trong nhận dạng mới.
+              Hồ sơ sẽ ẩn khỏi danh sách và không còn dùng trong nhận dạng mới.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">

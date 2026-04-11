@@ -56,7 +56,7 @@ const navigation = [
     icon: UsersRound,
   },
   {
-    title: "Danh bạ định danh",
+    title: "Hồ sơ định danh",
     url: ROUTES.VOICE_DIRECTORY,
     icon: BookUser,
   },
