@@ -6,6 +6,7 @@ import { AuthLayout } from "@/layouts/AuthLayout";
 import { MainLayout } from "@/layouts/MainLayout";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
+import VoiceDirectory from "@/pages/VoiceDirectory";
 import VoiceEnroll from "@/pages/VoiceEnroll";
 import VoiceGuide from "@/pages/VoiceGuide";
 import VoiceSearchMulti from "@/pages/VoiceSearchMulti";
@@ -29,6 +30,7 @@ function App() {
               element={<Navigate to={ROUTES.VOICE_SEARCH_SINGLE} replace />}
             />
             <Route path={ROUTES.VOICE_ENROLL} element={<VoiceEnroll />} />
+            <Route path={ROUTES.VOICE_DIRECTORY} element={<VoiceDirectory />} />
             <Route
               path={ROUTES.VOICE_SEARCH_SINGLE}
               element={<VoiceSearchSingle />}

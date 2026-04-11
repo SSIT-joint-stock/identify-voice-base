@@ -40,7 +40,7 @@ export class VoicesRepository {
           user: true,
           audio_file: true,
         },
-        orderBy: { created_at: 'desc' },
+        orderBy: { user: { name: 'asc' } },
         skip: (page - 1) * page_size,
         take: page_size,
       }),

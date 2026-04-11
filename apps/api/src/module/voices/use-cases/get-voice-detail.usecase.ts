@@ -44,6 +44,7 @@ export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
 
       return {
         session_id: s.id,
+        audio_file_id: s.audio_file_id,
         identified_at: s.identified_at,
         score: myResult?.score || null,
       };
@@ -53,6 +54,7 @@ export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
     return {
       id: user.id,
       voice_id: activeRecord?.voice_id || null,
+      is_active: activeRecord?.is_active ?? false,
       name: user.name,
       citizen_identification: user.citizen_identification,
       phone_number: user.phone_number,

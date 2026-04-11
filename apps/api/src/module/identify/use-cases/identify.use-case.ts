@@ -118,7 +118,7 @@ export class IdentifyUseCase {
       results: aiResponse.speakers as any,
     });
 
-    // 5. Trả về kết quả
+    // 5. Trả về kết quả — metadata Business Truth từ users khi đã định danh & còn active
     const enrichedSpeakers = await Promise.all(
       aiResponse.speakers.map(async (s) => {
         const base = {
@@ -131,30 +131,34 @@ export class IdentifyUseCase {
           segments: s.segments,
         };
 
-        // Nếu là MULTI, cung cấp URL đến API streaming on-demand
-        if (type === 'MULTI' && s.segments && s.segments.length > 0) {
-          return {
-            ...base,
-            audio_url: `${this.config.cdnUrl.replace('/cdn', '/api/v1')}/sessions/${session.id}/speakers/${s.speaker_label}/audio`,
-          };
-        }
+        let row: Record<string, unknown> = { ...base };
 
-        // Nếu là SINGLE và có matched_voice_id, lấy thêm enroll_audio_url từ Business Truth
-        if (type === 'SINGLE' && s.matched_voice_id) {
+        if (s.matched_voice_id) {
           const voiceRecord = await this.prisma.voice_records.findUnique({
             where: { voice_id: s.matched_voice_id },
             include: { user: true },
           });
-          if (voiceRecord?.user) {
-            return {
-              ...base,
-              name: voiceRecord.user.name,
-              enroll_audio_url: voiceRecord.user.audio_url,
+          if (voiceRecord?.is_active && voiceRecord.user) {
+            const u = voiceRecord.user;
+            row = {
+              ...row,
+              name: u.name,
+              citizen_identification: u.citizen_identification,
+              phone_number: u.phone_number,
+              hometown: u.hometown,
+              job: u.job,
+              passport: u.passport,
+              criminal_record: u.criminal_record,
+              enroll_audio_url: u.audio_url ?? undefined,
             };
           }
         }
 
-        return base;
+        if (type === 'MULTI' && s.segments && s.segments.length > 0) {
+          row.audio_url = `${this.config.cdnUrl.replace('/cdn', '/api/v1')}/sessions/${session.id}/speakers/${s.speaker_label}/audio`;
+        }
+
+        return row;
       }),
     );
 

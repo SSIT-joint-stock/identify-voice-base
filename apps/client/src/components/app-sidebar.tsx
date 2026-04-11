@@ -1,6 +1,7 @@
 import * as React from "react";
 import {
   BookOpenText,
+  BookUser,
   ChevronLeft,
   ChevronRight,
   Home,
@@ -53,6 +54,11 @@ const navigation = [
     title: "Tra cứu 1-2 người",
     url: ROUTES.VOICE_SEARCH_MULTI,
     icon: UsersRound,
+  },
+  {
+    title: "Danh bạ định danh",
+    url: ROUTES.VOICE_DIRECTORY,
+    icon: BookUser,
   },
   {
     title: "Hướng dẫn sử dụng",

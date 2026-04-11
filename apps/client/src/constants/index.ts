@@ -5,6 +5,13 @@ export const QUERY_KEYS = {
     upload: ["voice", "upload"] as const,
     identify: ["voice", "identify"] as const,
     identifyTwo: ["voice", "identify-two"] as const,
+    directory: {
+      list: (params: { page: number; pageSize: number; search: string }) =>
+        ["voice", "directory", "list", params] as const,
+      detail: (id: string) => ["voice", "directory", "detail", id] as const,
+    },
+    sessionAudio: (sessionId: string) =>
+      ["voice", "directory", "session", sessionId] as const,
   },
 } as const;
 
@@ -17,6 +24,7 @@ export const ROUTES = {
   VOICE_SEARCH_SINGLE: "/voice/search-single",
   VOICE_SEARCH_MULTI: "/voice/search-multi",
   VOICE_GUIDE: "/voice/guide",
+  VOICE_DIRECTORY: "/voice/directory",
   NOT_FOUND: "*",
 } as const;
 
@@ -50,6 +58,8 @@ export const MAX_AUDIO_FILE_SIZE_BYTES = MAX_AUDIO_FILE_SIZE_MB * 1024 * 1024;
 export const VOICE_API_ENDPOINTS = {
   ENROLL: "/voices/enroll",
   IDENTIFY: "/identify",
+  VOICES: "/voices",
+  SESSIONS: "/sessions",
 } as const;
 
 export const VOICE_TABS = {

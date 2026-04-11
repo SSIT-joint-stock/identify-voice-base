@@ -1,24 +1,17 @@
-import { Info, Mic, ShieldAlert } from "lucide-react";
+import { Mic, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function VoiceGuide() {
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border bg-card p-6 shadow-sm">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm">
-            <Info className="size-4" />
-            Hướng dẫn sử dụng
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Yêu cầu file audio và cách dùng
-          </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Gợi ý nhanh để người dùng chuẩn bị file tốt hơn, giảm lỗi nhập liệu
-            và tăng độ chính xác khi nhận diện.
-          </p>
-        </div>
-      </section>
+      <header className="flex flex-col gap-2">
+        <h1 className="font-playfair text-2xl font-bold text-[#4b1d18] md:text-3xl">
+          Hướng dẫn sử dụng
+        </h1>
+        <p className="max-w-3xl text-sm text-muted-foreground">
+          Hướng dẫn sử dụng hệ thống nhận diện giọng nói
+        </p>
+      </header>
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <Card className="rounded-2xl">

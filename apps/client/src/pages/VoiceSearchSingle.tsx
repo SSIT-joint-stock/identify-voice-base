@@ -32,20 +32,14 @@ export default function VoiceSearchSingle() {
   return (
     <>
       <div className="space-y-6">
-        <section className="rounded-3xl border bg-card p-6 shadow-sm">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm">
-              <Search className="size-4" />
-              Tra cứu 1 người
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Nhận diện giọng nói 1 người
-            </h1>
-            <p className="max-w-3xl text-sm text-muted-foreground">
-              Tải file audio có 1 người nói để tra cứu
-            </p>
-          </div>
-        </section>
+        <header className="flex flex-col gap-2">
+          <h1 className="font-playfair text-2xl font-bold text-[#4b1d18] md:text-3xl">
+            Tra cứu 1 người
+          </h1>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Tải file audio có 1 người nói để tra cứu
+          </p>
+        </header>
 
         <VoiceSingleSearchForm
           formId={SINGLE_SEARCH_FORM_ID}
