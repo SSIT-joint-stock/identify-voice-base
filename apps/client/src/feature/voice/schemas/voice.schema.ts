@@ -17,14 +17,14 @@ const audioFileSchema = z
     if (value.size <= 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "File audio khong hop le.",
+        message: "File audio không hợp lệ",
       });
     }
 
     if (value.size > MAX_AUDIO_FILE_SIZE_BYTES) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `File audio khong duoc vuot qua ${MAX_AUDIO_FILE_SIZE_BYTES / 1024 / 1024}MB.`,
+        message: `File audio không được vượt quá ${MAX_AUDIO_FILE_SIZE_BYTES / 1024 / 1024}MB.`,
       });
     }
 
@@ -35,23 +35,23 @@ const audioFileSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Dinh dang file audio chua duoc ho tro.",
+        message: "Định dạng file audio chưa được hỗ trợ",
       });
     }
   })
   .transform((value) => value as File);
 
 const criminalRecordItemSchema = z.object({
-  case: z.string().trim().min(1, "Vui long nhap noi dung tien an / tien su."),
+  case: z.string().trim().min(1, "Vui lòng nhập nội dung tiền án / tiền sự."),
   year: z
     .string()
     .trim()
-    .min(1, "Vui long chon nam.")
-    .refine((value) => /^\d{4}$/.test(value), "Nam khong hop le."),
+    .min(1, "Vui lòng chọn năm.")
+    .refine((value) => /^\d{4}$/.test(value), "Năm không hợp lệ."),
 });
 
 export const uploadVoiceSchema = z.object({
-  name: z.string().trim().min(1, "Vui long nhap ho ten."),
+  name: z.string().trim().min(1, "Vui lòng nhập họ tên."),
   citizenIdentification: z.string().trim().optional().default(""),
   phoneNumber: z.string().trim().optional().default(""),
   hometown: z.string().trim().optional().default(""),
