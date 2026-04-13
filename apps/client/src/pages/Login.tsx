@@ -1,19 +1,19 @@
-import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { z } from "zod";
 
+import { loginApi } from "@/api/auth.api.ts";
+import headerBg from "@/assets/header1.webp";
+import logo1 from "@/assets/logo1.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginApi } from "@/api/auth.api.ts";
-import { useAuthStore } from "@/store/auth.store";
 import { ROUTES } from "@/constants";
-import logo1 from "@/assets/logo1.png";
-import headerBg from "@/assets/header1.webp";
+import { useAuthStore } from "@/store/auth.store";
 
 // ─── Validation ────────────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -137,7 +137,7 @@ export default function Login() {
                 type="email"
                 placeholder="example@email.com"
                 autoComplete="email"
-                className="h-12 rounded-xl border-[#e5e7eb] bg-white px-4 text-base shadow-sm transition-all duration-200 placeholder:text-[#9ca3af] focus:border-[#4b1d18] focus:ring-2 focus:ring-[#4b1d18]/10"
+                className="h-12 rounded-md border-[#e5e7eb] bg-white px-4 text-base shadow-sm transition-all duration-200 placeholder:text-[#9ca3af] focus:border-[#4b1d18] focus:ring-2 focus:ring-[#4b1d18]/10"
                 {...register("email")}
               />
               {errors.email && (
@@ -159,7 +159,7 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Nhập mật khẩu"
                   autoComplete="current-password"
-                  className="h-12 rounded-xl border-[#e5e7eb] bg-white px-4 pr-12 text-base shadow-sm transition-all duration-200 placeholder:text-[#9ca3af] focus:border-[#4b1d18] focus:ring-2 focus:ring-[#4b1d18]/10"
+                  className="h-12 rounded-md border-[#e5e7eb] bg-white px-4 pr-12 text-base shadow-sm transition-all duration-200 placeholder:text-[#9ca3af] focus:border-[#4b1d18] focus:ring-2 focus:ring-[#4b1d18]/10"
                   {...register("password")}
                 />
                 <button
@@ -186,7 +186,7 @@ export default function Login() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-12 w-full rounded-xl bg-[#4b1d18] text-base font-semibold text-white shadow-lg shadow-[#4b1d18]/20 transition-all duration-200 hover:bg-[#3a1512] hover:shadow-xl hover:shadow-[#4b1d18]/30 active:scale-[0.98] disabled:opacity-60"
+              className="h-12 w-full rounded-md bg-[#4b1d18] text-base font-semibold text-white shadow-lg shadow-[#4b1d18]/20 transition-all duration-200 hover:bg-[#3a1512] hover:shadow-xl hover:shadow-[#4b1d18]/30 active:scale-[0.98] disabled:opacity-60"
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">

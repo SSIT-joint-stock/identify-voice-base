@@ -25,6 +25,7 @@ export const ROUTES = {
   VOICE_SEARCH_MULTI: "/voice/search-multi",
   VOICE_GUIDE: "/voice/guide",
   VOICE_DIRECTORY: "/voice/directory",
+  VOICE_HISTORY: "/voice/session-history",
   NOT_FOUND: "*",
 } as const;
 
