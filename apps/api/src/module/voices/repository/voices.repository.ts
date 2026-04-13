@@ -15,7 +15,13 @@ export class VoicesRepository {
   ) {}
 
   async findActiveVoices(filter: VoiceFilterDto) {
-    const { page = 1, page_size = 10, search } = filter;
+    const {
+      page = 1,
+      page_size = 10,
+      search,
+      sort_by = 'name',
+      sort_order = 'asc',
+    } = filter;
 
     const where: Prisma.voice_recordsWhereInput = {
       is_active: true,
@@ -33,6 +39,11 @@ export class VoicesRepository {
       }),
     };
 
+    const orderBy: Prisma.voice_recordsOrderByWithRelationInput[] =
+      sort_by === 'enrolled_at'
+        ? [{ created_at: sort_order }]
+        : [{ user: { name: sort_order } }, { created_at: 'desc' }];
+
     const [items, total] = await Promise.all([
       this.prisma.voice_records.findMany({
         where,
@@ -40,7 +51,7 @@ export class VoicesRepository {
           user: true,
           audio_file: true,
         },
-        orderBy: { user: { name: 'asc' } },
+        orderBy,
         skip: (page - 1) * page_size,
         take: page_size,
       }),
@@ -112,10 +123,14 @@ export class VoicesRepository {
    * Tìm kiếm lịch sử nhận dạng.
    */
   async findIdentifyHistory(voiceId: string) {
+    if (!voiceId) {
+      return [];
+    }
+
     const sessions = await this.prisma.identify_sessions.findMany({
       where: {
         results: {
-          array_contains: [{ voice_id: voiceId }],
+          array_contains: [{ matched_voice_id: voiceId }],
         },
       },
       orderBy: { identified_at: 'desc' },

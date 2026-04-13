@@ -1,21 +1,21 @@
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/app-sidebar';
-import { Outlet } from 'react-router-dom';
-import headerBg from '@/assets/header1.webp';
-import logo1 from '@/assets/logo1.png';
+import headerBg from "@/assets/header1.webp";
+import logo1 from "@/assets/logo1.png";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { Outlet } from "react-router-dom";
 
-const APP_HEADER_HEIGHT = '110px';
+const APP_HEADER_HEIGHT = "110px";
 
 export function MainLayout() {
   return (
     <SidebarProvider
       style={
         {
-          '--app-header-height': APP_HEADER_HEIGHT,
+          "--app-header-height": APP_HEADER_HEIGHT,
         } as React.CSSProperties
       }
     >
-      <div className="min-h-screen w-full bg-[#f3f5f7]">
+      <div className="min-h-screen w-full bg-gray-50/90">
         <header
           className="sticky top-0 z-40 h-(--app-header-height)  shrink-0 overflow-hidden border-b bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${headerBg})` }}

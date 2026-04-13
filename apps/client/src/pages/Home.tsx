@@ -12,7 +12,7 @@ const quickActions = [
   },
   {
     title: "DỊCH ĐA NGÔN NGỮ",
-    to: "/translate",
+    to: ROUTES.TRANSLATE,
     icon: Languages,
   },
 ];

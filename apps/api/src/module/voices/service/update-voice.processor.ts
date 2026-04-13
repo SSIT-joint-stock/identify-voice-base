@@ -1,11 +1,11 @@
 import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { AiCoreService } from '@/module/ai-core/service/ai-core.service';
-import { Process, Processor } from '@nestjs/bull';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { JobStatus } from '@prisma/client';
-import type { Job } from 'bull';
+import type { Job } from 'bullmq';
 import * as path from 'path';
 
 export interface UpdateVoiceJobData {
@@ -26,7 +26,7 @@ export interface UpdateVoiceJobData {
  * Không cần versioning hay is_active vì AI chỉ có 1 voiceId duy nhất và append thêm sample.
  */
 @Processor('update-voice')
-export class UpdateVoiceProcessor {
+export class UpdateVoiceProcessor extends WorkerHost {
   private readonly logger = new Logger(UpdateVoiceProcessor.name);
 
   constructor(
@@ -34,10 +34,16 @@ export class UpdateVoiceProcessor {
     private readonly aiService: AiCoreService,
     @Inject(storageConfig.KEY)
     private readonly storageCfg: ConfigType<typeof storageConfig>,
-  ) {}
+  ) {
+    super();
+  }
 
-  @Process('update-voice-job')
-  async handleUpdateVoice(job: Job<UpdateVoiceJobData>) {
+  async process(job: Job<UpdateVoiceJobData>) {
+    if (job.name !== 'update-voice-job') {
+      this.logger.warn(`Bỏ qua job không hỗ trợ: ${job.name}`);
+      return;
+    }
+
     const { jobId, voiceId, audioIds, adminId } = job.data;
 
     try {
@@ -147,6 +153,13 @@ export class UpdateVoiceProcessor {
 
       throw error; // Re-throw để Bull retry mechanism hoạt động
     }
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job<UpdateVoiceJobData>, error: Error) {
+    this.logger.error(
+      `[Job ${job?.data?.jobId ?? 'unknown'}] Worker failed: ${error.message}`,
+    );
   }
 
   private async updateProgress(

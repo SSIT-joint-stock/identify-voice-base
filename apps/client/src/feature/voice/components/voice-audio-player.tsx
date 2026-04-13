@@ -1,18 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import WaveSurfer from "wavesurfer.js";
-import { Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Pause, Play } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import WaveSurfer from "wavesurfer.js";
 
-interface VoiceAudioPlayerProps {
+export interface VoiceAudioPlayerProps {
   file: File | null;
+  audioUrl?: string | null;
+  fileName?: string;
   title?: string;
   startAt?: number;
   endAt?: number;
   onReady?: () => void;
   footerAction?: ReactNode;
   footerActionWrapperClassName?: string;
+  compact?: boolean;
 }
 
 const WAVEFORM_FALLBACK_MESSAGE =
@@ -27,12 +30,15 @@ function formatTime(seconds: number) {
 
 export function VoiceAudioPlayer({
   file,
+  audioUrl,
+  fileName,
   title = "Audio player",
   startAt,
   endAt,
   onReady,
   footerAction,
   footerActionWrapperClassName,
+  compact = false,
 }: VoiceAudioPlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
@@ -44,21 +50,24 @@ export function VoiceAudioPlayer({
   const [duration, setDuration] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
 
-  const audioUrl = useMemo(() => {
+  const objectUrl = useMemo(() => {
     if (!file) return null;
     return URL.createObjectURL(file);
   }, [file]);
 
-  useEffect(() => {
-    return () => {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-    };
-  }, [audioUrl]);
+  const resolvedAudioUrl = file ? objectUrl : (audioUrl ?? null);
+  const resolvedFileName = file?.name ?? fileName ?? "audio";
 
   useEffect(() => {
-    if (!containerRef.current || !file) {
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [objectUrl]);
+
+  useEffect(() => {
+    if (!containerRef.current || !resolvedAudioUrl) {
       return;
     }
 
@@ -130,7 +139,11 @@ export function VoiceAudioPlayer({
         setDuration(0);
       });
 
-      void waveSurfer.loadBlob(file).catch((error) => {
+      const loadPromise = file
+        ? waveSurfer.loadBlob(file)
+        : waveSurfer.load(resolvedAudioUrl);
+
+      void loadPromise.catch((error) => {
         if (isDisposed) return;
 
         setAudioError(
@@ -165,7 +178,7 @@ export function VoiceAudioPlayer({
       setCurrentTime(0);
       setDuration(0);
     };
-  }, [file, onReady]);
+  }, [file, onReady, resolvedAudioUrl]);
 
   useEffect(() => {
     const wave = waveSurferRef.current;
@@ -214,77 +227,92 @@ export function VoiceAudioPlayer({
     }
   };
 
-  if (!file) return null;
+  if (!resolvedAudioUrl) return null;
 
-  return (
-    <Card className="rounded-2xl">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <div className="rounded-xl border bg-background p-3">
-          <div
-            ref={containerRef}
-            className={cn("w-full", audioError && "hidden")}
-          />
-
-          {audioError && audioUrl ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {WAVEFORM_FALLBACK_MESSAGE}
-              </p>
-              <audio
-                controls
-                preload="metadata"
-                src={audioUrl}
-                className="w-full"
-              />
-            </div>
-          ) : null}
-        </div>
-
-        {!audioError ? (
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={togglePlay}
-              disabled={!isReady}
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="mr-2 size-4" />
-                  Tạm dừng
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 size-4" />
-                  Phát
-                </>
-              )}
-            </Button>
-
-            <div className="text-sm text-muted-foreground">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </div>
-
-            <div className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-              {file.name}
-            </div>
-          </div>
-        ) : (
-          <div className="min-w-0 truncate text-sm text-muted-foreground">
-            {file.name}
-          </div>
+  const content = (
+    <CardContent className={cn("space-y-4", compact && "px-4 py-4")}>
+      <div
+        className={cn(
+          "rounded-xl border bg-background p-3",
+          compact && "overflow-hidden rounded-2xl py-2",
         )}
+      >
+        <div
+          ref={containerRef}
+          className={cn(
+            "w-full",
+            compact && "min-h-[64px]",
+            audioError && "hidden",
+          )}
+        />
 
-        {footerAction ? (
-          <div className={cn("flex justify-end", footerActionWrapperClassName)}>
-            {footerAction}
+        {audioError ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {WAVEFORM_FALLBACK_MESSAGE}
+            </p>
+            <audio
+              controls
+              preload="metadata"
+              src={resolvedAudioUrl}
+              className="w-full"
+            />
           </div>
         ) : null}
-      </CardContent>
+      </div>
+
+      {!audioError ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={togglePlay}
+            disabled={!isReady}
+            size={compact ? "sm" : "default"}
+          >
+            {isPlaying ? (
+              <>
+                <Pause className="mr-2 size-4" />
+                Tạm dừng
+              </>
+            ) : (
+              <>
+                <Play className="mr-2 size-4" />
+                Phát
+              </>
+            )}
+          </Button>
+
+          <div className="text-sm text-muted-foreground">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </div>
+
+          <div className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+            {resolvedFileName}
+          </div>
+        </div>
+      ) : (
+        <div className="min-w-0 truncate text-sm text-muted-foreground">
+          {resolvedFileName}
+        </div>
+      )}
+
+      {footerAction ? (
+        <div className={cn("flex justify-end", footerActionWrapperClassName)}>
+          {footerAction}
+        </div>
+      ) : null}
+    </CardContent>
+  );
+
+  return (
+    <Card className={cn("rounded-2xl", compact && "gap-0")}>
+      {!compact ? (
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+      ) : null}
+      {content}
     </Card>
   );
 }

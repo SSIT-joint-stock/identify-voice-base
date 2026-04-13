@@ -25,6 +25,8 @@ export interface ListVoicesParams {
   page?: number;
   page_size?: number;
   search?: string;
+  sort_by?: "name" | "enrolled_at";
+  sort_order?: "asc" | "desc";
 }
 
 export const voiceDirectoryApi = {

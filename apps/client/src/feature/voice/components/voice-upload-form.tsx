@@ -1,14 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import {
-  useFieldArray,
-  useForm,
-  useWatch,
-  type SubmitHandler,
-} from "react-hook-form";
-import { LoaderCircle, Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import { cropAudioFile } from "@/utils/audio.utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,6 +9,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { cropAudioFile } from "@/utils/audio.utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { useEffect } from "react";
+import {
+  useFieldArray,
+  useForm,
+  useWatch,
+  type SubmitHandler,
+} from "react-hook-form";
+import { toast } from "sonner";
 import { useUploadVoice } from "../hooks/use-voice";
 import {
   uploadVoiceSchema,
@@ -373,7 +373,7 @@ export function VoiceUploadForm({
               {uploadMutation.isPending ? (
                 <>
                   <LoaderCircle className="mr-2 size-4 animate-spin" />
-                  Đang upload...
+                  Đang xử lý đăng ký...
                 </>
               ) : (
                 "Hoàn Thành Đăng Ký Giọng Nói"

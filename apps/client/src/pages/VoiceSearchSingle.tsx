@@ -1,5 +1,6 @@
 import { LoaderCircle, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { PageLayout } from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { VoiceAudioPlayer } from "@/feature/voice/components/voice-audio-player";
 import { VoiceEnrollDialog } from "@/feature/voice/components/voice-enroll-dialog";
@@ -31,16 +32,10 @@ export default function VoiceSearchSingle() {
 
   return (
     <>
-      <div className="space-y-6">
-        <header className="flex flex-col gap-2">
-          <h1 className="font-playfair text-2xl font-bold text-[#4b1d18] md:text-3xl">
-            Tra cứu 1 người
-          </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Tải file audio có 1 người nói để tra cứu
-          </p>
-        </header>
-
+      <PageLayout
+        title="Tra cứu 1 người"
+        description="Tải file audio có 1 người nói để tra cứu"
+      >
         <VoiceSingleSearchForm
           formId={SINGLE_SEARCH_FORM_ID}
           autoSubmitOnAudioChange
@@ -106,7 +101,7 @@ export default function VoiceSearchSingle() {
             </div>
           </div>
         ) : null}
-      </div>
+      </PageLayout>
 
       <VoiceEnrollDialog
         open={openEnrollDialog}

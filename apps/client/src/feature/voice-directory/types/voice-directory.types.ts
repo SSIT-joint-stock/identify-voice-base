@@ -26,9 +26,14 @@ export interface VoiceDirectoryListResult {
 
 export interface VoiceIdentifyHistoryItem {
   session_id: string;
-  audio_file_id?: string;
+  audio_file_id: string | null;
   identified_at: string;
   score: number | null;
+}
+
+export interface VoiceHistoryItem {
+  audio_url: string;
+  created_at: string;
 }
 
 export interface VoiceDirectoryDetail {
@@ -45,6 +50,7 @@ export interface VoiceDirectoryDetail {
   audio_url: string | null;
   audio_available: boolean;
   enrolled_at: string | null;
+  voice_history: VoiceHistoryItem[];
   identify_history: VoiceIdentifyHistoryItem[];
 }
 

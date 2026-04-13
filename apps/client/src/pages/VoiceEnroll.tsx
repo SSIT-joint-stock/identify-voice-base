@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { PageLayout } from "@/components/PageLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { VoiceUploadForm } from "@/feature/voice/components/voice-upload-form";
 import { useVoiceStore } from "@/feature/voice";
@@ -14,16 +15,10 @@ export default function VoiceEnroll() {
   }, [resetUploadResult]);
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-playfair text-2xl font-bold text-[#4b1d18] md:text-3xl">
-          Đăng ký giọng nói
-        </h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Tải file audio của người đăng ký để đăng ký giọng nói
-        </p>
-      </header>
-
+    <PageLayout
+      title="Đăng ký giọng nói"
+      description="Tải file audio của người đăng ký để đăng ký giọng nói"
+    >
       <VoiceUploadForm onFileChange={resetUploadResult} />
 
       {uploadResult ? (
@@ -36,6 +31,6 @@ export default function VoiceEnroll() {
           </CardContent>
         </Card>
       ) : null}
-    </div>
+    </PageLayout>
   );
 }

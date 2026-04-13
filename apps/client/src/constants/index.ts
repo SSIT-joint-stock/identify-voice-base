@@ -6,9 +6,22 @@ export const QUERY_KEYS = {
     identify: ["voice", "identify"] as const,
     identifyTwo: ["voice", "identify-two"] as const,
     directory: {
-      list: (params: { search: string }) =>
-        ["voice", "directory", "list", params] as const,
+      list: (params: {
+        search: string;
+        page: number;
+        sortBy: "name" | "enrolled_at";
+        sortOrder: "asc" | "desc";
+      }) => ["voice", "directory", "list", params] as const,
       detail: (id: string) => ["voice", "directory", "detail", id] as const,
+    },
+    sessions: {
+      list: (params: {
+        page: number;
+        pageSize: 10 | 25 | 50;
+        fromDate: string;
+        toDate: string;
+      }) => ["voice", "sessions", "list", params] as const,
+      detail: (id: string) => ["voice", "sessions", "detail", id] as const,
     },
     sessionAudio: (sessionId: string) =>
       ["voice", "directory", "session", sessionId] as const,
@@ -20,6 +33,9 @@ export const ROUTES = {
   REGISTER: "/register",
   HOME: "/",
   VOICE: "/voice",
+  TRANSLATE: "/translate",
+  TRANSLATE_LIVE: "/translate/live",
+  TRANSLATE_FILE: "/translate/file",
   VOICE_ENROLL: "/voice/enroll",
   VOICE_SEARCH_SINGLE: "/voice/search-single",
   VOICE_SEARCH_MULTI: "/voice/search-multi",

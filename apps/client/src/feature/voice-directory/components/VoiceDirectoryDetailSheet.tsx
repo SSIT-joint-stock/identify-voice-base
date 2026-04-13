@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pause, Play, Plus, Trash2 } from "lucide-react";
+import { Loader2, Play, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -33,6 +33,7 @@ import {
 import { QUERY_KEYS } from "@/constants";
 import type { ApiError } from "@/types";
 
+import { VoiceAudioPlayer } from "@/feature/voice/components/voice-audio-player";
 import { voiceDirectoryApi } from "../api/voice-directory.api";
 import {
   type UpdateVoiceDirectoryFormValues,
@@ -92,8 +93,6 @@ export function VoiceDirectoryDetailSheet({
   const [selectedAudioIds, setSelectedAudioIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const enrollAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [enrollSamplePlaying, setEnrollSamplePlaying] = useState(false);
 
   const detailQuery = useQuery({
     queryKey: voiceId
@@ -239,66 +238,18 @@ export function VoiceDirectoryDetailSheet({
   const enrollAudioUrl = detail?.audio_url?.trim() || null;
   const hasEnrollStreamUrl = Boolean(enrollAudioUrl);
 
-  useEffect(() => {
-    const el = enrollAudioRef.current;
-    if (el) {
-      el.pause();
-      el.removeAttribute("src");
-      el.load();
-    }
-    queueMicrotask(() => {
-      setEnrollSamplePlaying(false);
-    });
-  }, [enrollAudioUrl]);
-
-  useEffect(() => {
-    const el = enrollAudioRef.current;
-    if (!el) return;
-    const onPlay = () => setEnrollSamplePlaying(true);
-    const onPause = () => setEnrollSamplePlaying(false);
-    const onEnded = () => setEnrollSamplePlaying(false);
-    el.addEventListener("play", onPlay);
-    el.addEventListener("pause", onPause);
-    el.addEventListener("ended", onEnded);
-    return () => {
-      el.removeEventListener("play", onPlay);
-      el.removeEventListener("pause", onPause);
-      el.removeEventListener("ended", onEnded);
-    };
-  }, [enrollAudioUrl]);
-
-  const toggleEnrollSamplePlayback = async () => {
-    const el = enrollAudioRef.current;
-    if (!el || !enrollAudioUrl) return;
-    try {
-      if (el.paused) {
-        if (el.src !== enrollAudioUrl) {
-          el.src = enrollAudioUrl;
-          el.load();
-        }
-        await el.play();
-      } else {
-        el.pause();
-      }
-    } catch {
-      toast.error(
-        "Không phát được mẫu giọng. Kiểm tra đăng nhập, CORS hoặc file trên máy chủ.",
-      );
-      setEnrollSamplePlaying(false);
-    }
-  };
-
   const sheetTitle = useMemo(() => {
     if (!detail) return "Chi tiết hồ sơ";
     return detail.name || "Chi tiết hồ sơ";
   }, [detail]);
+  console.log(historyRows);
 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col gap-0 overflow-hidden sm:max-w-xl md:max-w-2xl"
+          className="flex w-full flex-col gap-0 overflow-hidden sm:max-w-xl md:max-w-6xl"
           showCloseButton
         >
           <SheetHeader className="shrink-0 border-b pb-4 text-left">
@@ -321,37 +272,12 @@ export function VoiceDirectoryDetailSheet({
                   <h3 className="text-sm font-semibold">Mẫu giọng đăng ký</h3>
                   {hasEnrollStreamUrl ? (
                     <div className="flex flex-col gap-3">
-                      <audio
-                        ref={enrollAudioRef}
-                        preload="none"
-                        className="hidden"
-                      >
-                        Trình duyệt không hỗ trợ phát audio.
-                      </audio>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="lg"
-                          className="h-12 gap-2 rounded-full border-red-200 bg-red-50 px-6 text-red-700 shadow-sm hover:bg-red-100 hover:text-red-800"
-                          onClick={() => void toggleEnrollSamplePlayback()}
-                        >
-                          {enrollSamplePlaying ? (
-                            <>
-                              <Pause className="size-5 shrink-0 fill-current" />
-                              Tạm dừng
-                            </>
-                          ) : (
-                            <>
-                              <Play className="size-5 shrink-0 fill-current" />
-                              Nghe mẫu giọng
-                            </>
-                          )}
-                        </Button>
-                        <p className="text-xs text-muted-foreground">
-                          Bấm để phát / dừng mẫu đăng ký.
-                        </p>
-                      </div>
+                      <VoiceAudioPlayer
+                        file={null}
+                        audioUrl={enrollAudioUrl}
+                        fileName={`${detail.name || "voice-sample"}.wav`}
+                        compact
+                      />
                       {!detail.audio_available ? (
                         <p className="text-xs text-amber-800">
                           API báo file có thể không có trên disk cục bộ; vẫn thử
@@ -434,9 +360,9 @@ export function VoiceDirectoryDetailSheet({
                       {fields.map((field, index) => (
                         <div
                           key={field.id}
-                          className="flex flex-wrap items-end gap-2"
+                          className="flex flex-wrap items-end gap-4"
                         >
-                          <div className="min-w-[140px] flex-1 space-y-1">
+                          <div className="flex-1 space-y-1">
                             <Label className="text-xs">Vụ việc</Label>
                             <Input
                               {...form.register(
@@ -444,7 +370,7 @@ export function VoiceDirectoryDetailSheet({
                               )}
                             />
                           </div>
-                          <div className="w-24 space-y-1">
+                          <div className="flex-1 space-y-1">
                             <Label className="text-xs">Năm</Label>
                             <Input
                               {...form.register(
@@ -456,7 +382,7 @@ export function VoiceDirectoryDetailSheet({
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="shrink-0 text-destructive"
+                            className="shrink-0 text-destructive hover:cursor-pointer hover:bg-red-50 hover:text-red-500 transition-colors duration-300"
                             onClick={() => remove(index)}
                             aria-label="Xóa dòng"
                           >
@@ -502,7 +428,7 @@ export function VoiceDirectoryDetailSheet({
                       {embeddingMutation.isPending ? (
                         <Loader2 className="mr-2 size-4 animate-spin" />
                       ) : null}
-                      Cập nhật đặc trưng
+                      Cập nhật thông tin
                     </Button>
                   </div>
 
@@ -512,7 +438,7 @@ export function VoiceDirectoryDetailSheet({
                         <TableHead className="w-10" />
                         <TableHead>Thời điểm</TableHead>
                         <TableHead>Điểm</TableHead>
-                        <TableHead className="w-[120px]">Phiên</TableHead>
+                        <TableHead className="w-30">Phiên</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -590,10 +516,11 @@ export function VoiceDirectoryDetailSheet({
                           Đang tải…
                         </div>
                       ) : sessionPreviewQuery.data?.audio_url ? (
-                        <audio
-                          controls
-                          className="w-full"
-                          src={sessionPreviewQuery.data.audio_url}
+                        <VoiceAudioPlayer
+                          file={null}
+                          audioUrl={sessionPreviewQuery.data.audio_url}
+                          fileName={`session-${previewSessionId.slice(0, 8)}.wav`}
+                          compact
                         />
                       ) : (
                         <p className="text-sm text-destructive">
@@ -631,7 +558,7 @@ export function VoiceDirectoryDetailSheet({
               Hồ sơ sẽ ẩn khỏi danh sách và không còn dùng trong nhận dạng mới.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button
               type="button"
               variant="outline"

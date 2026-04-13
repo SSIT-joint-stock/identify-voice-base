@@ -1,8 +1,8 @@
 import { PrismaService } from '@/database/prisma/prisma.service';
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { JobStatus } from '@prisma/client';
-import type { Queue } from 'bull';
+import type { Queue } from 'bullmq';
 
 @Injectable()
 export class UpdateVoiceEmbeddingUseCase {
@@ -49,12 +49,23 @@ export class UpdateVoiceEmbeddingUseCase {
     });
 
     // Spawn BG Job
-    await this.updateVoiceQueue.add('update-voice-job', {
-      jobId: job.id,
-      voiceId,
-      audioIds,
-      adminId,
-    });
+    await this.updateVoiceQueue.add(
+      'update-voice-job',
+      {
+        jobId: job.id,
+        voiceId,
+        audioIds,
+        adminId,
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+        removeOnComplete: true,
+      },
+    );
 
     this.logger.debug(
       `Initiated update voice job ${job.id} for voice_id ${voiceId}`,

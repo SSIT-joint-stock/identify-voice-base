@@ -11,6 +11,9 @@ import VoiceEnroll from "@/pages/VoiceEnroll";
 import VoiceGuide from "@/pages/VoiceGuide";
 import VoiceSearchMulti from "@/pages/VoiceSearchMulti";
 import VoiceSearchSingle from "@/pages/VoiceSearchSingle";
+import VoiceSessionHistory from "@/pages/VoiceSessionHistory";
+import TranslateFile from "@/pages/TranslateFile";
+import TranslateLive from "@/pages/TranslateLive";
 
 function App() {
   return (
@@ -32,6 +35,10 @@ function App() {
             <Route path={ROUTES.VOICE_ENROLL} element={<VoiceEnroll />} />
             <Route path={ROUTES.VOICE_DIRECTORY} element={<VoiceDirectory />} />
             <Route
+              path={ROUTES.VOICE_HISTORY}
+              element={<VoiceSessionHistory />}
+            />
+            <Route
               path={ROUTES.VOICE_SEARCH_SINGLE}
               element={<VoiceSearchSingle />}
             />
@@ -40,6 +47,12 @@ function App() {
               element={<VoiceSearchMulti />}
             />
             <Route path={ROUTES.VOICE_GUIDE} element={<VoiceGuide />} />
+            <Route
+              path={ROUTES.TRANSLATE}
+              element={<Navigate to={ROUTES.TRANSLATE_LIVE} replace />}
+            />
+            <Route path={ROUTES.TRANSLATE_LIVE} element={<TranslateLive />} />
+            <Route path={ROUTES.TRANSLATE_FILE} element={<TranslateFile />} />
           </Route>
         </Route>
 

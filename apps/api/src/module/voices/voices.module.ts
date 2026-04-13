@@ -3,7 +3,7 @@ import { AuthTokenService } from '@/module/auth/service/auth-token.service';
 import { UploadModule } from '@/module/upload/upload.module';
 import { StorageModule } from '@/module/storage/storage.module';
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { VoicesRepository } from './repository/voices.repository';
 import { VoicesService } from './service/voices.service';
 import { UpdateVoiceProcessor } from './service/update-voice.processor';

@@ -1,12 +1,12 @@
+import { SegmentUtil } from '@/common/helpers/segment.util';
 import storageConfig from '@/config/storage.config';
-import { AudioSegmentService } from '@/module/ai-core/service/audio-segment.service';
 import { PrismaService } from '@/database/prisma/prisma.service';
+import { AudioSegmentService } from '@/module/ai-core/service/audio-segment.service';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SessionsRepository } from '../repository/sessions.repository';
 
 @Injectable()
 export class SessionsService {
@@ -14,8 +14,8 @@ export class SessionsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly sessionsRepository: SessionsRepository,
     private readonly audioSegmentService: AudioSegmentService,
+    private readonly segmentUtil: SegmentUtil,
     @Inject(storageConfig.KEY)
     private readonly storageCfg: ConfigType<typeof storageConfig>,
   ) {}
@@ -42,15 +42,18 @@ export class SessionsService {
     // 2. Làm giàu thông tin từng speaker
     const enrichedSpeakers = await Promise.all(
       speakers.map(async (speaker) => {
+        const segments = this.segmentUtil.extractSegments(speaker);
+
         const baseResult = {
           speaker_label: speaker.speaker_label,
           matched_voice_id: speaker.matched_voice_id || null,
           score: speaker.score,
-          segments: speaker.segments,
+          segments,
           // Mặc định cho Multi-voice: URL dẫn tới API streaming
-          audio_url: speaker.segments
-            ? `${this.storageCfg.cdnUrl.replace('/cdn', '/api/v1')}/sessions/${session.id}/speakers/${speaker.speaker_label}/audio`
-            : null,
+          audio_url:
+            segments.length > 0
+              ? `${this.storageCfg.cdnUrl.replace('/cdn', '/api/v1')}/sessions/${session.id}/speakers/${speaker.speaker_label}/audio`
+              : null,
         };
 
         if (!speaker.matched_voice_id) {
@@ -140,8 +143,9 @@ export class SessionsService {
 
     const results = (session.results as any[]) || [];
     const speakerData = results.find((s) => s.speaker_label === speakerLabel);
+    const segments = this.segmentUtil.extractSegments(speakerData);
 
-    if (!speakerData || !speakerData.segments) {
+    if (!speakerData || segments.length === 0) {
       throw new NotFoundException(
         `Không tìm thấy dữ liệu âm thanh cho speaker: ${speakerLabel}`,
       );
@@ -160,7 +164,7 @@ export class SessionsService {
     try {
       const tempFilePath = await this.audioSegmentService.buildSpeakerAudio(
         originalFilePath,
-        speakerData.segments as Array<{ start: number; end: number }>,
+        segments,
       );
 
       // 2. Stream về client và xóa file sau khi xong

@@ -1,6 +1,7 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useQuery } from "@tanstack/react-query";
 import {
+  Briefcase,
   ChevronRight,
   IdCard,
   Loader2,
@@ -8,16 +9,38 @@ import {
   Search,
   UserRound,
 } from "lucide-react";
+import { useState } from "react";
 
+import { PageLayout } from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { QUERY_KEYS } from "@/constants";
 import { voiceDirectoryApi } from "@/feature/voice-directory/api/voice-directory.api";
 import { VoiceDirectoryDetailSheet } from "@/feature/voice-directory/components/VoiceDirectoryDetailSheet";
-import {
-  formatDirectorySectionLabel,
-  getDirectoryAlphaSection,
-} from "@/feature/voice-directory/utils/directory-alpha";
 
 const AVATAR_COLORS = [
   "bg-violet-100 text-violet-700",
@@ -38,69 +61,79 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]!;
 }
 
+const SORT_OPTIONS = [
+  { value: "name:asc", label: "Sắp xếp theo tên (A - Z)" },
+  { value: "name:desc", label: "Sắp xếp theo tên (Z - A)" },
+  { value: "enrolled_at:desc", label: "Sắp xếp theo ngày mới nhất" },
+  { value: "enrolled_at:asc", label: "Sắp xếp theo ngày cũ nhất" },
+] as const;
+
+function buildPaginationItems(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, "ellipsis", totalPages] as const;
+  }
+
+  if (currentPage >= totalPages - 2) {
+    return [
+      1,
+      "ellipsis",
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ] as const;
+  }
+
+  return [
+    1,
+    "ellipsis",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "ellipsis",
+    totalPages,
+  ] as const;
+}
+
 export default function VoiceDirectory() {
   const [searchInput, setSearchInput] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  // Always call useDebounce, then select value for query
+  const debounced = useDebounce(searchInput.trim(), 500);
+  const querySearch =
+    searchInput.trim().length > 0 ? searchInput.trim() : debounced;
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<"name" | "enrolled_at">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedSearch(searchInput.trim());
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
-
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-  } = useInfiniteQuery({
-    queryKey: QUERY_KEYS.voice.directory.list({ search: debouncedSearch }),
-    queryFn: ({ pageParam }) =>
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+    queryKey: QUERY_KEYS.voice.directory.list({
+      search: querySearch,
+      page,
+      sortBy,
+      sortOrder,
+    }),
+    queryFn: () =>
       voiceDirectoryApi.listVoices({
-        page: pageParam as number,
+        page,
         page_size: 30,
-        search: debouncedSearch || undefined,
+        search: querySearch || undefined,
+        sort_by: sortBy,
+        sort_order: sortOrder,
       }),
-    getNextPageParam: (lastPage) => {
-      const { page, total_pages } = lastPage.pagination;
-      return page < total_pages ? page + 1 : undefined;
-    },
-    initialPageParam: 1,
   });
 
-  const items = data?.pages.flatMap((p) => p.items) ?? [];
-  const total = data?.pages[0]?.pagination.total ?? 0;
-
-  const sentinelRef = useRef<HTMLLIElement | null>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-
-  const attachSentinel = useCallback(
-    (node: HTMLLIElement | null) => {
-      if (observerRef.current) observerRef.current.disconnect();
-      sentinelRef.current = node;
-      if (!node) return;
-
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          if (
-            entries[0]?.isIntersecting &&
-            hasNextPage &&
-            !isFetchingNextPage
-          ) {
-            void fetchNextPage();
-          }
-        },
-        { threshold: 0.1 },
-      );
-      observerRef.current.observe(node);
-    },
-    [fetchNextPage, hasNextPage, isFetchingNextPage],
-  );
+  const items = data?.items ?? [];
+  const pagination = data?.pagination;
+  const total = pagination?.total ?? 0;
+  const totalPages = pagination?.total_pages ?? 1;
+  const sortValue = `${sortBy}:${sortOrder}` as const;
+  const paginationItems = buildPaginationItems(page, totalPages);
 
   const openDetail = (id: string) => {
     setSelectedId(id);
@@ -113,165 +146,249 @@ export default function VoiceDirectory() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      {/* Header */}
-      <header className="flex flex-col gap-1">
-        <h1 className="font-playfair text-2xl font-bold text-[#4b1d18] md:text-3xl">
-          Hồ sơ giọng nói
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Danh sách những người đã được định danh bằng giọng nói
-        </p>
-      </header>
-
-      {/* Search bar */}
-      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
-        <Search className="size-4 shrink-0 text-slate-400" />
-        <Input
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Tìm theo tên, CCCD, SĐT…"
-          className="h-auto border-none p-0 shadow-none focus-visible:ring-0 text-sm"
-          aria-label="Tìm kiếm danh bạ"
-        />
-        {total > 0 && !isLoading && (
-          <span className="shrink-0 text-xs text-slate-400 font-medium">
-            {total} liên hệ
-          </span>
-        )}
+    <PageLayout
+      title="Hồ sơ giọng nói"
+      description="Danh sách những người đã được định danh bằng giọng nói"
+      onRefresh={async () => {
+        await refetch();
+      }}
+    >
+      <div className="flex items-center gap-10">
+        <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm md:flex-row md:items-center flex-1">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <Search className="size-4 shrink-0 text-slate-400" />
+            <Input
+              value={searchInput}
+              onChange={(e) => {
+                setSearchInput(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Tìm theo tên, CCCD, SĐT…"
+              className="h-auto border-none p-0 text-sm shadow-none focus-visible:ring-0"
+              aria-label="Tìm kiếm danh bạ"
+            />
+            {isFetching && (
+              <Loader2 className="size-4 animate-spin text-slate-400" />
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={sortValue}
+            onValueChange={(value) => {
+              const [nextSortBy, nextSortOrder] = value.split(":") as [
+                "name" | "enrolled_at",
+                "asc" | "desc",
+              ];
+              setSortBy(nextSortBy);
+              setSortOrder(nextSortOrder);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-62.5 bg-white">
+              <SelectValue placeholder="Sắp xếp danh sách" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {total > 0 && !isLoading && (
+            <span className="shrink-0 text-xs font-medium text-slate-400">
+              {total} liên hệ
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* List container */}
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {isLoading ? (
-          <div className="flex h-full min-h-48 items-center justify-center gap-2 text-muted-foreground">
-            <Loader2 className="size-5 animate-spin" />
-            <span className="text-sm">Đang tải danh sách…</span>
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm no-scrollbar relative">
+        {isLoading && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60">
+            <Loader2 className="size-8 animate-spin text-slate-400" />
           </div>
-        ) : isError ? (
+        )}
+        {!isLoading && isError ? (
           <div className="flex h-full min-h-48 items-center justify-center p-8">
             <p className="text-center text-sm text-destructive">
               Không tải được danh sách. Kiểm tra kết nối hoặc đăng nhập lại.
             </p>
           </div>
-        ) : items.length === 0 ? (
+        ) : !isLoading && items.length === 0 ? (
           <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 text-center">
             <UserRound className="size-10 text-slate-300" />
             <p className="text-sm text-muted-foreground">
-              {debouncedSearch
-                ? "Không có hồ sơ phù hợp."
-                : "Chưa có hồ sơ nào."}
+              {querySearch ? "Không có hồ sơ phù hợp." : "Chưa có hồ sơ nào."}
             </p>
-            {debouncedSearch && (
+            {querySearch && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setSearchInput("")}
+                onClick={() => {
+                  setSearchInput("");
+                  setPage(1);
+                }}
               >
                 Xóa tìm kiếm
               </Button>
             )}
           </div>
         ) : (
-          <ul className="divide-y divide-slate-100">
-            {items.map((row, index) => {
-              const section = getDirectoryAlphaSection(row.name);
-              const prevSection =
-                index > 0
-                  ? getDirectoryAlphaSection(items[index - 1]!.name)
-                  : null;
-              const showSectionHeader = section !== prevSection;
-              const avatarColor = getAvatarColor(row.name);
-              const initial = row.name.trim()[0]?.toUpperCase() ?? "?";
+          <Table>
+            <TableHeader className="sticky top-0 z-20 bg-white shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-75 pl-6">Họ và tên</TableHead>
+                <TableHead>SĐT</TableHead>
+                <TableHead>CCCD</TableHead>
+                <TableHead>Công việc</TableHead>
+                <TableHead>Ngày định danh</TableHead>
+                <TableHead className="text-right pr-6">Thao tác</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((row) => {
+                const avatarColor = getAvatarColor(row.name);
+                const initial = row.name.trim()[0]?.toUpperCase() ?? "?";
 
-              return (
-                <Fragment key={row.id}>
-                  {showSectionHeader && (
-                    <li
-                      className="sticky top-0 z-10 flex items-center gap-3 bg-slate-50/95 backdrop-blur-sm px-4 py-1.5"
-                      aria-hidden="true"
-                    >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-200 text-xs font-bold text-slate-600">
-                        {formatDirectorySectionLabel(section)}
-                      </span>
-                      <span className="h-px flex-1 bg-slate-200" />
-                    </li>
-                  )}
-
-                  <li className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
-                    {/* Avatar */}
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${avatarColor}`}
-                    >
-                      {initial}
-                    </div>
-
-                    {/* Name + info chips */}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-slate-800 text-sm mb-1.5">
-                        {row.name}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {row.phone_number ? (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-                            <Phone className="size-3 text-green-500" />
-                            {row.phone_number}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-400">
-                            Chưa có SĐT
-                          </span>
-                        )}
-                        {row.citizen_identification ? (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-                            <IdCard className="size-3 text-blue-500" />
-                            {row.citizen_identification}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-400">
-                            Chưa có CCCD
-                          </span>
-                        )}
-                        {row.enrolled_at && (
-                          <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                            ✓{" "}
-                            {new Date(row.enrolled_at).toLocaleDateString(
-                              "vi-VN",
-                            )}
-                          </span>
-                        )}
+                return (
+                  <TableRow
+                    key={row.id}
+                    className="group cursor-pointer hover:bg-slate-50/80"
+                    onClick={() => openDetail(row.id)}
+                  >
+                    {/* Name + Avatar */}
+                    <TableCell className="pl-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor}`}
+                        >
+                          {initial}
+                        </div>
+                        <span className="font-semibold text-slate-800 text-sm">
+                          {row.name}
+                        </span>
                       </div>
-                    </div>
+                    </TableCell>
+
+                    {/* SĐT */}
+                    <TableCell>
+                      {row.phone_number ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                          <Phone className="size-3 text-green-500" />
+                          {row.phone_number}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">
+                          Chưa có SĐT
+                        </span>
+                      )}
+                    </TableCell>
+
+                    {/* CCCD */}
+                    <TableCell>
+                      {row.citizen_identification ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                          <IdCard className="size-3 text-blue-500" />
+                          {row.citizen_identification}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">
+                          Chưa có CCCD
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {row.job ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                          <Briefcase className="size-3 text-blue-500" />
+                          {row.job}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">
+                          Chưa có công việc
+                        </span>
+                      )}
+                    </TableCell>
+
+                    {/* Ngày định danh */}
+                    <TableCell>
+                      {row.enrolled_at ? (
+                        <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          ✓{" "}
+                          {new Date(row.enrolled_at).toLocaleDateString(
+                            "vi-VN",
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </TableCell>
 
                     {/* Action */}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="shrink-0 gap-1 text-slate-500 hover:text-slate-900"
-                      onClick={() => openDetail(row.id)}
-                    >
-                      Chi tiết
-                      <ChevronRight className="size-3.5" />
-                    </Button>
-                  </li>
-                </Fragment>
-              );
-            })}
-
-            {/* Infinite scroll sentinel */}
-            <li ref={attachSentinel} className="h-1" aria-hidden="true" />
-
-            {isFetchingNextPage && (
-              <li className="flex items-center justify-center gap-2 py-4 text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                <span className="text-xs">Đang tải thêm…</span>
-              </li>
-            )}
-          </ul>
+                    <TableCell className="text-right pr-6">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-400"
+                      >
+                        <ChevronRight className="size-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
       </div>
+
+      {!isLoading && !isError && total > 0 && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Trang {pagination?.page ?? 1} / {totalPages}
+          </p>
+          <Pagination className="mx-0 w-auto justify-start md:justify-end">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(current - 1, 1))}
+                  disabled={page <= 1 || isFetching}
+                />
+              </PaginationItem>
+              {paginationItems.map((item, index) => (
+                <PaginationItem key={`${item}-${index}`}>
+                  {item === "ellipsis" ? (
+                    <PaginationEllipsis />
+                  ) : (
+                    <PaginationLink
+                      type="button"
+                      isActive={item === page}
+                      onClick={() => setPage(item)}
+                      disabled={isFetching}
+                    >
+                      {item}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  type="button"
+                  onClick={() =>
+                    setPage((current) => Math.min(current + 1, totalPages))
+                  }
+                  disabled={page >= totalPages || isFetching}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       <VoiceDirectoryDetailSheet
         voiceId={selectedId}
@@ -281,6 +398,6 @@ export default function VoiceDirectory() {
           setSelectedId(null);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }

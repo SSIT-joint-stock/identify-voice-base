@@ -46,7 +46,7 @@ export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
         session_id: s.id,
         audio_file_id: s.audio_file_id,
         identified_at: s.identified_at,
-        score: myResult?.score || null,
+        score: myResult?.score ?? null,
       };
     });
 
