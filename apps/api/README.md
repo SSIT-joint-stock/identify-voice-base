@@ -238,26 +238,108 @@ Located in `apps/api/src/module/auth/use-cases/register-user.usecase.ts`:
 
 ---
 
-## 🐳 Docker Deployment Strategy
+## 🚀 Production Deployment Guide
 
-The `Dockerfile` is optimized for NestJS. It uses a multi-stage approach to minimize the final image size and reduce the attack surface.
+This section is the minimal runbook for deploying `apps/api` in production. The backend is split into two long-running processes:
 
-### Builder Stage
+- `backend`: NestJS HTTP API
+- `worker`: BullMQ consumer for `update-voice` jobs
 
-- Uses `node:20-alpine`.
-- Installs all dependencies.
-- Compiles TypeScript to JavaScript in the `dist/` directory.
+Both processes must share the same PostgreSQL database, Redis instance, and AI service.
 
-### Runner Stage
+### 1. Required Runtime Dependencies
 
-- Only copies `package.json`, production `node_modules`, and the `dist/` folder.
-- Sets `NODE_ENV` to production.
-- Runs as a non-root user for enhanced security.
+Before deploying, make sure these services already exist and are reachable from the API/worker runtime:
 
-To start the API and Worker in production mode:
+- PostgreSQL
+- Redis
+- AI voice service
+- Persistent filesystem storage for uploaded files if you do not want local container storage to be ephemeral
+
+### 2. Required Environment Variables
+
+At minimum, production must provide these variables in .env.example.production
+
+Do not reuse `.env.development` in production.
+
+### 3. Build Artifacts
+
+From the repo root:
 
 ```bash
-docker compose up api worker -d
+pnpm install --frozen-lockfile
+pnpm --filter api run prisma:generate
+pnpm --filter api run build
+```
+
+For Docker-based deployment, build from the root context because the Dockerfile depends on workspace files:
+
+```bash
+docker build -f apps/api/Dockerfile -t voice-identify-api:latest .
+```
+
+### 4. Database Migration
+
+Run Prisma migrations before starting new application pods/containers:
+
+```bash
+pnpm --filter api exec prisma migrate deploy
+```
+
+If Prisma Client is not generated in your CI/CD step, run:
+
+```bash
+pnpm --filter api run prisma:generate
+```
+
+Only run seed scripts if your environment explicitly requires bootstrap data.
+
+### 5. Start Commands
+
+If you run processes directly:
+
+```bash
+pnpm --filter api run start:prod
+pnpm --filter api run start:worker:prod
+```
+
+If you run with Docker Compose in this repo, the service names are:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d backend worker
+```
+
+Note:
+
+- The compose service name is `backend`, not `api`
+- The worker must be deployed separately from the HTTP API
+- Both services must use the same `DATABASE_URL` and `REDIS_URL`
+
+### 6. Production Checklist
+
+Before marking deployment healthy, verify:
+
+1. `backend` starts without env validation errors
+2. `worker` starts and logs `Update-voice worker started and listening for jobs`
+3. `worker` logs the expected `AI config resolved: url=...`
+4. Prisma migrations have been applied successfully
+5. Redis is reachable from both API and worker
+6. AI service is reachable from worker
+7. A real `update-voice` job transitions through `PENDING -> PROCESSING -> DONE` or `FAILED` with a meaningful error
+
+### 7. Operational Notes
+
+- `update-voice` jobs retry automatically with BullMQ based on the configured attempts/backoff
+- A stuck job may remain in `PENDING` or `PROCESSING` if the worker dies mid-flight; the API currently marks stale jobs as `FAILED` before accepting a new one
+- If `worker` logs `AI config resolved: url=ngrok`, your runtime env is not loading the intended production value
+- If the worker logs `ECONNREFUSED` when calling `/upload_voice`, the AI service is not reachable from the worker runtime
+
+### 8. Example `.env.production`
+
+You can use the repo template at root:
+
+```bash
+cp .env.production.example .env.production
 ```
 
 ---
