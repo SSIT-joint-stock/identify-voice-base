@@ -270,7 +270,7 @@ export const voiceApi = {
     const { data, message } = unwrapApiResponse(response.data);
 
     return {
-      message: message || "Upload voice thanh cong.",
+      message: message || "Tải lên giọng nói thành công!",
       voice_id: isRecord(data) ? asString(data.voice_id, "") : "",
       user_id: isRecord(data)
         ? asString(data.user_id, "") || undefined

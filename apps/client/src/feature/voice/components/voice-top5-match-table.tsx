@@ -1,5 +1,3 @@
-import { useEffect, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +8,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -17,8 +22,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Play } from "lucide-react";
+import { useState } from "react";
 import type { VoiceIdentifyItem } from "../types/voice.types";
 import { getVoiceScoreMeta } from "../utils/voice-score";
+import { VoiceAudioPlayer } from "./voice-audio-player";
 
 interface VoiceTop5MatchTableProps {
   title: string;
@@ -28,124 +41,143 @@ interface VoiceTop5MatchTableProps {
   speakerIndex?: number;
 }
 
-interface PlayingAudioState {
-  rowIndex: number;
+interface AudioDialogState {
   audioUrl: string;
+  fileName: string;
+  personName: string;
 }
 
 function getItemAudioUrl(item: VoiceIdentifyItem) {
-  return item.enroll_audio_url || item.audio_url || undefined;
+  return item.audio_url || item.enroll_audio_url || undefined;
+}
+
+function getItemAudioLabel(item: VoiceIdentifyItem, rowIndex: number) {
+  const personName = item.name?.trim() || `Nguoi ${rowIndex + 1}`;
+  return {
+    personName,
+    fileName: `${personName}.wav`,
+  };
+}
+
+function HeaderTooltip({
+  label,
+  description,
+  className,
+}: {
+  label: string;
+  description: string;
+  className?: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={`inline-flex cursor-help items-center justify-center underline decoration-dotted underline-offset-4 ${className ?? ""}`}
+        >
+          {label}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{description}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function TextCellTooltip({
+  value,
+  fallback = "-",
+  className,
+}: {
+  value?: string;
+  fallback?: string;
+  className?: string;
+}) {
+  const text = value?.trim() || fallback;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className={className}>{text}</div>
+      </TooltipTrigger>
+      <TooltipContent>{text}</TooltipContent>
+    </Tooltip>
+  );
 }
 
 export function VoiceTop5MatchTable({
   title,
   description,
   items,
-  emptyText = "Khong co du lieu.",
+  emptyText = "Không có dữ liệu.",
   speakerIndex = 0,
 }: VoiceTop5MatchTableProps) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [playingAudio, setPlayingAudio] = useState<PlayingAudioState | null>(
-    null,
-  );
-  const audioSources = items.map(getItemAudioUrl);
-  const audioSourcesKey = audioSources.map((value) => value ?? "").join("|");
+  const [audioDialog, setAudioDialog] = useState<AudioDialogState | null>(null);
   const shouldShowAudioColumn = items.length > 0;
-  const activeAudioUrl =
-    playingAudio !== null ? audioSources[playingAudio.rowIndex] : undefined;
-  const playingRowIndex =
-    playingAudio && playingAudio.audioUrl === activeAudioUrl
-      ? playingAudio.rowIndex
-      : null;
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handlePause = () => setPlayingAudio(null);
-    const handleEnded = () => setPlayingAudio(null);
-
-    audio.addEventListener("pause", handlePause);
-    audio.addEventListener("ended", handleEnded);
-
-    return () => {
-      audio.pause();
-      audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("ended", handleEnded);
-    };
-  }, []);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    audio.pause();
-    audio.removeAttribute("src");
-    audio.load();
-  }, [audioSourcesKey]);
-
-  const handleToggleAudio = async (rowIndex: number) => {
-    const audio = audioRef.current;
-    const rowAudioUrl = audioSources[rowIndex];
-    if (!audio || !rowAudioUrl) return;
-
-    if (playingRowIndex === rowIndex && !audio.paused) {
-      audio.pause();
-      return;
-    }
-
-    if (audio.src !== rowAudioUrl) {
-      audio.src = rowAudioUrl;
-      audio.load();
-    }
-
-    try {
-      await audio.play();
-      setPlayingAudio({ rowIndex, audioUrl: rowAudioUrl });
-    } catch {
-      setPlayingAudio(null);
-    }
-  };
 
   return (
-    <Card className="rounded-2xl">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description ? <CardDescription>{description}</CardDescription> : null}
-      </CardHeader>
+    <>
+      <Card className="rounded-2xl">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          {description ? (
+            <CardDescription>{description}</CardDescription>
+          ) : null}
+        </CardHeader>
 
-      <CardContent>
-        {items.length === 0 ? (
-          <div className="rounded-xl border p-4 text-sm text-muted-foreground">
-            {emptyText}
-          </div>
-        ) : (
-          <>
-            {shouldShowAudioColumn ? (
-              <audio ref={audioRef} preload="none" className="hidden" />
-            ) : null}
-
+        <CardContent>
+          {items.length === 0 ? (
+            <div className="rounded-xl border p-4 text-sm text-muted-foreground">
+              {emptyText}
+            </div>
+          ) : (
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12 px-1 text-center">STT</TableHead>
+                  <TableHead className="w-12 px-1 text-center">
+                    <HeaderTooltip
+                      label="STT"
+                      description="Thứ tự kết quả khớp trong bảng."
+                    />
+                  </TableHead>
                   {shouldShowAudioColumn ? (
                     <TableHead className="w-16 px-1 text-center">
-                      Audio
+                      <HeaderTooltip
+                        label="Audio"
+                        description="Mở hộp thoại để phát audio của người nói này."
+                      />
                     </TableHead>
                   ) : null}
-                  <TableHead className="w-[20rem] pl-2">Họ và tên</TableHead>
-                  <TableHead className="w-40 text-center">CCCD</TableHead>
-                  <TableHead className="w-32 text-center">
-                    Số điện thoại
+                  <TableHead className="w-20 pl-2">
+                    <HeaderTooltip
+                      label="Họ và tên"
+                      description="Tên hồ sơ hoặc danh tính AI được ánh xạ với kết quả khớp."
+                      className="justify-start"
+                    />
                   </TableHead>
-                  <TableHead className="w-40 text-center">Điểm số</TableHead>
+                  <TableHead className="w-40 text-center">
+                    <HeaderTooltip
+                      label="CCCD"
+                      description="Số căn cước công dân hoặc mã định danh của hồ sơ."
+                    />
+                  </TableHead>
+                  <TableHead className="w-32 text-center">
+                    <HeaderTooltip
+                      label="Số điện thoại"
+                      description="Thông tin liên hệ lưu trong hồ sơ nhận dạng."
+                    />
+                  </TableHead>
+                  <TableHead className="w-40 text-center">
+                    <HeaderTooltip
+                      label="Điểm số"
+                      description="Độ tương đồng giữa audio đầu vào và hồ sơ giọng nói đã lưu."
+                    />
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((item, index) => {
-                  const rowAudioUrl = audioSources[index];
+                  const rowAudioUrl = getItemAudioUrl(item);
                   const scoreMeta = getVoiceScoreMeta(item.score);
+                  const audioLabel = getItemAudioLabel(item, index);
 
                   return (
                     <TableRow
@@ -159,62 +191,103 @@ export function VoiceTop5MatchTable({
                       {shouldShowAudioColumn ? (
                         <TableCell className="w-16 px-1 text-center">
                           {rowAudioUrl ? (
-                            <Button
-                              type="button"
-                              size="icon-sm"
-                              className="mx-auto size-8 rounded-full bg-red-600 text-white shadow-sm hover:bg-red-700"
-                              onClick={() => void handleToggleAudio(index)}
-                              aria-label={
-                                playingRowIndex === index
-                                  ? "Tam dung audio"
-                                  : "Phat audio"
-                              }
-                              title={
-                                playingRowIndex === index
-                                  ? "Tam dung audio"
-                                  : "Phat audio"
-                              }
-                            >
-                              {playingRowIndex === index ? (
-                                <Pause className="size-3.5" />
-                              ) : (
-                                <Play className="size-3.5" />
-                              )}
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon-sm"
+                                  className="mx-auto size-8 rounded-full bg-red-600 text-white shadow-sm hover:bg-red-700"
+                                  onClick={() =>
+                                    setAudioDialog({
+                                      audioUrl: rowAudioUrl,
+                                      fileName: audioLabel.fileName,
+                                      personName: audioLabel.personName,
+                                    })
+                                  }
+                                  aria-label={`Mở audio của ${audioLabel.personName}`}
+                                >
+                                  <Play className="size-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {`Phát audio của ${audioLabel.personName}`}
+                              </TooltipContent>
+                            </Tooltip>
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
                       ) : null}
-                      <TableCell className="max-w-[20rem] pl-2 font-medium">
-                        <div className="truncate" title={item.name || "-"}>
-                          {item.name || "-"}
-                        </div>
+                      <TableCell className="max-w-20 pl-2 font-medium">
+                        <TextCellTooltip
+                          value={item.name}
+                          className="truncate"
+                        />
                       </TableCell>
                       <TableCell className="text-center">
-                        {item.citizen_identification || "-"}
+                        <TextCellTooltip
+                          value={item.citizen_identification}
+                          className="truncate text-center"
+                        />
                       </TableCell>
                       <TableCell className="text-center">
-                        {item.phone_number || "-"}
+                        <TextCellTooltip
+                          value={item.phone_number}
+                          className="truncate text-center"
+                        />
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge
-                          variant="outline"
-                          className={`mx-auto border ${scoreMeta.badgeClassName}`}
-                        >
-                          {typeof item.score === "number"
-                            ? item.score.toFixed(4)
-                            : "-"}
-                        </Badge>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="outline"
+                              className={`mx-auto border ${scoreMeta.badgeClassName}`}
+                            >
+                              {typeof item.score === "number"
+                                ? item.score.toFixed(4)
+                                : "-"}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {typeof item.score === "number"
+                              ? `Score: ${item.score.toFixed(4)}`
+                              : "Không có điểm số"}
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
-          </>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={audioDialog !== null}
+        onOpenChange={(open) => !open && setAudioDialog(null)}
+      >
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{audioDialog?.personName || "Phát audio"}</DialogTitle>
+            <DialogDescription>
+              {audioDialog
+                ? `Phát audio của ${audioDialog.personName} với file ${audioDialog.fileName}`
+                : "Audio player"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {audioDialog ? (
+            <VoiceAudioPlayer
+              file={null}
+              audioUrl={audioDialog.audioUrl}
+              fileName={audioDialog.fileName}
+              title={`Audio của ${audioDialog.personName}`}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -33,7 +33,7 @@ export class VoicesService {
     return this.deactivateVoiceUseCase.execute(id);
   }
 
-  async updateEmbedding(voiceId: string, audioIds: string[], adminId: string) {
-    return this.updateVoiceEmbeddingUseCase.execute(voiceId, audioIds, adminId);
+  async updateEmbedding(userId: string, audioIds: string[], adminId: string) {
+    return this.updateVoiceEmbeddingUseCase.execute(userId, audioIds, adminId);
   }
 }

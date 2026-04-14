@@ -1,7 +1,7 @@
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { ApiError } from "@/types";
 import { formatError } from "@/utils";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { voiceApi } from "../api/voice.api";
 import type {
   IdentifyTwoVoiceSchemaOutput,
@@ -67,7 +67,7 @@ export function useUploadVoice(options?: UploadVoiceOptions) {
     },
     onSuccess: (data) => {
       setUploadResult(data);
-      toast.success(data.message || "Upload voice thanh cong.");
+      toast.success(data.message || "Tải lên giọng nói thành công!");
       options?.onSuccess?.();
     },
     onError: (error) => {
@@ -89,12 +89,12 @@ export function useIdentifyVoice(options?: IdentifyVoiceOptions) {
       setIdentifyResult(data);
 
       if (data.items.length === 0) {
-        toast.error("Khong co ket qua phu hop.");
+        toast.error("Không có kết quả nào phù hợp.");
         options?.onSuccess?.();
         return;
       }
 
-      toast.success(`Da nhan dien ${data.items.length} ket qua.`);
+      toast.success(`Đã nhận diện ${data.items.length} kết quả.`);
       options?.onSuccess?.();
     },
     onError: (error) => {
@@ -120,15 +120,15 @@ export function useIdentifyTwoVoice(options?: IdentifyTwoVoiceOptions) {
 
       const overCapacityItem = data.items.find(
         (item) =>
-          item.message === "Number of speakers exceeds system capacity" ||
+          item.message === "Số người nói vượt quá tối đa. Tối đa 2 người nói" ||
           (typeof item.num_speakers === "number" && item.num_speakers > 2),
       );
 
       if (overCapacityItem) {
         openErrorDialog(
-          "So luong nguoi noi vuot qua gioi han",
-          `He thong chi ho tro toi da 2 nguoi noi. Gia tri hien tai: ${
-            overCapacityItem.num_speakers ?? "khong xac dinh"
+          "Số lượng người nói vượt quá giới hạn",
+          `Hệ thống chỉ hỗ trợ tối đa 2 người nói. Giá trị hiện tại: ${
+            overCapacityItem.num_speakers ?? "Không xác định"
           }.`,
         );
         options?.onSuccess?.();
@@ -136,12 +136,12 @@ export function useIdentifyTwoVoice(options?: IdentifyTwoVoiceOptions) {
       }
 
       if (data.items.length === 0) {
-        toast.error("Khong co du lieu nhan dien.");
+        toast.error("Không có dữ liệu nhận diện.");
         options?.onSuccess?.();
         return;
       }
 
-      toast.success(`Da nhan dien ${data.items.length} ket qua.`);
+      toast.success(`Đã nhận diện ${data.items.length} kết quả.`);
       options?.onSuccess?.();
     },
     onError: (error) => {
@@ -151,16 +151,18 @@ export function useIdentifyTwoVoice(options?: IdentifyTwoVoiceOptions) {
       if (
         isApiError(error) &&
         error.statusCode === 422 &&
-        (normalizedMessage.includes("toi da 2 nguoi") ||
-          normalizedMessage.includes("vuot qua gioi han"))
+        (normalizedMessage.includes("tối đa 2 người") ||
+          normalizedMessage.includes("vượt quá giới hạn") ||
+          (normalizedMessage.includes("phat hien") &&
+            normalizedMessage.includes("nguoi")))
       ) {
         const detectedSpeakerCount = getDetectedSpeakerCount(message);
 
         openErrorDialog(
-          "So luong nguoi noi vuot qua gioi han",
-          `He thong chi ho tro toi da 2 nguoi noi.${
+          "Số lượng người nói vượt quá giới hạn",
+          `Hệ thống chỉ hỗ trợ tối đa 2 người nói.${
             detectedSpeakerCount
-              ? ` Gia tri hien tai: ${detectedSpeakerCount}.`
+              ? ` Giá trị hiện tại: ${detectedSpeakerCount}.`
               : ""
           }`,
         );

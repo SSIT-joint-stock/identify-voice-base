@@ -67,9 +67,13 @@ export class SessionsService {
         const voiceId = speaker.matched_voice_id;
 
         // Ưu tiên Business Truth (người dùng thật trong hệ thống)
-        const voiceRecord = await this.prisma.voice_records.findUnique({
-          where: { voice_id: voiceId },
+        const voiceRecord = await this.prisma.voice_records.findFirst({
+          where: {
+            voice_id: voiceId,
+            is_active: true,
+          },
           include: { user: true },
+          orderBy: { created_at: 'desc' },
         });
 
         if (voiceRecord && voiceRecord.user) {

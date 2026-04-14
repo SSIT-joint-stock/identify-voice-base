@@ -27,6 +27,7 @@ module.exports = {
     "subject-empty": [2, "never"],
     "subject-full-stop": [0],
     "header-max-length": [0],
+    "body-max-line-length": [0],
     "body-leading-blank": [1, "always"],
     "footer-leading-blank": [1, "always"],
   },

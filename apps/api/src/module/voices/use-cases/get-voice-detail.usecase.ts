@@ -16,7 +16,7 @@ export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
 
   async execute(id: string) {
     const user = await this.voicesRepository.findDetail(id);
-    const activeRecord = user.voice_record;
+    const activeRecord = user.voice_records.find((record) => record.is_active);
 
     // 1. Kiểm tra audio available (local disk check)
     let audioAvailable = false;
@@ -67,14 +67,11 @@ export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
         : null,
       audio_available: audioAvailable,
       enrolled_at: activeRecord?.created_at || null,
-      voice_history: activeRecord
-        ? [
-            {
-              audio_url: `${this.storage.cdnUrl}/${activeRecord.audio_file.file_path}`,
-              created_at: activeRecord.created_at,
-            },
-          ]
-        : [],
+      voice_history: user.voice_records.map((record) => ({
+        audio_url: `${this.storage.cdnUrl}/${record.audio_file.file_path}`,
+        created_at: record.created_at,
+        is_active: record.is_active,
+      })),
       identify_history: identifyHistory,
     };
   }

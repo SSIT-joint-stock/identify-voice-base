@@ -70,7 +70,7 @@ export class AiVoicesRepository {
     return this.prisma.identify_sessions.findFirst({
       where: {
         results: {
-          array_contains: [{ voice_id: voiceId }],
+          array_contains: [{ matched_voice_id: voiceId }],
         },
       },
       orderBy: { identified_at: 'asc' },

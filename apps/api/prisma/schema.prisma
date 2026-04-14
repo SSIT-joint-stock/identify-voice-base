@@ -3,8 +3,11 @@
 // ORM: Prisma | Database: PostgreSQL
 // ============================================================
 // MIGRATION NOTE (Manual):
-// The following PARTIAL INDEX must be created manually after migration,
+// The following indexes must be created manually after migration,
 // as Prisma does not support partial indexes natively:
+//
+//   DROP INDEX IF EXISTS "voice_records_user_id_key";
+//   DROP INDEX IF EXISTS "voice_records_voice_id_key";
 //
 //   CREATE UNIQUE INDEX voice_records_user_id_active_unique
 //   ON voice_records (user_id)
@@ -109,8 +112,8 @@ model users {
   /// Url file audio for user enroll
   audio_url String?
 
-  /// Hồ sơ giọng nói liên kết với người dùng này
-  voice_record     voice_records?
+  /// Các phiên bản hồ sơ giọng nói liên kết với người dùng này
+  voice_records     voice_records[]
   /// Danh sách job cập nhật giọng nói liên quan
   update_voice_jobs update_voice_jobs[]
 
@@ -197,9 +200,9 @@ model voice_records {
   audio_file        audio_files         @relation(fields: [audio_file_id], references: [id], onDelete: Restrict)
   voice_update_logs voice_update_logs[]
 
-  @@unique([user_id])
-  @@unique([voice_id])
   @@index([user_id])
+  @@index([user_id, is_active])
+  @@index([voice_id])
   @@map("voice_records")
 }
 
@@ -256,6 +259,7 @@ model update_voice_jobs {
 /// Lịch sử cập nhật model giọng nói (khi admin quyết định enrich thêm data)
 model voice_update_logs {
   id            String   @id @default(uuid()) @db.Uuid
+  voice_record_id String @db.Uuid
   voice_id      String
   audio_file_id String   @db.Uuid
   updated_by    String   @db.Uuid
@@ -263,8 +267,9 @@ model voice_update_logs {
 
   audio_file   audio_files   @relation(fields: [audio_file_id], references: [id], onDelete: Restrict)
   operator     auth_accounts @relation(fields: [updated_by], references: [id], onDelete: Restrict)
-  voice_record voice_records @relation(fields: [voice_id], references: [voice_id], onDelete: Cascade)
+  voice_record voice_records @relation(fields: [voice_record_id], references: [id], onDelete: Cascade)
 
+  @@index([voice_record_id])
   @@index([voice_id])
   @@index([audio_file_id])
   @@map("voice_update_logs")

@@ -19,8 +19,9 @@ export class ConvertAiVoiceUseCase {
     const cache = await this.aiVoicesRepository.findById(voiceId);
 
     // 2. Kiểm tra xem đã enroll chưa (đề phòng bấm nhầm)
-    const existingRecord = await this.prisma.voice_records.findUnique({
+    const existingRecord = await this.prisma.voice_records.findFirst({
       where: { voice_id: voiceId },
+      orderBy: { created_at: 'desc' },
     });
 
     if (existingRecord) {

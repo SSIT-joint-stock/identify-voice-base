@@ -1,6 +1,11 @@
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { JobStatus } from '@prisma/client';
 import type { Queue } from 'bullmq';
 
@@ -14,11 +19,14 @@ export class UpdateVoiceEmbeddingUseCase {
     private readonly updateVoiceQueue: Queue,
   ) {}
 
-  async execute(voiceId: string, audioIds: string[], adminId: string) {
-    // Check if voice record exists
-    const activeVoice = await this.prisma.voice_records.findUnique({
-      where: { voice_id: voiceId },
+  async execute(userId: string, audioIds: string[], adminId: string) {
+    const activeVoice = await this.prisma.voice_records.findFirst({
+      where: {
+        user_id: userId,
+        is_active: true,
+      },
       include: { user: true },
+      orderBy: { created_at: 'desc' },
     });
 
     if (!activeVoice) {
@@ -27,21 +35,45 @@ export class UpdateVoiceEmbeddingUseCase {
       );
     }
 
-    // Check if audios exist
-    const countAudios = await this.prisma.audio_files.count({
-      where: { id: { in: audioIds } },
+    const inFlightJob = await this.prisma.update_voice_jobs.findFirst({
+      where: {
+        user_id: userId,
+        voice_id: activeVoice.voice_id,
+        status: { in: [JobStatus.PENDING, JobStatus.PROCESSING] },
+      },
+      orderBy: { created_at: 'desc' },
     });
-    if (countAudios !== audioIds.length) {
-      throw new NotFoundException(
-        'Một hoặc nhiều Audio ID không tồn tại trong hệ thống.',
+
+    if (inFlightJob) {
+      throw new ConflictException(
+        'Đang có một job cập nhật khác chạy cho hồ sơ này.',
       );
     }
 
-    // Create tracking job in DB
+    const matchedSessions = await this.prisma.identify_sessions.findMany({
+      where: {
+        audio_file_id: { in: audioIds },
+        results: {
+          array_contains: [{ matched_voice_id: activeVoice.voice_id }],
+        },
+      },
+      select: { audio_file_id: true },
+    });
+
+    const validAudioIds = new Set(
+      matchedSessions.map((item) => item.audio_file_id),
+    );
+
+    if (validAudioIds.size !== audioIds.length) {
+      throw new NotFoundException(
+        'Một hoặc nhiều audio không thuộc lịch sử nhận dạng của hồ sơ này.',
+      );
+    }
+
     const job = await this.prisma.update_voice_jobs.create({
       data: {
         user_id: activeVoice.user_id,
-        voice_id: voiceId,
+        voice_id: activeVoice.voice_id,
         audio_file_ids: audioIds,
         status: JobStatus.PENDING,
         progress: 0,
@@ -53,7 +85,9 @@ export class UpdateVoiceEmbeddingUseCase {
       'update-voice-job',
       {
         jobId: job.id,
-        voiceId,
+        userId,
+        voiceId: activeVoice.voice_id,
+        activeVoiceRecordId: activeVoice.id,
         audioIds,
         adminId,
       },
@@ -68,7 +102,7 @@ export class UpdateVoiceEmbeddingUseCase {
     );
 
     this.logger.debug(
-      `Initiated update voice job ${job.id} for voice_id ${voiceId}`,
+      `Initiated update voice job ${job.id} for user ${userId} / voice_id ${activeVoice.voice_id}`,
     );
 
     return {

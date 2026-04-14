@@ -90,8 +90,9 @@ export class VoicesRepository {
     const user = await this.prisma.users.findUnique({
       where: { id: userId },
       include: {
-        voice_record: {
+        voice_records: {
           include: { audio_file: true },
+          orderBy: { created_at: 'desc' },
         },
       },
     });
@@ -147,21 +148,23 @@ export class VoicesRepository {
     const user = await this.prisma.users.findUnique({
       where: { id: userId },
       include: {
-        voice_record: {
+        voice_records: {
           include: { audio_file: true },
+          where: { is_active: true },
+          orderBy: { created_at: 'desc' },
         },
       },
     });
 
     if (!user) return null;
 
+    const activeRecord = user.voice_records[0];
+
     return {
       userId: user.id,
-      voiceIds: user.voice_record ? [user.voice_record.voice_id] : [],
-      audioFileIds: user.voice_record ? [user.voice_record.audio_file_id] : [],
-      audioPaths: user.voice_record
-        ? [user.voice_record.audio_file.file_path]
-        : [],
+      voiceIds: activeRecord ? [activeRecord.voice_id] : [],
+      audioFileIds: activeRecord ? [activeRecord.audio_file_id] : [],
+      audioPaths: activeRecord ? [activeRecord.audio_file.file_path] : [],
     };
   }
 
@@ -170,12 +173,14 @@ export class VoicesRepository {
    */
   async deactivate(userId: string) {
     const user = await this.findDetail(userId);
-    if (!user.voice_record) {
+    const activeRecord = user.voice_records.find((record) => record.is_active);
+
+    if (!activeRecord) {
       throw new NotFoundException('Người dùng này không có hồ sơ giọng nói');
     }
 
     return this.prisma.voice_records.update({
-      where: { id: user.voice_record.id },
+      where: { id: activeRecord.id },
       data: { is_active: false },
     });
   }

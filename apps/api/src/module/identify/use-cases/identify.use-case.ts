@@ -134,9 +134,13 @@ export class IdentifyUseCase {
         let row: Record<string, unknown> = { ...base };
 
         if (s.matched_voice_id) {
-          const voiceRecord = await this.prisma.voice_records.findUnique({
-            where: { voice_id: s.matched_voice_id },
+          const voiceRecord = await this.prisma.voice_records.findFirst({
+            where: {
+              voice_id: s.matched_voice_id,
+              is_active: true,
+            },
             include: { user: true },
+            orderBy: { created_at: 'desc' },
           });
           if (voiceRecord?.is_active && voiceRecord.user) {
             const u = voiceRecord.user;

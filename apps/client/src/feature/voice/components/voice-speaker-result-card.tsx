@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,12 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { VoiceTop5MatchTable } from "./voice-top5-match-table";
-import { getVoiceScoreMeta } from "../utils/voice-score";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 import type {
   VoiceIdentifyItem,
   VoiceIdentifyTwoItem,
 } from "../types/voice.types";
+import { getVoiceScoreMeta } from "../utils/voice-score";
+import { VoiceTop5MatchTable } from "./voice-top5-match-table";
 
 interface VoiceSpeakerResultCardProps {
   title: string;
@@ -41,7 +41,9 @@ function isUnknownSpeaker(item: VoiceIdentifyTwoItem) {
     message.includes("unknown") ||
     message.includes("not found") ||
     message.includes("chua tim thay") ||
-    message.includes("khong tim thay")
+    message.includes("khong tim thay") ||
+    message.includes("không tìm thấy") ||
+    message.includes("chưa tìm thấy")
   );
 }
 
@@ -125,7 +127,7 @@ export function VoiceSpeakerResultCard({
 
         {!isUnknown ? (
           <VoiceTop5MatchTable
-            title="Ket qua"
+            title="Kết quả"
             description=""
             items={top5Items}
             emptyText="Không có dữ liệu phù hợp"
@@ -134,7 +136,7 @@ export function VoiceSpeakerResultCard({
         ) : (
           <div className="rounded-2xl border border-dashed p-4">
             <p className="text-sm text-muted-foreground">
-              Chua tim thay nguoi phu hop
+              Chưa tìm thấy người phù hợp
             </p>
           </div>
         )}

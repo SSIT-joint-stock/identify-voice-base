@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNormalizeAudio } from "@/feature/voice/hooks/use-normalize-audio";
+import { formatTime } from "@/feature/voice/utils/format";
 import { cn } from "@/lib/utils";
-import { Pause, Play } from "lucide-react";
+import { Loader, Pause, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import WaveSurfer from "wavesurfer.js";
 
@@ -16,16 +18,6 @@ export interface VoiceAudioPlayerProps {
   footerAction?: ReactNode;
   footerActionWrapperClassName?: string;
   compact?: boolean;
-}
-
-const WAVEFORM_FALLBACK_MESSAGE =
-  "Khong the tai waveform cho file audio nay. Ban van co the phat bang trinh phat mac dinh ben duoi.";
-
-function formatTime(seconds: number) {
-  if (!Number.isFinite(seconds)) return "00:00";
-  const minutes = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
 export function VoiceAudioPlayer({
@@ -43,20 +35,26 @@ export function VoiceAudioPlayer({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
   const stopTimerRef = useRef<number | null>(null);
+  const { WAVEFORM_FALLBACK_MESSAGE, fetchProtectedAudioBlob } =
+    useNormalizeAudio();
 
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [remoteAudioUrl, setRemoteAudioUrl] = useState<string | null>(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
 
   const objectUrl = useMemo(() => {
     if (!file) return null;
     return URL.createObjectURL(file);
   }, [file]);
 
-  const resolvedAudioUrl = file ? objectUrl : (audioUrl ?? null);
+  const resolvedAudioUrl = file ? objectUrl : audioUrl ? remoteAudioUrl : null;
   const resolvedFileName = file?.name ?? fileName ?? "audio";
+  const visibleAudioError = file || audioUrl ? audioError : null;
+  const visibleIsLoadingAudio = !file && !!audioUrl && isLoadingAudio;
 
   useEffect(() => {
     return () => {
@@ -65,6 +63,53 @@ export function VoiceAudioPlayer({
       }
     };
   }, [objectUrl]);
+
+  useEffect(() => {
+    if (file || !audioUrl) {
+      return;
+    }
+
+    let isDisposed = false;
+    let nextObjectUrl: string | null = null;
+
+    queueMicrotask(() => {
+      if (isDisposed) return;
+      setIsLoadingAudio(true);
+      setAudioError(null);
+      setRemoteAudioUrl(null);
+    });
+
+    void fetchProtectedAudioBlob(audioUrl)
+      .then((blob) => {
+        if (isDisposed) return;
+
+        nextObjectUrl = URL.createObjectURL(blob);
+        setRemoteAudioUrl(nextObjectUrl);
+      })
+      .catch((error) => {
+        if (isDisposed) return;
+
+        setRemoteAudioUrl(null);
+        setAudioError(
+          error instanceof Error && error.message
+            ? error.message
+            : WAVEFORM_FALLBACK_MESSAGE,
+        );
+      })
+      .finally(() => {
+        if (!isDisposed) {
+          setIsLoadingAudio(false);
+        }
+      });
+
+    return () => {
+      isDisposed = true;
+
+      if (nextObjectUrl) {
+        URL.revokeObjectURL(nextObjectUrl);
+      }
+    };
+  }, [audioUrl, file, WAVEFORM_FALLBACK_MESSAGE]);
 
   useEffect(() => {
     if (!containerRef.current || !resolvedAudioUrl) {
@@ -178,7 +223,7 @@ export function VoiceAudioPlayer({
       setCurrentTime(0);
       setDuration(0);
     };
-  }, [file, onReady, resolvedAudioUrl]);
+  }, [file, onReady, resolvedAudioUrl, WAVEFORM_FALLBACK_MESSAGE]);
 
   useEffect(() => {
     const wave = waveSurferRef.current;
@@ -227,7 +272,7 @@ export function VoiceAudioPlayer({
     }
   };
 
-  if (!resolvedAudioUrl) return null;
+  if (!resolvedAudioUrl && !visibleIsLoadingAudio) return null;
 
   const content = (
     <CardContent className={cn("space-y-4", compact && "px-4 py-4")}>
@@ -241,27 +286,31 @@ export function VoiceAudioPlayer({
           ref={containerRef}
           className={cn(
             "w-full",
-            compact && "min-h-[64px]",
-            audioError && "hidden",
+            compact && "min-h-16",
+            visibleAudioError && "hidden",
           )}
         />
 
-        {audioError ? (
+        {visibleAudioError ? (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              {WAVEFORM_FALLBACK_MESSAGE}
-            </p>
-            <audio
-              controls
-              preload="metadata"
-              src={resolvedAudioUrl}
-              className="w-full"
-            />
+            <p className="text-sm text-muted-foreground">{visibleAudioError}</p>
+            {resolvedAudioUrl ? (
+              <audio
+                controls
+                preload="metadata"
+                src={resolvedAudioUrl}
+                className="w-full"
+              />
+            ) : null}
+          </div>
+        ) : visibleIsLoadingAudio ? (
+          <div className="flex min-h-24 items-center justify-center text-sm text-muted-foreground">
+            <Loader className="mr-2 h-4 w-4 animate-spin" /> Đang tải audio...
           </div>
         ) : null}
       </div>
 
-      {!audioError ? (
+      {!visibleAudioError && !visibleIsLoadingAudio ? (
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Button
             type="button"
@@ -291,11 +340,11 @@ export function VoiceAudioPlayer({
             {resolvedFileName}
           </div>
         </div>
-      ) : (
+      ) : !visibleIsLoadingAudio ? (
         <div className="min-w-0 truncate text-sm text-muted-foreground">
           {resolvedFileName}
         </div>
-      )}
+      ) : null}
 
       {footerAction ? (
         <div className={cn("flex justify-end", footerActionWrapperClassName)}>
@@ -306,7 +355,7 @@ export function VoiceAudioPlayer({
   );
 
   return (
-    <Card className={cn("rounded-2xl", compact && "gap-0")}>
+    <Card className={cn("rounded-md", compact && "gap-0")}>
       {!compact ? (
         <CardHeader>
           <CardTitle>{title}</CardTitle>

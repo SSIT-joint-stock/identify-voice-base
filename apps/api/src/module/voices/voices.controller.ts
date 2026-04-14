@@ -79,16 +79,16 @@ export class VoicesController {
   @ApiOperation({
     summary: 'Khởi tạo luồng cập nhật đặc trưng giọng nói (UC04)',
   })
-  @ApiParam({ name: 'id', description: 'Voice ID (Qdrant point id) của user' })
+  @ApiParam({ name: 'id', description: 'UUID của user' })
   @ApiSuccess('Yêu cầu cập nhật đã được đưa vào hàng đợi!')
   async updateVoice(
-    @Param('id') voiceId: string,
+    @Param('id') userId: string,
     @Body() dto: UpdateVoiceAudioDto,
     @User() user: auth_accounts,
   ) {
     if (!dto.audioIds || dto.audioIds.length === 0) {
       throw new BadRequestException('Bắt buộc phải có ít nhất 1 audio ID');
     }
-    return this.voicesService.updateEmbedding(voiceId, dto.audioIds, user.id);
+    return this.voicesService.updateEmbedding(userId, dto.audioIds, user.id);
   }
 }

@@ -10,7 +10,9 @@ import * as path from 'path';
 
 export interface UpdateVoiceJobData {
   jobId: string;
+  userId: string;
   voiceId: string;
+  activeVoiceRecordId: string;
   audioIds: string[];
   adminId: string;
 }
@@ -19,11 +21,10 @@ export interface UpdateVoiceJobData {
  * Bull Processor xử lý background job Update Voice (UC04)
  *
  * Luồng:
- * 1. Lấy voice record từ DB theo voiceId
+ * 1. Lấy active voice record hiện tại
  * 2. Với mỗi audioId: lấy file_path từ DB → resolve absolute path → gọi AI uploadVoice()
- * 3. Ghi log vào bảng voice_update_logs
- *
- * Không cần versioning hay is_active vì AI chỉ có 1 voiceId duy nhất và append thêm sample.
+ * 3. Tạo version mới của voice_records và deactivate version cũ
+ * 4. Ghi log vào bảng voice_update_logs
  */
 @Processor('update-voice')
 export class UpdateVoiceProcessor extends WorkerHost {
@@ -44,7 +45,8 @@ export class UpdateVoiceProcessor extends WorkerHost {
       return;
     }
 
-    const { jobId, voiceId, audioIds, adminId } = job.data;
+    const { jobId, userId, voiceId, activeVoiceRecordId, audioIds, adminId } =
+      job.data;
 
     try {
       this.logger.debug(`[Job ${jobId}] Bắt đầu xử lý cho voice_id ${voiceId}`);
@@ -52,12 +54,22 @@ export class UpdateVoiceProcessor extends WorkerHost {
       // --- Progress 0%: Validate voice record ---
       await this.updateProgress(jobId, JobStatus.PROCESSING, 0);
 
-      const voiceRecord = await this.prisma.voice_records.findUnique({
-        where: { voice_id: voiceId },
+      const voiceRecord = await this.prisma.voice_records.findFirst({
+        where: {
+          id: activeVoiceRecordId,
+          user_id: userId,
+          voice_id: voiceId,
+          is_active: true,
+        },
+        include: {
+          user: true,
+        },
       });
 
       if (!voiceRecord) {
-        throw new Error(`Voice ${voiceId} không tồn tại trong hệ thống.`);
+        throw new Error(
+          `Không tìm thấy active voice record cho user ${userId} / voice_id ${voiceId}.`,
+        );
       }
 
       // --- Progress 10%–80%: Loop gọi AI cho từng audio ---
@@ -118,15 +130,53 @@ export class UpdateVoiceProcessor extends WorkerHost {
         throw new Error('Không có audio nào được đẩy thành công lên AI.');
       }
 
-      // --- Progress 90%: Lưu voice_update_logs ---
+      const latestAudioId = successfulAudios[successfulAudios.length - 1];
+
+      // --- Progress 90%: Tạo version mới + log ---
       await this.updateProgress(jobId, JobStatus.PROCESSING, 90);
 
-      await this.prisma.voice_update_logs.createMany({
-        data: successfulAudios.map((aId) => ({
-          voice_id: voiceId,
-          audio_file_id: aId,
-          updated_by: adminId,
-        })),
+      await this.prisma.$transaction(async (tx) => {
+        await tx.voice_records.update({
+          where: { id: voiceRecord.id },
+          data: { is_active: false },
+        });
+
+        const nextVoiceRecord = await tx.voice_records.create({
+          data: {
+            user_id: voiceRecord.user_id,
+            user_name: voiceRecord.user_name ?? voiceRecord.user?.name ?? null,
+            user_email: voiceRecord.user_email,
+            voice_id: voiceRecord.voice_id,
+            audio_file_id: latestAudioId,
+            is_active: true,
+          },
+        });
+
+        const latestAudio = await tx.audio_files.findUnique({
+          where: { id: latestAudioId },
+        });
+
+        if (!latestAudio) {
+          throw new Error(
+            `Audio đại diện ${latestAudioId} không tồn tại sau khi cập nhật.`,
+          );
+        }
+
+        await tx.users.update({
+          where: { id: voiceRecord.user_id },
+          data: {
+            audio_url: `${this.storageCfg.cdnUrl}/${latestAudio.file_path}`,
+          },
+        });
+
+        await tx.voice_update_logs.createMany({
+          data: successfulAudios.map((aId) => ({
+            voice_record_id: nextVoiceRecord.id,
+            voice_id: voiceId,
+            audio_file_id: aId,
+            updated_by: adminId,
+          })),
+        });
       });
 
       // --- Progress 100%: Done ---
