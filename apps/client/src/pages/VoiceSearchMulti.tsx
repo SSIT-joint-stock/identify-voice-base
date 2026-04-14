@@ -52,6 +52,7 @@ export default function VoiceSearchMulti() {
       <PageLayout
         title="Tra cứu 1-2 người"
         description="Tải file audio có tối đa 2 người nói để tra cứu"
+        titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
       >
         <VoiceMultiSearchForm
           formId={MULTI_SEARCH_FORM_ID}

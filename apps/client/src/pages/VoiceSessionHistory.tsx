@@ -140,6 +140,7 @@ export default function VoiceSessionHistory() {
       onRefresh={async () => {
         await sessionsQuery.refetch();
       }}
+      titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
     >
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:flex-row lg:items-end">
         <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-4">

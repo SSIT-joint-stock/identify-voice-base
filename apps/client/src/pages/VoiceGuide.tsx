@@ -7,6 +7,7 @@ export default function VoiceGuide() {
     <PageLayout
       title="Hướng dẫn sử dụng"
       description="Hướng dẫn sử dụng hệ thống nhận diện giọng nói"
+      titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
     >
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <Card className="rounded-2xl">

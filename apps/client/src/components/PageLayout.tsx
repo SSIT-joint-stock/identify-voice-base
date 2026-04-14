@@ -2,6 +2,7 @@ import { RefreshCw } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface PageLayoutProps {
   title: string;
@@ -9,6 +10,7 @@ interface PageLayoutProps {
   children: ReactNode;
   onRefresh?: () => void | Promise<void>;
   showRefreshButton?: boolean;
+  titleClassName?: string;
 }
 
 export function PageLayout({
@@ -17,6 +19,7 @@ export function PageLayout({
   children,
   onRefresh,
   showRefreshButton = true,
+  titleClassName,
 }: PageLayoutProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -35,7 +38,12 @@ export function PageLayout({
     <div className="flex h-full flex-col gap-4">
       <header className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-primary-400 md:text-3xl">
+          <h1
+            className={cn(
+              "text-2xl font-bold text-primary-400 md:text-3xl",
+              titleClassName,
+            )}
+          >
             {title}
           </h1>
           {showRefreshButton ? (

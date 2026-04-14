@@ -152,6 +152,7 @@ export default function VoiceDirectory() {
       onRefresh={async () => {
         await refetch();
       }}
+      titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
     >
       <div className="flex items-center gap-10">
         <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm md:flex-row md:items-center flex-1">

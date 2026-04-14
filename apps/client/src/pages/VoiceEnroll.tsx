@@ -18,6 +18,7 @@ export default function VoiceEnroll() {
     <PageLayout
       title="Đăng ký giọng nói"
       description="Tải file audio của người đăng ký để đăng ký giọng nói"
+      titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
     >
       <VoiceUploadForm onFileChange={resetUploadResult} />
 

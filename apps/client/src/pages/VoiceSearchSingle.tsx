@@ -35,6 +35,7 @@ export default function VoiceSearchSingle() {
       <PageLayout
         title="Tra cứu 1 người"
         description="Tải file audio có 1 người nói để tra cứu"
+        titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
       >
         <VoiceSingleSearchForm
           formId={SINGLE_SEARCH_FORM_ID}
