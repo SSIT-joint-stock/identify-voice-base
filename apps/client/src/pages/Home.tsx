@@ -50,7 +50,7 @@ export default function Home() {
 
           return (
             <Link key={item.title} to={item.to} className="block h-full">
-              <Card className="h-full rounded-[24px] border-0 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
+              <Card className="h-full rounded-[32px] border-0 ring-0 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_12px_36px_rgba(15,23,42,0.12)]">
                 <CardContent className="flex h-full flex-col items-center justify-center gap-6 px-6 py-8 text-center">
                   <div className="flex items-center justify-center rounded-full text-[#4b140c]">
                     <Icon className="size-16 stroke-[1.8] md:size-20 lg:size-24" />
