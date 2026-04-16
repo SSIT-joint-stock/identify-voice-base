@@ -146,6 +146,7 @@ export class IdentifyUseCase {
             const u = voiceRecord.user;
             row = {
               ...row,
+              user_id: u.id,
               name: u.name,
               citizen_identification: u.citizen_identification,
               phone_number: u.phone_number,

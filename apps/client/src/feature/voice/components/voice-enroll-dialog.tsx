@@ -7,6 +7,8 @@ import {
 import { cn } from "@/lib/utils";
 import { truncText } from "@/utils/trunc-text";
 import { useMemo } from "react";
+import type { UploadVoiceSchemaInput } from "../schemas/voice.schema";
+import type { CriminalRecordItem } from "../types/voice.types";
 import type { VoiceIdentifyTwoItem } from "../types/voice.types";
 import { VoiceUploadForm } from "./voice-upload-form";
 
@@ -35,6 +37,39 @@ function getPreviewAudioUrl(
   return item?.audio_url?.trim() || undefined;
 }
 
+function isCriminalRecordItem(value: unknown): value is CriminalRecordItem {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "case" in value &&
+    "year" in value &&
+    typeof value.case === "string" &&
+    typeof value.year === "number"
+  );
+}
+
+function getInitialFormValues(
+  item?: VoiceIdentifyTwoItem | null,
+): Partial<UploadVoiceSchemaInput> {
+  return {
+    name: item?.name?.trim() ?? "",
+    citizenIdentification: item?.citizen_identification?.trim() ?? "",
+    phoneNumber: item?.phone_number?.trim() ?? "",
+    hometown: item?.hometown?.trim() ?? "",
+    job: item?.job?.trim() ?? "",
+    passport: item?.passport?.trim() ?? "",
+    criminalRecords: Array.isArray(item?.criminal_record)
+      ? item.criminal_record.filter(isCriminalRecordItem).map((record) => {
+          const criminalRecord = record as CriminalRecordItem;
+          return {
+            case: criminalRecord.case,
+            year: String(criminalRecord.year),
+          };
+        })
+      : [],
+  };
+}
+
 interface VoiceEnrollDialogContentProps {
   open: boolean;
   sourceFile: File | null;
@@ -52,6 +87,10 @@ function VoiceEnrollDialogContent({
 }: VoiceEnrollDialogContentProps) {
   const previewAudioUrl = useMemo(
     () => getPreviewAudioUrl(speakerItem),
+    [speakerItem],
+  );
+  const initialFormValues = useMemo(
+    () => getInitialFormValues(speakerItem),
     [speakerItem],
   );
 
@@ -121,6 +160,7 @@ function VoiceEnrollDialogContent({
                 key={formKey}
                 initialFile={sourceFile}
                 previewAudioUrl={previewAudioUrl}
+                initialValues={initialFormValues}
                 compact
                 onUploadSuccess={(data) => {
                   if (data) {

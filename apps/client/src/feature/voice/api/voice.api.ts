@@ -133,7 +133,11 @@ function resolveTruthSource(params: {
     return "BUSINESS";
   }
 
-  return params.matchedVoiceId ? undefined : "NONE";
+  if (params.matchedVoiceId) {
+    return "AI";
+  }
+
+  return "NONE";
 }
 
 function normalizeIdentifyItem(item: unknown): VoiceIdentifyItem | null {
@@ -172,6 +176,7 @@ function normalizeIdentifyItem(item: unknown): VoiceIdentifyItem | null {
   });
 
   return {
+    user_id: asString(data.user_id, asString(item.user_id, "")) || undefined,
     speaker_label: speakerLabel || undefined,
     message: asString(data.message, asString(item.message, "")),
     matched_voice_id: matchedVoiceId || undefined,

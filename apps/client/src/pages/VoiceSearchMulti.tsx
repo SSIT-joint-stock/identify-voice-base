@@ -1,14 +1,14 @@
-import { LoaderCircle, UsersRound } from "lucide-react";
-import { useEffect, useState } from "react";
 import { PageLayout } from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
+import { useVoiceStore } from "@/feature/voice";
+import { VoiceAudioPlayer } from "@/feature/voice/components/voice-audio-player";
+import { VoiceEnrollDialog } from "@/feature/voice/components/voice-enroll-dialog";
 import { VoiceErrorDialog } from "@/feature/voice/components/voice-error-dialog";
 import { VoiceMultiSearchForm } from "@/feature/voice/components/voice-multi-search-form";
-import { VoiceAudioPlayer } from "@/feature/voice/components/voice-audio-player";
 import { VoiceSpeakerResultCard } from "@/feature/voice/components/voice-speaker-result-card";
-import { VoiceEnrollDialog } from "@/feature/voice/components/voice-enroll-dialog";
-import { useVoiceStore } from "@/feature/voice";
 import type { VoiceIdentifyTwoItem } from "@/feature/voice/types/voice.types";
+import { LoaderCircle, UsersRound } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const MULTI_SEARCH_FORM_ID = "voice-multi-search-form";
 
@@ -46,6 +46,7 @@ export default function VoiceSearchMulti() {
 
   const items = identifyTwoResult?.items ?? [];
   const hasSearched = identifyTwoResult !== null;
+  console.log(items);
 
   return (
     <>
@@ -112,8 +113,10 @@ export default function VoiceSearchMulti() {
                       onSelectSegment={(start, end) =>
                         setSelectedSegment({ start, end })
                       }
-                      onRegisterUnknown={() => {
-                        setSelectedUnknownItem(item);
+                      onRegisterUnknown={(selectedItem) => {
+                        setSelectedUnknownItem(
+                          (selectedItem as VoiceIdentifyTwoItem) ?? item,
+                        );
                         setSelectedSpeakerIndex(index);
                         setOpenEnrollDialog(true);
                       }}

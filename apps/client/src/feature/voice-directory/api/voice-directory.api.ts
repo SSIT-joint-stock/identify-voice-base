@@ -56,8 +56,10 @@ export const voiceDirectoryApi = {
     return unwrapApiData<UpdateVoiceInfoResponse>(response.data);
   },
 
-  async deactivateVoice(id: string): Promise<void> {
-    await axiosInstance.patch(`${VOICE_API_ENDPOINTS.VOICES}/${id}/deactivate`);
+  async deleteVoice(id: string): Promise<void> {
+    await axiosInstance.patch(
+      `${VOICE_API_ENDPOINTS.VOICES}/${id}/delete-voice`,
+    );
   },
 
   async updateVoiceFromAudios(
