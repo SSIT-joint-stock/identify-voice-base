@@ -33,9 +33,9 @@ function formatDateTime(value: string) {
 function getTruthSourceLabel(source: SessionSpeaker["truth_source"]) {
   switch (source) {
     case "BUSINESS":
-      return "Business";
+      return "Giọng nói đã được đăng ký cùng định danh";
     case "AI":
-      return "AI";
+      return "Danh tính do AI định danh trước đó, chưa được đăng ký";
     default:
       return "Chưa xác định";
   }

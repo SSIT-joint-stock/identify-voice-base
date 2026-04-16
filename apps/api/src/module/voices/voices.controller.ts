@@ -63,15 +63,15 @@ export class VoicesController {
     return this.voicesService.update(id, dto);
   }
 
-  @Patch(':id/deactivate')
+  @Patch(':id/delete-voice')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Vô hiệu hóa hồ sơ giọng nói (UC07)' })
+  @ApiOperation({ summary: 'Xóa hồ sơ giọng nói khỏi AI core (UC07)' })
   @ApiParam({ name: 'id', description: 'UUID của user' })
-  @ApiResponse({ status: 200, description: 'Vô hiệu hóa thành công' })
+  @ApiResponse({ status: 200, description: 'Xóa thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy hồ sơ' })
-  @ApiSuccess('Vô hiệu hóa hồ sơ giọng nói thành công!')
-  async deactivate(@Param('id') id: string) {
-    return this.voicesService.deactivate(id);
+  @ApiSuccess('Xóa hồ sơ giọng nói thành công!')
+  async deleteVoice(@Param('id') id: string) {
+    return this.voicesService.deleteVoice(id);
   }
 
   @Post(':id/update-from-audios')
