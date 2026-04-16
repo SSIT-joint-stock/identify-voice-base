@@ -5,7 +5,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { join } from 'path';
+import { resolve } from 'path';
 
 // config
 import {
@@ -68,9 +68,20 @@ import { VoicesModule } from './module/voices/voices.module';
         aiCoreConfig,
       ],
     }),
-    ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), 'storage'),
-      serveRoot: '/cdn',
+    ServeStaticModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const storageRootDir =
+          config.get<string>('storage.rootDir') || './storage';
+
+        return [
+          {
+            rootPath: resolve(process.cwd(), storageRootDir),
+            serveRoot: '/cdn',
+          },
+        ];
+      },
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],

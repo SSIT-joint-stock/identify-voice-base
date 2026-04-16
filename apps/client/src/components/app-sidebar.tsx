@@ -226,7 +226,7 @@ function NavMenuItem({
                 : false;
               const isExternalChild = child.url?.startsWith("http");
               const childContent = (
-                <div className="flex items-center gap-3 py-2 text-sm transition-colors">
+                <div className="flex text-nowrap truncate items-center gap-3 py-2 text-sm transition-colors">
                   <child.icon className="size-4 shrink-0" />
                   <span>{child.title}</span>
                 </div>
@@ -359,7 +359,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <>
               <div
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className={`flex items-center gap-3 rounded-md bg-white p-2 border border-gray-200 text-gray-800 transition-all hover:bg-gray-50 cursor-pointer  ${
+                className={`flex items-center gap-3 rounded-md bg-white p-2 border border-gray-100 text-gray-800 transition-all hover:bg-gray-50 cursor-pointer  ${
                   state === "collapsed" ? "justify-center" : ""
                 }`}
               >
@@ -477,7 +477,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         open={isPasswordDialogOpen}
         onOpenChange={setIsPasswordDialogOpen}
       >
-        <DialogContent>
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Đổi mật khẩu</DialogTitle>
             <DialogDescription>

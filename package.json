@@ -42,7 +42,12 @@
     "infra:worker:up": "docker compose --env-file .env.development up db redis worker -d",
     "infra:all:up": "docker compose --env-file .env.development up -d",
     "infra:down": "docker compose --env-file .env.development down",
-    "infra:logs": "docker compose --env-file .env.development logs -f"
+    "infra:logs": "docker compose --env-file .env.development logs -f",
+    "infra:prod:up": "docker compose -f docker-compose.prod.yml --env-file .env.production up -d",
+    "infra:prod:down": "docker compose -f docker-compose.prod.yml --env-file .env.production down",
+    "infra:prod:logs": "docker compose -f docker-compose.prod.yml --env-file .env.production logs -f",
+    "infra:prod:pull": "docker compose -f docker-compose.prod.yml --env-file .env.production pull",
+    "infra:prod:migrate": "docker compose -f docker-compose.prod.yml --env-file .env.production --profile ops run --rm migrate"
   },
   "prisma": {
     "schema": "apps/api/prisma/schema.prisma"

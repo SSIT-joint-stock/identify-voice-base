@@ -9,7 +9,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { cropAudioFile } from "@/utils/audio.utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
@@ -20,6 +19,7 @@ import {
   type SubmitHandler,
 } from "react-hook-form";
 import { toast } from "sonner";
+import { useNormalizeAudio } from "../hooks/use-normalize-audio";
 import { useUploadVoice } from "../hooks/use-voice";
 import {
   uploadVoiceSchema,
@@ -32,6 +32,7 @@ import { VoiceAudioPlayer } from "./voice-audio-player";
 
 interface VoiceUploadFormProps {
   initialFile?: File | null;
+  previewAudioUrl?: string | null;
   initialStart?: number;
   initialEnd?: number;
   onUploadSuccess?: (data?: Partial<VoiceIdentifyTwoItem>) => void;
@@ -68,6 +69,7 @@ function getResetValues(
 
 export function VoiceUploadForm({
   initialFile = null,
+  previewAudioUrl = null,
   initialStart,
   initialEnd,
   onUploadSuccess,
@@ -101,31 +103,23 @@ export function VoiceUploadForm({
   }, [initialFile, form]);
 
   const uploadMutation = useUploadVoice();
+  const { fetchProtectedAudioBlob } = useNormalizeAudio();
 
   const onSubmit: SubmitHandler<UploadVoiceSchemaOutput> = async (values) => {
     try {
       let fileToUpload = values.audioFile;
 
-      if (
-        fileToUpload &&
-        typeof initialStart === "number" &&
-        typeof initialEnd === "number"
-      ) {
-        const loadingToast = toast.loading("Đang xử lý cắt âm thanh...");
+      if (previewAudioUrl) {
+        const audioBlob = await fetchProtectedAudioBlob(previewAudioUrl);
+        const inferredType =
+          audioBlob.type || values.audioFile?.type || "audio/wav";
+        const extension =
+          inferredType.split("/")[1]?.replace("mpeg", "mp3") || "wav";
 
-        try {
-          fileToUpload = await cropAudioFile(
-            fileToUpload,
-            initialStart,
-            initialEnd,
-          );
-          toast.success("Đã xử lý âm thanh đoạn chọn.", { id: loadingToast });
-        } catch (cropError) {
-          toast.error("Lỗi khi cắt âm thanh: " + (cropError as Error).message, {
-            id: loadingToast,
-          });
-          return;
-        }
+        fileToUpload = new File([audioBlob], `enroll-source.${extension}`, {
+          type: inferredType,
+          lastModified: values.audioFile?.lastModified ?? 0,
+        });
       }
 
       if (!fileToUpload) {
@@ -183,10 +177,9 @@ export function VoiceUploadForm({
 
         <VoiceAudioPlayer
           key={playerKey}
-          file={watchedAudioFile ?? null}
+          file={previewAudioUrl ? null : (watchedAudioFile ?? null)}
+          audioUrl={previewAudioUrl}
           title="Audio đăng ký"
-          startAt={initialStart}
-          endAt={initialEnd}
         />
 
         {watchedAudioFile ? (

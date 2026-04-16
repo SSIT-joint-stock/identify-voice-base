@@ -4,7 +4,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import dayjs from 'dayjs';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { z, ZodObject } from 'zod';
 
 //

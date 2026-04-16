@@ -106,7 +106,7 @@ function SpeakerAudioPlayer({ speaker }: { speaker: SessionSpeaker }) {
         return nextBlobUrl;
       });
     } catch {
-      setError("Không thể tải audio speaker.");
+      setError("Không thể tải audio của người nói.");
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +115,8 @@ function SpeakerAudioPlayer({ speaker }: { speaker: SessionSpeaker }) {
   if (!speaker.audio_url) {
     return (
       <p className="text-xs text-muted-foreground">
-        Speaker này chưa có audio tách riêng.
+        Speaker này chưa có audio tách riêng nên hãy nghe audio gốc để đối
+        chiếu.
       </p>
     );
   }
@@ -133,7 +134,7 @@ function SpeakerAudioPlayer({ speaker }: { speaker: SessionSpeaker }) {
         ) : (
           <Play className="size-4" />
         )}
-        {blobUrl ? "Tải lại audio speaker" : "Nghe audio speaker"}
+        {blobUrl ? "Tải lại audio của người nói" : "Nghe audio của người nói"}
       </Button>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
       {blobUrl ? (
@@ -334,7 +335,7 @@ export function SessionDetailSheet({
                             <div className="mb-2 flex items-center gap-2">
                               <Waves className="size-4 text-slate-500" />
                               <p className="text-sm font-medium">
-                                Audio speaker
+                                Audio của người nói
                               </p>
                             </div>
                             <SpeakerAudioPlayer speaker={speaker} />

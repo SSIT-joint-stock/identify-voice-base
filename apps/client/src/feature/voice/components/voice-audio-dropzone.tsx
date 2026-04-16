@@ -1,8 +1,14 @@
-import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
-import { FileAudio, Mic, Square, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ACCEPTED_AUDIO_TYPES, MAX_AUDIO_FILE_SIZE_BYTES } from "@/constants";
 import { cn } from "@/lib/utils";
+import { truncText } from "@/utils/trunc-text";
+import { FileAudio, Mic, Square, Upload, X } from "lucide-react";
+import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { useAudioRecorder } from "../hooks/use-audio-recorder";
 
 interface VoiceAudioDropzoneProps {
@@ -336,9 +342,15 @@ export function VoiceAudioDropzone({
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">
-                {isDragOver ? "Thả để thay file hiện tại" : value.name}
-              </p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="truncate text-sm font-semibold">
+                    {truncText(value.name, { maxLength: 60, breakWord: true })}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>{value.name}</TooltipContent>
+              </Tooltip>
+
               <p className="text-sm text-muted-foreground">
                 {isDragOver
                   ? "File mới sẽ thay thế file đang chọn."

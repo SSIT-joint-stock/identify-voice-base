@@ -1,0 +1,14 @@
+node_modules
+.git
+.github
+.turbo
+dist
+coverage
+logs
+storage
+.env
+.env.local
+.env.*.local
+apps/*/node_modules
+apps/*/dist
+

@@ -140,7 +140,7 @@ export function validateEnv(input: Record<string, unknown>): Env {
     input.REDIS_PORT &&
     input.REDIS_PASSWORD
   ) {
-    input.REDIS_URL = `redis://${input.REDIS_PASSWORD as string}@${input.REDIS_HOST as string}:${input.REDIS_PORT as string}`;
+    input.REDIS_URL = `redis://:${input.REDIS_PASSWORD as string}@${input.REDIS_HOST as string}:${input.REDIS_PORT as string}`;
   }
 
   // Parse and validate

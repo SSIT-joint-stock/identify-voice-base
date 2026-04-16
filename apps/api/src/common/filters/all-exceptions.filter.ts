@@ -23,7 +23,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { HttpLogInterceptor } from '../interceptors/http-logger.interceptor';
 
 @Catch()

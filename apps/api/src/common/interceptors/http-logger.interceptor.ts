@@ -8,7 +8,7 @@ import {
 import { LoggerService } from '@/common/logger/logger.service';
 import { CONTEXT_LOGGER_TOKEN } from '@/common/logger/logger.token';
 import { RequestMeta } from '@/common/types/request.type';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { Observable } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 

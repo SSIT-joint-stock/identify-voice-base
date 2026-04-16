@@ -249,7 +249,7 @@ export function VoiceDirectoryDetailSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col gap-0 overflow-hidden sm:max-w-xl md:max-w-6xl"
+          className="flex w-full flex-col gap-0 overflow-hidden sm:max-w-xl md:max-w-4xl"
           showCloseButton
         >
           <SheetHeader className="shrink-0 border-b pb-4 text-left">
@@ -268,7 +268,7 @@ export function VoiceDirectoryDetailSheet({
               </p>
             ) : detail ? (
               <>
-                <section className="space-y-3 rounded-xl border bg-muted/30 p-4">
+                <section className="space-y-3 rounded-xl ">
                   <h3 className="text-sm font-semibold">Mẫu giọng đăng ký</h3>
                   {hasEnrollStreamUrl ? (
                     <div className="flex flex-col gap-3">
@@ -278,12 +278,12 @@ export function VoiceDirectoryDetailSheet({
                         fileName={`${detail.name || "voice-sample"}.wav`}
                         compact
                       />
-                      {!detail.audio_available ? (
+                      {/* {!detail.audio_available ? (
                         <p className="text-xs text-amber-800">
-                          API báo file có thể không có trên disk cục bộ; vẫn thử
-                          phát qua URL nếu CDN còn file.
+                          API báo file có thể không có trên disk cục bộ; vẫn thử phát qua URL nếu
+                          CDN còn file.
                         </p>
-                      ) : null}
+                      ) : null} */}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">
@@ -408,7 +408,7 @@ export function VoiceDirectoryDetailSheet({
                     )}
                   </Button>
                 </form>
-
+                <hr />
                 <section className="space-y-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <h3 className="text-sm font-semibold">
@@ -551,7 +551,7 @@ export function VoiceDirectoryDetailSheet({
         open={confirmDeactivateOpen}
         onOpenChange={setConfirmDeactivateOpen}
       >
-        <DialogContent>
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Vô hiệu hóa hồ sơ?</DialogTitle>
             <DialogDescription>

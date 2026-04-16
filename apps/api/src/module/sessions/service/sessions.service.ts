@@ -4,7 +4,7 @@ import { PrismaService } from '@/database/prisma/prisma.service';
 import { AudioSegmentService } from '@/module/ai-core/service/audio-segment.service';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { Response } from 'express';
+import type { Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 

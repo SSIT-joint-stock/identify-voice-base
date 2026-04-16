@@ -16,7 +16,7 @@ import {
 import { type ConfigType } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { type auth_accounts } from '@prisma/client';
-import express from 'express';
+import type { Request, Response } from 'express';
 import { LoginUserDto } from './dto/login-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthService } from './service/auth.service';
@@ -36,7 +36,7 @@ export class AuthController {
   @ApiSuccess('Đăng nhập thành công')
   async login(
     @Body() dto: LoginUserDto,
-    @Res({ passthrough: true }) res: express.Response,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(dto);
     res.cookie('refresh_token', result.refresh_token, {
@@ -55,8 +55,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Làm mới access token' })
   @ApiSuccess('Làm mới token thành công')
   async refresh(
-    @Req() req: express.Request,
-    @Res({ passthrough: true }) res: express.Response,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = (req.cookies as Record<string, string>)?.refresh_token;
     const result = await this.authService.refresh(refreshToken);
@@ -79,7 +79,7 @@ export class AuthController {
   @ApiSuccess('Đăng xuất thành công')
   async logout(
     @User() user: auth_accounts,
-    @Res({ passthrough: true }) res: express.Response,
+    @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logout(user.id);
     res.clearCookie('refresh_token');
