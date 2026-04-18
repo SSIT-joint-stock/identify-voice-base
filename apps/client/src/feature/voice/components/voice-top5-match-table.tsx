@@ -27,7 +27,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronRight, Play, Trash2, UserPlus } from "lucide-react";
+import { Pencil, Play, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 
 import { VoiceDirectoryDetailSheet } from "@/feature/voice-directory/components/VoiceDirectoryDetailSheet";
@@ -175,21 +175,21 @@ export function VoiceTop5MatchTable({
               <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[6%] px-0.5 text-center whitespace-nowrap">
+                    <TableHead className="w-[8%] px-1.5 text-center whitespace-nowrap">
                       <HeaderTooltip
                         label="STT"
                         description="Thứ tự kết quả khớp trong bảng."
                       />
                     </TableHead>
                     {shouldShowAudioColumn ? (
-                      <TableHead className="w-[8%] px-0.5 text-center whitespace-nowrap">
+                      <TableHead className="w-[10%] px-1.5 text-center whitespace-nowrap">
                         <HeaderTooltip
                           label="Audio"
                           description="Mở hộp thoại để phát audio của người nói này."
                         />
                       </TableHead>
                     ) : null}
-                    <TableHead className="w-[18%] pl-1 whitespace-nowrap">
+                    <TableHead className="w-[20%] pl-3 whitespace-nowrap">
                       <HeaderTooltip
                         label="Họ và tên"
                         description="Tên hồ sơ hoặc danh tính AI được ánh xạ với kết quả khớp."
@@ -218,12 +218,12 @@ export function VoiceTop5MatchTable({
                       <TableHead
                         className={
                           shouldShowQuickActions
-                            ? "w-28 px-1 text-center whitespace-nowrap"
+                            ? "w-36 px-2 text-center whitespace-nowrap"
                             : "w-[8%] px-0.5 text-center whitespace-nowrap"
                         }
                       >
                         <HeaderTooltip
-                          label={shouldShowQuickActions ? "Thao tác" : "Sửa"}
+                          label="Thao tác"
                           description={
                             shouldShowQuickActions
                               ? "Các thao tác nhanh cho kết quả nhận dạng này."
@@ -251,11 +251,11 @@ export function VoiceTop5MatchTable({
                           item.matched_voice_id || displayItem.name || "unknown"
                         }-${index}`}
                       >
-                        <TableCell className="w-[6%] px-0.5 text-center align-middle">
+                        <TableCell className="w-[8%] px-1.5 text-center align-middle">
                           {index + 1}
                         </TableCell>
                         {shouldShowAudioColumn ? (
-                          <TableCell className="w-[8%] px-0.5 text-center align-middle">
+                          <TableCell className="w-[10%] px-1.5 text-center align-middle">
                             {rowAudioUrl ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -284,7 +284,7 @@ export function VoiceTop5MatchTable({
                             )}
                           </TableCell>
                         ) : null}
-                        <TableCell className="w-[18%] min-w-0 pl-1 align-middle font-medium">
+                        <TableCell className="w-[20%] min-w-0 pl-3 align-middle font-medium">
                           <TextCellTooltip
                             value={displayItem.name}
                             className="truncate"
@@ -325,31 +325,35 @@ export function VoiceTop5MatchTable({
                           <TableCell
                             className={
                               shouldShowQuickActions
-                                ? "w-28 px-1 text-center align-middle"
+                                ? "w-36 px-2 text-center align-middle"
                                 : "w-[8%] px-0.5 text-center align-middle"
                             }
                           >
-                            <div className="flex items-center justify-center gap-1">
-                              {detailVoiceId ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon-sm"
-                                      className="size-8 rounded-full text-slate-400 hover:bg-primary-50 hover:text-primary-400"
-                                      onClick={() => {
-                                        setSelectedVoiceId(detailVoiceId);
-                                        setDetailOpen(true);
-                                      }}
-                                      aria-label={`Mở chi tiết hồ sơ của ${audioLabel.personName}`}
-                                    >
-                                      <ChevronRight className="size-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Sửa hồ sơ</TooltipContent>
-                                </Tooltip>
-                              ) : null}
+                            <div className="flex items-center justify-center gap-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon-sm"
+                                    className="size-8 rounded-full border-slate-200 text-slate-500 hover:border-primary-200 hover:bg-primary-50 hover:text-primary-500 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300"
+                                    onClick={() => {
+                                      if (!detailVoiceId) return;
+                                      setSelectedVoiceId(detailVoiceId);
+                                      setDetailOpen(true);
+                                    }}
+                                    disabled={!detailVoiceId}
+                                    aria-label={`Mở chi tiết hồ sơ của ${audioLabel.personName}`}
+                                  >
+                                    <Pencil className="size-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {detailVoiceId
+                                    ? "Sửa hồ sơ"
+                                    : "Chưa có định danh để chỉnh sửa"}
+                                </TooltipContent>
+                              </Tooltip>
 
                               {typeof onRegisterItem === "function" ? (
                                 <Tooltip>

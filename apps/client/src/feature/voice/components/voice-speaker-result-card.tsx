@@ -75,6 +75,12 @@ export function VoiceSpeakerResultCard({
   const isRegisteredIdentity = !isUnknown && item.truth_source === "BUSINESS";
   const top5Items: VoiceIdentifyItem[] = isUnknown ? [] : [item];
   const scoreMeta = getVoiceScoreMeta(item.score);
+  const identityMeta = [
+    !isUnknown && item.citizen_identification
+      ? `CCCD: ${item.citizen_identification}`
+      : null,
+    !isUnknown && item.phone_number ? `SĐT: ${item.phone_number}` : null,
+  ].filter(Boolean) as string[];
 
   const deleteVoiceMutation = useMutation({
     mutationFn: async (target: VoiceIdentifyItem) => {
@@ -102,9 +108,9 @@ export function VoiceSpeakerResultCard({
         <CardHeader>
           <CardTitle>{!isUnknown && item.name ? item.name : title}</CardTitle>
           <CardDescription>
-            {!isUnknown && item.citizen_identification
-              ? `CCCD: ${item.citizen_identification}`
-              : item.message || "Chưa có thông tin CCCD"}
+            {identityMeta.length > 0
+              ? identityMeta.join("  -  ")
+              : item.message || "Chưa có thông tin định danh"}
           </CardDescription>
         </CardHeader>
 

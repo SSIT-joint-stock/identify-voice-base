@@ -191,7 +191,7 @@ export default function VoiceDirectory() {
               setPage(1);
             }}
           >
-            <SelectTrigger className="w-[250px] shrink-0 bg-white">
+            <SelectTrigger className="w-62.5 shrink-0 bg-white">
               <SelectValue placeholder="Sắp xếp danh sách" />
             </SelectTrigger>
             <SelectContent>
@@ -209,7 +209,7 @@ export default function VoiceDirectory() {
               setPage(1);
             }}
           >
-            <SelectTrigger className="w-[124px] shrink-0 bg-white">
+            <SelectTrigger className="w-31 shrink-0 bg-white">
               <SelectValue placeholder="10 dòng" />
             </SelectTrigger>
             <SelectContent>
