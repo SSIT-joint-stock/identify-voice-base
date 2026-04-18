@@ -53,6 +53,7 @@ export type VoiceTruthSource = "BUSINESS" | "AI" | "NONE";
 export interface VoiceIdentifyItem {
   speaker_label?: string;
   message: string;
+  user_id?: string;
   matched_voice_id?: string;
   voice_id?: string; // Fallback or from registration
   score?: number;
