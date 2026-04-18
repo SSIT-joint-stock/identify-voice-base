@@ -9,6 +9,7 @@ export const QUERY_KEYS = {
       list: (params: {
         search: string;
         page: number;
+        pageSize: 10 | 20 | 50;
         sortBy: "name" | "enrolled_at";
         sortOrder: "asc" | "desc";
       }) => ["voice", "directory", "list", params] as const,

@@ -68,6 +68,8 @@ const SORT_OPTIONS = [
   { value: "enrolled_at:asc", label: "Sắp xếp theo ngày cũ nhất" },
 ] as const;
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
+
 function buildPaginationItems(currentPage: number, totalPages: number) {
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -106,6 +108,8 @@ export default function VoiceDirectory() {
   const querySearch =
     searchInput.trim().length > 0 ? searchInput.trim() : debounced;
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] =
+    useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
   const [sortBy, setSortBy] = useState<"name" | "enrolled_at">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -115,13 +119,14 @@ export default function VoiceDirectory() {
     queryKey: QUERY_KEYS.voice.directory.list({
       search: querySearch,
       page,
+      pageSize,
       sortBy,
       sortOrder,
     }),
     queryFn: () =>
       voiceDirectoryApi.listVoices({
         page,
-        page_size: 30,
+        page_size: pageSize,
         search: querySearch || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
@@ -147,15 +152,15 @@ export default function VoiceDirectory() {
 
   return (
     <PageLayout
-      title="Hồ sơ giọng nói"
+      title="Hồ sơ định danh"
       description="Danh sách những người đã được định danh bằng giọng nói"
       onRefresh={async () => {
         await refetch();
       }}
       titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
     >
-      <div className="flex items-center gap-10">
-        <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm md:flex-row md:items-center flex-1">
+      <div className="flex flex-wrap items-center gap-4 lg:flex-nowrap lg:gap-6">
+        <div className="flex flex-1 flex-col gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm md:flex-row md:items-center">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <Search className="size-4 shrink-0 text-slate-400" />
             <Input
@@ -173,7 +178,7 @@ export default function VoiceDirectory() {
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
           <Select
             value={sortValue}
             onValueChange={(value) => {
@@ -186,7 +191,7 @@ export default function VoiceDirectory() {
               setPage(1);
             }}
           >
-            <SelectTrigger className="w-62.5 bg-white">
+            <SelectTrigger className="w-[250px] shrink-0 bg-white">
               <SelectValue placeholder="Sắp xếp danh sách" />
             </SelectTrigger>
             <SelectContent>
@@ -197,8 +202,26 @@ export default function VoiceDirectory() {
               ))}
             </SelectContent>
           </Select>
+          <Select
+            value={String(pageSize)}
+            onValueChange={(value) => {
+              setPageSize(Number(value) as (typeof PAGE_SIZE_OPTIONS)[number]);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[124px] shrink-0 bg-white">
+              <SelectValue placeholder="10 dòng" />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map((option) => (
+                <SelectItem key={option} value={String(option)}>
+                  {option} dòng
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {total > 0 && !isLoading && (
-            <span className="shrink-0 text-xs font-medium text-slate-400">
+            <span className="shrink-0 whitespace-nowrap pl-1 text-xs font-medium text-slate-400">
               {total} liên hệ
             </span>
           )}
