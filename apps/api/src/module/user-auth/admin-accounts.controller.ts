@@ -11,11 +11,13 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { AdminCreateAccountDto } from './dto/admin-create-account.dto';
+import { AdminGetAccountsFilterDto } from './dto/admin-get-accounts-filter.dto';
 import { AdminUpdateAccountDto } from './dto/admin-update-account.dto';
 import { UserService } from './service/user.service';
 
@@ -38,8 +40,8 @@ export class AdminAccountsController {
   @Get()
   @ApiOperation({ summary: 'Admin lấy danh sách tài khoản đăng nhập' })
   @ApiSuccess('Lấy danh sách tài khoản thành công')
-  async findAllAccounts() {
-    return this.userService.adminFindAllAccounts();
+  async findAllAccounts(@Query() filter: AdminGetAccountsFilterDto) {
+    return this.userService.adminFindAllAccounts(filter);
   }
 
   @Get(':id')

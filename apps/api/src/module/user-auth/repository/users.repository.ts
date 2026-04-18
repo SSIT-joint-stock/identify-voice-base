@@ -3,6 +3,7 @@ import { NotFoundError } from '@/common/response';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Prisma, type auth_accounts } from '@prisma/client';
+import { AdminGetAccountsFilterDto } from '../dto/admin-get-accounts-filter.dto';
 
 @Injectable()
 export class UsersRepository {
@@ -36,10 +37,47 @@ export class UsersRepository {
     });
   }
 
-  async findAll() {
-    return this.prisma.auth_accounts.findMany({
-      orderBy: { email: 'asc' },
-    });
+  async findAll(filter: AdminGetAccountsFilterDto) {
+    const {
+      page = 1,
+      page_size = 10,
+      search,
+      role,
+      status,
+      sort_by = 'email',
+      sort_order = 'asc',
+    } = filter;
+
+    const where: Prisma.auth_accountsWhereInput = {
+      ...(search && {
+        OR: [
+          { email: { contains: search, mode: 'insensitive' } },
+          { username: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+      ...(role && { role }),
+      ...(status && { status }),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.auth_accounts.findMany({
+        where,
+        orderBy: { [sort_by]: sort_order },
+        skip: (page - 1) * page_size,
+        take: page_size,
+      }),
+      this.prisma.auth_accounts.count({ where }),
+    ]);
+
+    return {
+      items,
+      pagination: {
+        page,
+        page_size,
+        total,
+        total_pages: Math.ceil(total / page_size),
+      },
+    };
   }
 
   async create(data: Prisma.auth_accountsCreateInput) {

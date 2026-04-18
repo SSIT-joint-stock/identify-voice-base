@@ -1,16 +1,23 @@
 import { BaseUseCase } from '@/shared/interfaces/base-usecase.interface';
 import { Injectable } from '@nestjs/common';
+import { AdminGetAccountsFilterDto } from '../dto/admin-get-accounts-filter.dto';
 import { UsersRepository } from '../repository/users.repository';
 
 @Injectable()
-export class AdminFindAllAccountsUseCase implements BaseUseCase<void, any> {
+export class AdminFindAllAccountsUseCase implements BaseUseCase<
+  AdminGetAccountsFilterDto,
+  any
+> {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  async execute() {
-    const accounts = await this.usersRepository.findAll();
+  async execute(filter: AdminGetAccountsFilterDto) {
+    const result = await this.usersRepository.findAll(filter);
 
-    return accounts.map((account) =>
-      this.usersRepository.serializeAccount(account),
-    );
+    return {
+      items: result.items.map((account) =>
+        this.usersRepository.serializeAccount(account),
+      ),
+      pagination: result.pagination,
+    };
   }
 }

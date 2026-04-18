@@ -126,6 +126,51 @@ Nhưng **không mặc định có quyền**:
 - **Endpoint**: `GET /api/v1/users/accounts`
 - **Role yêu cầu**: `ADMIN`
 
+### Query hỗ trợ
+
+| Query        | Kiểu                                  | Bắt buộc | Mô tả                               |
+| :----------- | :------------------------------------ | :------- | :---------------------------------- |
+| `page`       | `number`                              | Không    | Trang hiện tại, mặc định `1`        |
+| `page_size`  | `number`                              | Không    | Số bản ghi mỗi trang, mặc định `10` |
+| `search`     | `string`                              | Không    | Tìm theo `email` hoặc `username`    |
+| `role`       | `ADMIN \| OPERATOR`                   | Không    | Lọc theo role                       |
+| `status`     | `ACTIVE \| INACTIVE`                  | Không    | Lọc theo trạng thái                 |
+| `sort_by`    | `email \| username \| role \| status` | Không    | Trường sắp xếp, mặc định `email`    |
+| `sort_order` | `asc \| desc`                         | Không    | Chiều sắp xếp, mặc định `asc`       |
+
+### Ví dụ request
+
+```http
+GET /api/v1/users/accounts?page=1&page_size=10&search=operator&role=OPERATOR&status=ACTIVE&sort_by=email&sort_order=asc
+```
+
+### Response mẫu
+
+```json
+{
+  "statusCode": 200,
+  "message": "Lấy danh sách tài khoản thành công",
+  "data": {
+    "items": [
+      {
+        "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "email": "operator@example.com",
+        "username": "operator01",
+        "role": "OPERATOR",
+        "status": "ACTIVE",
+        "permissions": ["profile.read", "voices.read", "voices.enroll"]
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "page_size": 10,
+      "total": 1,
+      "total_pages": 1
+    }
+  }
+}
+```
+
 ### 2.3 Admin lấy chi tiết một account
 
 - **Endpoint**: `GET /api/v1/users/accounts/:id`

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AdminCreateAccountDto } from '../dto/admin-create-account.dto';
+import { AdminGetAccountsFilterDto } from '../dto/admin-get-accounts-filter.dto';
 import { AdminUpdateAccountDto } from '../dto/admin-update-account.dto';
 import { UpdateAccountDto } from '../dto/update-account.dto';
 import { AdminCreateAccountUseCase } from '../use-cases/admin-create-account.usecase';
@@ -38,8 +39,8 @@ export class UserService {
     return this.adminCreateAccountUseCase.execute(dto);
   }
 
-  async adminFindAllAccounts() {
-    return this.adminFindAllAccountsUseCase.execute();
+  async adminFindAllAccounts(filter: AdminGetAccountsFilterDto) {
+    return this.adminFindAllAccountsUseCase.execute(filter);
   }
 
   async adminFindOneAccount(id: string) {
