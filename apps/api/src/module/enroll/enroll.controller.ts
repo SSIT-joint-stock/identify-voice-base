@@ -15,16 +15,17 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { ApiSuccess } from '@/common/decorators';
+import { Permissions, ApiSuccess } from '@/common/decorators';
 import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
 
 import { EnrollService } from '@/module/enroll/service/enroll.service';
 import { EnrollVoiceDto } from './dto/enroll-voice.dto';
 
 @ApiTags('enroll')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('voices')
 export class EnrollController {
   constructor(private readonly enrollService: EnrollService) {}
@@ -68,6 +69,7 @@ export class EnrollController {
   @ApiSuccess('Đăng ký giọng nói thành công')
   @UseInterceptors(FileInterceptor('audio'))
   @ApiSuccess('Đăng kí hồ sơ giọng nói thành công!')
+  @Permissions(['voices.enroll'])
   async enroll(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: EnrollVoiceDto,

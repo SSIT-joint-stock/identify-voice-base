@@ -15,6 +15,7 @@ export interface IUserTokenPayload {
   username: string;
   role: string;
   status: string;
+  permissions?: string[];
 }
 
 /**

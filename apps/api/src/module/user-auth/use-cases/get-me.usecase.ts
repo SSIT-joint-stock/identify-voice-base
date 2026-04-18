@@ -1,3 +1,4 @@
+import { resolveAccountPermissions } from '@/common/auth/permissions';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { BaseUseCase } from '@/shared/interfaces/base-usecase.interface';
 import { Injectable, NotFoundException } from '@nestjs/common';
@@ -15,6 +16,7 @@ export class GetMeUseCase implements BaseUseCase<string, any> {
         username: true,
         role: true,
         status: true,
+        permissions: true,
       },
     });
 
@@ -22,6 +24,9 @@ export class GetMeUseCase implements BaseUseCase<string, any> {
       throw new NotFoundException('Không tìm thấy thông tin người dùng');
     }
 
-    return user;
+    return {
+      ...user,
+      permissions: resolveAccountPermissions(user),
+    };
   }
 }

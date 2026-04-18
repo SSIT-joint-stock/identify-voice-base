@@ -1,5 +1,6 @@
-import { ApiSuccess } from '@/common/decorators';
+import { Permissions, ApiSuccess } from '@/common/decorators';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { VoiceFilterDto } from '@/module/voices/dto/voice-filter.dto';
 import {
   Controller,
@@ -24,7 +25,7 @@ import { GetAiVoiceDetailUseCase } from './use-cases/get-voice-detail-ai.usecase
 
 @ApiTags('ai-voices')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('ai-voices')
 export class AiVoicesController {
   constructor(
@@ -37,6 +38,7 @@ export class AiVoicesController {
   @ApiOperation({ summary: 'Lấy danh sách các giọng nói AI gợi ý (AI Truth)' })
   @ApiResponse({ status: 200, description: 'Success' })
   @ApiSuccess('Lấy danh sách AI voices thành công!')
+  @Permissions(['voices.read'])
   async findAll(@Query() filter: VoiceFilterDto) {
     return this.findAllUseCase.execute(filter);
   }
@@ -46,6 +48,7 @@ export class AiVoicesController {
   @ApiParam({ name: 'id', description: 'Voice ID (Qdrant point id)' })
   @ApiResponse({ status: 200, description: 'Success' })
   @ApiSuccess('Lấy chi tiết AI voice thành công!')
+  @Permissions(['voices.read'])
   async findOne(@Param('id') id: string) {
     return this.getDetailUseCase.execute(id);
   }
@@ -58,6 +61,7 @@ export class AiVoicesController {
   @ApiParam({ name: 'id', description: 'Voice ID (Qdrant point id)' })
   @ApiResponse({ status: 200, description: 'Chuyển đổi thành công' })
   @ApiSuccess('Chuyển đổi hồ sơ người dùng thành công!')
+  @Permissions(['voices.enroll'])
   async convert(@Param('id') id: string) {
     return this.convertUseCase.execute(id);
   }

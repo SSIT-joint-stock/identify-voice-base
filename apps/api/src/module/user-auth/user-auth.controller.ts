@@ -1,6 +1,7 @@
-import { ApiSuccess } from '@/common/decorators';
+import { Permissions, ApiSuccess } from '@/common/decorators';
 import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import {
   Body,
   Controller,
@@ -18,7 +19,7 @@ import { UserService } from './service/user.service';
 
 @ApiTags('user-auth')
 @Controller('user')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class UserAuthController {
   constructor(private readonly userService: UserService) {}
@@ -27,6 +28,7 @@ export class UserAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Lấy thông tin cá nhân' })
   @ApiSuccess('Lấy thông tin thành công')
+  @Permissions(['profile.read'])
   async getMe(@User() user: auth_accounts) {
     return this.userService.getMe(user.id);
   }
@@ -35,6 +37,7 @@ export class UserAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cập nhật thông tin cá nhân' })
   @ApiSuccess('Cập nhật thông tin thành công')
+  @Permissions(['profile.update'])
   async updateInfo(@User() user: auth_accounts, @Body() dto: UpdateUserDto) {
     return this.userService.updateInfo(user.id, dto);
   }
@@ -43,6 +46,7 @@ export class UserAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Xóa tài khoản' })
   @ApiSuccess('Xóa tài khoản thành công')
+  @Permissions(['profile.delete'])
   async deleteAccount(@User() user: auth_accounts) {
     return this.userService.deleteAccount(user.id);
   }

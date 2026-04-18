@@ -1,6 +1,11 @@
 import {
+  getPermissionForAudioPurpose,
+  hasPermission,
+} from '@/common/auth/permissions';
+import {
   Body,
   Controller,
+  ForbiddenException,
   HttpCode,
   HttpStatus,
   Post,
@@ -21,6 +26,7 @@ import { audio_files } from '@prisma/client';
 import { ApiSuccess } from '@/common/decorators';
 import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
 
 import { UploadAudioDto } from './dto/upload-audio.dto';
 import { AudioValidationPipe } from './pipes/audio-validation.pipe';
@@ -28,7 +34,7 @@ import { UploadService } from './service/upload.service';
 
 @ApiTags('upload')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('upload')
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
@@ -70,12 +76,18 @@ export class UploadController {
   async uploadAudio(
     @UploadedFiles() files: Express.Multer.File[],
     @Body() body: UploadAudioDto,
-    @User('id') userId: string,
+    @User() user: any,
   ): Promise<audio_files[]> {
     // Tầng 2 — AudioValidationPipe: validate mimetype + purpose
     const pipe = new AudioValidationPipe();
     pipe.transform({ files, purpose: body.purpose });
 
-    return this.uploadService.uploadMany(files, body.purpose, userId);
+    const requiredPermission = getPermissionForAudioPurpose(body.purpose);
+
+    if (!hasPermission(user, requiredPermission)) {
+      throw new ForbiddenException('Bạn không có quyền upload audio này');
+    }
+
+    return this.uploadService.uploadMany(files, body.purpose, user.id);
   }
 }

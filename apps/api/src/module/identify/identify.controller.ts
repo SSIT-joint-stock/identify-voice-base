@@ -1,6 +1,7 @@
-import { ApiSuccess } from '@/common/decorators';
+import { Permissions, ApiSuccess } from '@/common/decorators';
 import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import {
   Body,
   Controller,
@@ -22,7 +23,7 @@ import { IdentifyService } from './service/identify.service';
 
 @ApiTags('identify')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('identify')
 export class IdentifyController {
   constructor(private readonly identifyService: IdentifyService) {}
@@ -52,6 +53,7 @@ export class IdentifyController {
   @ApiResponse({ status: 200 }) // Dto currently isn't uniform yet, can ignore or create a unified Dto later
   @ApiSuccess('Nhận dạng thành công')
   @UseInterceptors(FileInterceptor('file'))
+  @Permissions(['identify.run'])
   async identify(
     @UploadedFile() file: Express.Multer.File,
     @User('id') userId: string,

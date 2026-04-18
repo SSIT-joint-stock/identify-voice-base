@@ -1,9 +1,11 @@
+import { resolveAccountPermissions } from '@/common/auth/permissions';
 import { Injectable } from '@nestjs/common';
 
 import { UnauthorizedError } from '@/common/response';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { BaseUseCase } from '@/shared/interfaces/base-usecase.interface';
 import { AuthTokenService } from '../service/auth-token.service';
+import { UserStatus } from '@prisma/client';
 
 export interface RefreshTokenResponse {
   access_token: string;
@@ -42,6 +44,10 @@ export class RefreshTokenUseCase implements BaseUseCase<
         });
       }
 
+      if (user.status !== UserStatus.ACTIVE) {
+        throw new UnauthorizedError('Tài khoản đã bị khóa');
+      }
+
       if (user.refresh_token !== refreshToken) {
         throw new UnauthorizedError(
           'Invalid or expired refresh token.',
@@ -57,6 +63,7 @@ export class RefreshTokenUseCase implements BaseUseCase<
         username: user.username || '',
         role: user.role,
         status: user.status,
+        permissions: resolveAccountPermissions(user),
       };
       const { access_token, refresh_token } =
         this.tokenService.generateTokenPair(payload);

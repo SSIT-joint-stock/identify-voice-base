@@ -1,3 +1,4 @@
+import { resolveAccountPermissions } from '@/common/auth/permissions';
 import { BcryptService } from '@/common/helpers/bcrypt.util';
 import { UnauthorizedError } from '@/common/response';
 import { PrismaService } from '@/database/prisma/prisma.service';
@@ -5,6 +6,7 @@ import { BaseUseCase } from '@/shared/interfaces/base-usecase.interface';
 import { Injectable } from '@nestjs/common';
 import { LoginUserDto } from '../dto/login-user.dto';
 import { AuthTokenService } from '../service/auth-token.service';
+import { UserStatus } from '@prisma/client';
 
 @Injectable()
 export class LoginUserUseCase implements BaseUseCase<LoginUserDto, any> {
@@ -28,12 +30,17 @@ export class LoginUserUseCase implements BaseUseCase<LoginUserDto, any> {
       );
     }
 
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedError('Tài khoản đã bị khóa');
+    }
+
     const payload = {
       id: user.id,
       email: user.email,
       username: user.username || '',
       role: user.role,
       status: user.status,
+      permissions: resolveAccountPermissions(user),
     };
     const { access_token, refresh_token } =
       this.authTokenService.generateTokenPair(payload);
@@ -52,6 +59,7 @@ export class LoginUserUseCase implements BaseUseCase<LoginUserDto, any> {
         id: user.id,
         email: user.email,
         role: user.role,
+        permissions: resolveAccountPermissions(user),
       },
     };
   }

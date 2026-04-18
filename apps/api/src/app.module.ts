@@ -41,6 +41,7 @@ import { StorageModule } from './module/storage/storage.module';
 import { UploadModule } from './module/upload/upload.module';
 import { UserAuthModule } from './module/user-auth/user-auth.module';
 import { VoicesModule } from './module/voices/voices.module';
+import { UsersModule } from './module/users/users.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -117,6 +118,7 @@ import { VoicesModule } from './module/voices/voices.module';
       useFactory: bullConfigFactory,
     }),
     LoggerModule.forFeature(['HTTP', 'APP']),
+    UsersModule,
   ],
   providers: [
     {

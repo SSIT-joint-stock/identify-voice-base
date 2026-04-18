@@ -31,6 +31,7 @@ datasource db {
 /// Role của tài khoản operator trong hệ thống
 enum Role {
   ADMIN
+  OPERATOR
 }
 
 enum UserStatus {
@@ -73,6 +74,8 @@ model auth_accounts {
   password      String
   /// Phân quyền tài khoản
   role          Role       @default(ADMIN)
+  /// Danh sách permission động cho operator/admin, lưu dưới dạng JSON array
+  permissions   Json?      @db.JsonB
   /// Refresh token đã hash (nullable)
   refresh_token String?
   /// Trạng thái tài khoản
