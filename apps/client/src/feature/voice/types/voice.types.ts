@@ -54,6 +54,7 @@ export interface VoiceIdentifyItem {
   user_id?: string;
   speaker_label?: string;
   message: string;
+  user_id?: string;
   matched_voice_id?: string;
   voice_id?: string; // Fallback or from registration
   score?: number;

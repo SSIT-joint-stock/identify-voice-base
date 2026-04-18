@@ -39,7 +39,10 @@ import {
   type UpdateVoiceDirectoryFormValues,
   updateVoiceDirectoryFormSchema,
 } from "../schemas/voice-directory.schema";
-import type { VoiceDirectoryDetail } from "../types/voice-directory.types";
+import type {
+  UpdateVoiceInfoResponse,
+  VoiceDirectoryDetail,
+} from "../types/voice-directory.types";
 
 function normalizeCriminalForForm(
   value: VoiceDirectoryDetail["criminal_record"],
@@ -79,6 +82,7 @@ export interface VoiceDirectoryDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDeactivated: () => void;
+  onUpdated?: (payload: UpdateVoiceInfoResponse) => void;
 }
 
 export function VoiceDirectoryDetailSheet({
@@ -86,6 +90,7 @@ export function VoiceDirectoryDetailSheet({
   open,
   onOpenChange,
   onDeactivated,
+  onUpdated,
 }: VoiceDirectoryDetailSheetProps) {
   const queryClient = useQueryClient();
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false);
@@ -155,7 +160,8 @@ export function VoiceDirectoryDetailSheet({
         toUpdatePayload(form.getValues()),
       );
     },
-    onSuccess: () => {
+    onSuccess: (payload) => {
+      onUpdated?.(payload);
       toast.success("Cập nhật thông tin cá nhân thành công.");
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.voice.directory.detail(voiceId!),

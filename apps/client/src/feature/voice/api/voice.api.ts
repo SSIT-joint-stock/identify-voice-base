@@ -179,6 +179,7 @@ function normalizeIdentifyItem(item: unknown): VoiceIdentifyItem | null {
     user_id: asString(data.user_id, asString(item.user_id, "")) || undefined,
     speaker_label: speakerLabel || undefined,
     message: asString(data.message, asString(item.message, "")),
+    user_id: asString(data.user_id, asString(item.user_id, "")) || undefined,
     matched_voice_id: matchedVoiceId || undefined,
     voice_id: voiceId || undefined,
     score: asNumber(data.score),
