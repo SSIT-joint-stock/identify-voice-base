@@ -49,8 +49,8 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 const SORT_OPTIONS = [
   { value: "email:asc", label: "Email (A - Z)" },
   { value: "email:desc", label: "Email (Z - A)" },
-  { value: "username:asc", label: "Username (A - Z)" },
-  { value: "username:desc", label: "Username (Z - A)" },
+  { value: "username:asc", label: "Tên đăng nhập (A - Z)" },
+  { value: "username:desc", label: "Tên đăng nhập (Z - A)" },
   { value: "role:asc", label: "Vai trò (A - Z)" },
   { value: "role:desc", label: "Vai trò (Z - A)" },
   { value: "status:asc", label: "Trạng thái (A - Z)" },
@@ -96,7 +96,7 @@ function PermissionSummary({ account }: { account: AdminAccount }) {
           Toàn quyền hệ thống
         </Badge>
         <p className="text-xs text-muted-foreground">
-          {account.permissions.length} quyền được backend resolve
+          {account.permissions.length} quyền được hệ thống cấp
         </p>
       </div>
     );
@@ -219,7 +219,7 @@ export default function AdminAccountManagement() {
                     setSearchInput(event.target.value);
                     setPage(1);
                   }}
-                  placeholder="Tìm theo email hoặc username"
+                  placeholder="Tìm theo email hoặc tên đăng nhập"
                   className="h-auto border-none p-0 shadow-none focus-visible:ring-0"
                 />
                 {accountsQuery.isFetching ? (
@@ -241,7 +241,7 @@ export default function AdminAccountManagement() {
               <SelectContent>
                 <SelectItem value="all">Tất cả vai trò</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
-                <SelectItem value="OPERATOR">Operator</SelectItem>
+                <SelectItem value="OPERATOR">Người vận hành</SelectItem>
               </SelectContent>
             </Select>
 
@@ -327,7 +327,7 @@ export default function AdminAccountManagement() {
 
             <Button type="button" onClick={openCreateDialog}>
               <Plus className="size-4" />
-              Tạo account
+              Tạo tài khoản
             </Button>
           </div>
         </div>
@@ -379,10 +379,10 @@ export default function AdminAccountManagement() {
             <TableHeader className="sticky top-0 z-10 bg-white shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="pl-6">Email</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Permissions</TableHead>
+                <TableHead>Tên đăng nhập</TableHead>
+                <TableHead>Vai trò</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead>Quyền hệ thống</TableHead>
                 <TableHead className="pr-6 text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>

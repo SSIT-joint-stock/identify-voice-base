@@ -13,7 +13,7 @@ export const DEFAULT_OPERATOR_PERMISSIONS: AppPermission[] = [
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: "Admin",
-  OPERATOR: "Operator",
+  OPERATOR: "Người vận hành",
 };
 
 export const STATUS_LABELS: Record<UserStatus, string> = {

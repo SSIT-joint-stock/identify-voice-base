@@ -101,7 +101,7 @@ export function AdminAccountDetailSheet({
                   <ShieldCheck className="size-4" />
                   <AlertTitle>ADMIN có toàn bộ quyền hệ thống</AlertTitle>
                   <AlertDescription className="text-emerald-800">
-                    Backend sẽ tự resolve full permission cho tài khoản ADMIN.
+                    Hệ thống sẽ tự động cấp toàn quyền cho tài khoản ADMIN.
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -141,20 +141,15 @@ export function AdminAccountDetailSheet({
                   label="Trạng thái"
                   value={getStatusLabel(detail.status)}
                 />
-                <div className="md:col-span-2">
-                  <InfoRow label="Account ID" value={detail.id} />
-                </div>
               </div>
 
               <section className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold">
-                      Permission đang có
-                    </h3>
+                    <h3 className="text-sm font-semibold">Quyền đang có</h3>
                     <p className="text-xs text-muted-foreground">
-                      Hiển thị đúng permission backend đang trả về cho tài khoản
-                      này.
+                      Các quyền đang có của tài khoản này. Hiện tại đang là{" "}
+                      {detail.permissions.length} quyền
                     </p>
                   </div>
                   <Button type="button" onClick={() => onEdit(detail)}>
