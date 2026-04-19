@@ -1,3 +1,6 @@
+import { APP_PERMISSIONS, USER_ROLES, USER_STATUSES } from "@/types/auth.types";
+import type { AppPermission, AuthUser } from "@/types/auth.types";
+
 function decodeBase64Url(value: string): string | null {
   try {
     const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -34,6 +37,68 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getTokenAccountPayload(
+  token: string | null | undefined,
+): Record<string, unknown> | null {
+  if (!token) {
+    return null;
+  }
+
+  const payload = decodeJwtPayload(token);
+  if (!payload) {
+    return null;
+  }
+
+  if (isRecord(payload.payload)) {
+    return payload.payload;
+  }
+
+  return payload;
+}
+
+export function getAuthUserFromAccessToken(
+  token: string | null | undefined,
+): AuthUser | null {
+  const payload = getTokenAccountPayload(token);
+  if (!payload) {
+    return null;
+  }
+
+  const id = typeof payload.id === "string" ? payload.id : null;
+  const email = typeof payload.email === "string" ? payload.email : null;
+  const username = typeof payload.username === "string" ? payload.username : "";
+  const role = USER_ROLES.includes(payload.role as AuthUser["role"])
+    ? (payload.role as AuthUser["role"])
+    : null;
+  const status = USER_STATUSES.includes(payload.status as AuthUser["status"])
+    ? (payload.status as AuthUser["status"])
+    : null;
+  const permissions = Array.isArray(payload.permissions)
+    ? payload.permissions.filter(
+        (permission): permission is AppPermission =>
+          typeof permission === "string" &&
+          APP_PERMISSIONS.includes(permission as AppPermission),
+      )
+    : [];
+
+  if (!id || !email || !role || !status) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    username,
+    role,
+    status,
+    permissions,
+  };
 }
 
 export function getAccessTokenExpiryMs(

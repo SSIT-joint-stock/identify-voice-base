@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ROUTES } from "@/constants";
 import { useAuthStore } from "@/store/auth.store";
+import { getAuthUserFromAccessToken } from "@/utils/auth-token";
 
-// ─── Validation ────────────────────────────────────────────────────────────
 const loginSchema = z.object({
   email: z.string().min(1, "Vui lòng nhập email").email("Email không hợp lệ"),
   password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
@@ -23,7 +23,6 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-// ─── Component ─────────────────────────────────────────────────────────────
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,13 +45,16 @@ export default function Login() {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       const res = await loginApi(data);
-      setAuth(
-        {
-          ...res.data.account,
-          username: res.data.account.username || "",
-        },
-        res.data.access_token,
-      );
+      const account = getAuthUserFromAccessToken(res.data.access_token) ?? {
+        id: res.data.account.id,
+        email: res.data.account.email,
+        username: res.data.account.username ?? "",
+        role: res.data.account.role,
+        status: res.data.account.status ?? "ACTIVE",
+        permissions: res.data.account.permissions,
+      };
+
+      setAuth(account, res.data.access_token);
       toast.success("Đăng nhập thành công!");
       navigate(from, { replace: true });
     } catch (err: unknown) {
@@ -64,30 +66,27 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen w-full">
-      {/* ─── Left Branding Panel ─────────────────────────────────── */}
       <div
-        className="relative hidden lg:flex lg:w-[65%] lg:flex-none flex-col items-center justify-center overflow-hidden"
+        className="relative hidden flex-col items-center justify-center overflow-hidden lg:flex lg:w-[65%] lg:flex-none"
         style={{
           backgroundImage: `url(${headerBg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        {/* Dark overlay for contrast */}
         <div className="absolute inset-0 bg-linear-to-br from-[#1a0a08]/80 via-[#2d1210]/70 to-[#4b1d18]/60 backdrop-blur-sm" />
 
-        {/* Decorative floating orbs */}
-        <div className="absolute top-16 left-16 h-64 w-64 rounded-full bg-[#fad29e]/10 blur-3xl animate-pulse" />
-        <div className="absolute bottom-24 right-20 h-48 w-48 rounded-full bg-[#e8a04a]/8 blur-2xl animate-pulse [animation-delay:1.5s]" />
-        <div className="absolute top-1/3 right-12 h-32 w-32 rounded-full bg-white/5 blur-2xl animate-pulse [animation-delay:3s]" />
+        <div className="absolute top-16 left-16 h-64 w-64 animate-pulse rounded-full bg-[#fad29e]/10 blur-3xl" />
+        <div className="absolute right-20 bottom-24 h-48 w-48 animate-pulse rounded-full bg-[#e8a04a]/8 blur-2xl [animation-delay:1.5s]" />
+        <div className="absolute top-1/3 right-12 h-32 w-32 animate-pulse rounded-full bg-white/5 blur-2xl [animation-delay:3s]" />
 
         <div className="relative z-10 flex flex-col items-center gap-8 px-12 text-center">
-          <div className="flex items-center justify-center rounded-2xl bg-white/10 p-4 backdrop-blur-md ring-1 ring-white/20 shadow-2xl">
+          <div className="flex items-center justify-center rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/20 backdrop-blur-md">
             <img src={logo1} alt="Logo" className="h-20 w-20 object-contain" />
           </div>
 
           <div className="space-y-3">
-            <p className="text-sm font-light tracking-[0.25em] uppercase text-[#fad29e]/80">
+            <p className="text-sm font-light uppercase tracking-[0.25em] text-[#fad29e]/80">
               Bộ Công An
             </p>
             <h1 className="text-[28px] font-bold leading-tight tracking-wide text-[#fad29e]">
@@ -105,10 +104,8 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ─── Right Form Panel ────────────────────────────────────── */}
       <div className="flex flex-1 items-center justify-center bg-[#f8f9fb] px-6 py-12 lg:w-[35%] lg:flex-none lg:px-16">
         <div className="w-full max-w-110">
-          {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <img src={logo1} alt="Logo" className="h-12 w-12 object-contain" />
             <span className="text-lg font-bold text-[#4b1d18]">
@@ -126,7 +123,6 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-10 space-y-6">
-            {/* Email */}
             <div className="space-y-2">
               <Label
                 htmlFor="login-email"
@@ -142,12 +138,11 @@ export default function Login() {
                 className="h-12 rounded-md border-[#e5e7eb] bg-white px-4 text-base shadow-sm transition-all duration-200 placeholder:text-[#9ca3af] focus:border-[#4b1d18] focus:ring-2 focus:ring-[#4b1d18]/10"
                 {...register("email")}
               />
-              {errors.email && (
+              {errors.email ? (
                 <p className="text-sm text-red-500">{errors.email.message}</p>
-              )}
+              ) : null}
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <Label
                 htmlFor="login-password"
@@ -167,8 +162,8 @@ export default function Login() {
                 <button
                   type="button"
                   tabIndex={-1}
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] hover:text-[#4b1d18] transition-colors"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-[#9ca3af] transition-colors hover:text-[#4b1d18]"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -177,14 +172,13 @@ export default function Login() {
                   )}
                 </button>
               </div>
-              {errors.password && (
+              {errors.password ? (
                 <p className="text-sm text-red-500">
                   {errors.password.message}
                 </p>
-              )}
+              ) : null}
             </div>
 
-            {/* Submit */}
             <Button
               type="submit"
               disabled={isSubmitting}
@@ -200,17 +194,6 @@ export default function Login() {
               )}
             </Button>
           </form>
-
-          {/* Register link */}
-          {/* <p className="mt-8 text-center text-sm text-[#6b7280]">
-            Chưa có tài khoản?{" "}
-            <Link
-              to={ROUTES.REGISTER}
-              className="font-semibold text-[#4b1d18] underline-offset-4 hover:underline transition-colors"
-            >
-              Đăng ký ngay
-            </Link>
-          </p> */}
         </div>
       </div>
     </div>

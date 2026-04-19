@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { AdminOnlyRoute } from "@/components/AdminOnlyRoute";
 import { AuthSessionHandler } from "@/components/AuthSessionHandler";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ROUTES } from "@/constants";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { MainLayout } from "@/layouts/MainLayout";
+import AdminAccountManagement from "@/pages/AdminAccountManagement";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import VoiceDirectory from "@/pages/VoiceDirectory";
@@ -53,6 +55,12 @@ function App() {
             />
             <Route path={ROUTES.TRANSLATE_LIVE} element={<TranslateLive />} />
             <Route path={ROUTES.TRANSLATE_FILE} element={<TranslateFile />} />
+            <Route element={<AdminOnlyRoute />}>
+              <Route
+                path={ROUTES.ADMIN_ACCOUNTS}
+                element={<AdminAccountManagement />}
+              />
+            </Route>
           </Route>
         </Route>
 

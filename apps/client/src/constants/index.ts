@@ -1,6 +1,21 @@
 export const APP_NAME = "Voice Identify";
 
 export const QUERY_KEYS = {
+  admin: {
+    accounts: {
+      base: ["admin", "accounts"] as const,
+      list: (params: {
+        search: string;
+        page: number;
+        pageSize: 10 | 20 | 50;
+        role: "all" | "ADMIN" | "OPERATOR";
+        status: "all" | "ACTIVE" | "INACTIVE";
+        sortBy: "email" | "username" | "role" | "status";
+        sortOrder: "asc" | "desc";
+      }) => ["admin", "accounts", "list", params] as const,
+      detail: (id: string) => ["admin", "accounts", "detail", id] as const,
+    },
+  },
   voice: {
     upload: ["voice", "upload"] as const,
     identify: ["voice", "identify"] as const,
@@ -33,6 +48,8 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   HOME: "/",
+  ADMIN: "/admin",
+  ADMIN_ACCOUNTS: "/admin/accounts",
   VOICE: "/voice",
   TRANSLATE: "/translate",
   TRANSLATE_LIVE: "/translate/live",

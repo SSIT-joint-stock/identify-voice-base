@@ -13,6 +13,7 @@ import {
   LogOut,
   Mic,
   Search,
+  ShieldCheck,
   UsersRound,
 } from "lucide-react";
 import * as React from "react";
@@ -64,6 +65,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import { ROUTES } from "@/constants";
+import { isAdminUser } from "@/lib/auth";
 import { useAuthStore } from "@/store/auth.store";
 
 const navigation: NavItem[] = [
@@ -111,6 +113,14 @@ const navigation: NavItem[] = [
     title: "Hướng dẫn sử dụng",
     url: ROUTES.VOICE_GUIDE,
     icon: BookOpenText,
+  },
+];
+
+const adminNavigation: NavItem[] = [
+  {
+    title: "Quản lý tài khoản",
+    url: ROUTES.ADMIN_ACCOUNTS,
+    icon: ShieldCheck,
   },
 ];
 
@@ -265,6 +275,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const user = useAuthStore((s) => s.user);
+  const isAdmin = isAdminUser(user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = React.useState(false);
@@ -452,6 +463,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             );
           })}
         </SidebarMenu>
+
+        {isAdmin ? (
+          <SidebarMenu className="mt-4 gap-1 px-3">
+            {state === "expanded" ? (
+              <div className="my-2 px-2 text-[10px] font-semibold text-nowrap uppercase tracking-wider text-gray-400">
+                Quản lý tài khoản
+              </div>
+            ) : null}
+            {adminNavigation.map((item) => {
+              const isActive = item.url
+                ? location.pathname === item.url
+                : false;
+
+              return (
+                <NavMenuItem
+                  key={item.title}
+                  item={item}
+                  isActive={isActive}
+                  state={state}
+                  location={location}
+                />
+              );
+            })}
+          </SidebarMenu>
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-gray-100 bg-white p-4">
