@@ -220,8 +220,8 @@ export default function VoiceSessionHistory() {
         ) : sessionsQuery.isError ? (
           <div className="flex min-h-64 items-center justify-center px-6">
             <p className="text-center text-sm text-destructive">
-              Không tải được danh sách phiên. Kiểm tra kết nối hoặc đăng nhập
-              lại.
+              Không tải được danh sách phiên. Kiểm đăng nhập lại hoặc do bạn
+              không có quyền hạn để truy cập vào dữ liệu lại.
             </p>
           </div>
         ) : items.length === 0 ? (

@@ -465,9 +465,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
 
         {isAdmin ? (
-          <SidebarMenu className="mt-4 gap-1 px-3">
+          <SidebarMenu className="gap-1 px-3">
             {state === "expanded" ? (
-              <div className="my-2 px-2 text-[10px] font-semibold text-nowrap uppercase tracking-wider text-gray-400">
+              <div className="px-2 text-[10px] font-semibold text-nowrap uppercase tracking-wider text-gray-400">
                 Quản lý tài khoản
               </div>
             ) : null}

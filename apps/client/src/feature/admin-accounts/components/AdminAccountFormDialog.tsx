@@ -201,7 +201,7 @@ export function AdminAccountFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="account-username">Username</Label>
+              <Label htmlFor="account-Username">Tên tài khoản</Label>
               <Input
                 id="account-username"
                 placeholder="Không bắt buộc"
@@ -292,13 +292,13 @@ export function AdminAccountFormDialog({
               <ShieldCheck className="size-4" />
               <AlertTitle>ADMIN luôn có toàn bộ quyền hệ thống</AlertTitle>
               <AlertDescription className="text-emerald-800">
-                Không cần cấu hình permission chi tiết khi vai trò là ADMIN.
+                Không cần cấu hình quyền chi tiết khi vai trò là ADMIN.
               </AlertDescription>
             </Alert>
           ) : (
             <div className="space-y-3">
               <div className="space-y-1">
-                <Label>Permission của operator</Label>
+                <Label>Quyền hệ thống của người vận hành</Label>
                 <p className="text-xs text-muted-foreground">
                   Bỏ chọn hết sẽ dùng bộ quyền mặc định:{" "}
                   {DEFAULT_OPERATOR_PERMISSIONS.map(getPermissionLabel).join(
