@@ -1,13 +1,6 @@
 import { memoryStorage } from 'multer';
-
-import storageConfig from '@/config/storage.config';
-import type { ConfigType } from '@nestjs/config';
-
-export const multerConfigFactory = (cfg: ConfigType<typeof storageConfig>) => {
+export const multerConfigFactory = () => {
   return {
     storage: memoryStorage(),
-    limits: {
-      fileSize: cfg.maxSize,
-    },
   };
 };

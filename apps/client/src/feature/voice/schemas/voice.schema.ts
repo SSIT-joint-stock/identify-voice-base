@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ACCEPTED_AUDIO_TYPES, MAX_AUDIO_FILE_SIZE_BYTES } from "@/constants";
+import { ACCEPTED_AUDIO_TYPES } from "@/constants";
 
 const audioFileSchema = z
   .custom<File | null>((value) => value === null || value instanceof File, {
@@ -18,13 +18,6 @@ const audioFileSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "File audio không hợp lệ",
-      });
-    }
-
-    if (value.size > MAX_AUDIO_FILE_SIZE_BYTES) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `File audio không được vượt quá ${MAX_AUDIO_FILE_SIZE_BYTES / 1024 / 1024}MB.`,
       });
     }
 

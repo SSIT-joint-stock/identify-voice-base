@@ -50,7 +50,7 @@ export class EnrollController {
         audio: {
           type: 'string',
           format: 'binary',
-          description: 'File âm thanh WAV/MP3/FLAC/OGG (≤ 50MB, ≤ 10 phút)',
+          description: 'File âm thanh WAV/MP3/FLAC/OGG',
         },
         name: { type: 'string', example: 'Nguyễn Văn A' },
         citizen_identification: { type: 'string', example: '012345678901' },

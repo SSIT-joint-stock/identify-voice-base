@@ -4,7 +4,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ACCEPTED_AUDIO_TYPES, MAX_AUDIO_FILE_SIZE_BYTES } from "@/constants";
+import { ACCEPTED_AUDIO_TYPES } from "@/constants";
 import { cn } from "@/lib/utils";
 import { truncText } from "@/utils/trunc-text";
 import { FileAudio, Mic, Square, Upload, X } from "lucide-react";
@@ -51,10 +51,6 @@ function hasAcceptedAudioExtension(fileName: string) {
 function validateAudioFile(file: File) {
   if (file.size <= 0) {
     return "File audio không hợp lệ.";
-  }
-
-  if (file.size > MAX_AUDIO_FILE_SIZE_BYTES) {
-    return `File audio không được vượt quá ${MAX_AUDIO_FILE_SIZE_BYTES / 1024 / 1024}MB.`;
   }
 
   const normalizedMimeType = file.type.toLowerCase();

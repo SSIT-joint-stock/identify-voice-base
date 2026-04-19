@@ -48,7 +48,7 @@ export class UploadController {
   @ApiOperation({
     summary: 'Upload file audio',
     description:
-      'Upload một hoặc nhiều file audio (WAV, MP3, FLAC, OGG ≤ 50MB, ≤ 10 phút). ' +
+      'Upload một hoặc nhiều file audio (WAV, MP3, FLAC, OGG). ' +
       'Trả về metadata của các file đã lưu.',
   })
   @ApiConsumes('multipart/form-data')
@@ -61,7 +61,7 @@ export class UploadController {
         audio: {
           type: 'array',
           items: { type: 'string', format: 'binary' },
-          description: 'Một hoặc nhiều file WAV / MP3 / FLAC / OGG (≤ 50MB)',
+          description: 'Một hoặc nhiều file WAV / MP3 / FLAC / OGG',
         },
         purpose: {
           type: 'string',

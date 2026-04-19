@@ -195,18 +195,6 @@ export class UploadService {
       );
     }
 
-    if (durationSec > 600) {
-      throw new UnprocessableEntityException(
-        'File audio vượt quá giới hạn 10 phút',
-      );
-    }
-
-    if (purpose === AudioPurpose.ENROLL && durationSec < 3) {
-      throw new UnprocessableEntityException(
-        'File audio quá ngắn. Yêu cầu tối thiểu 3 giây để đăng ký giọng nói',
-      );
-    }
-
     return durationSec;
   }
 }
