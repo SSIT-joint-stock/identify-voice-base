@@ -211,12 +211,12 @@ export default function Home() {
           </div>
 
           <div className="flex justify-center xl:justify-end">
-            <div className="relative w-full max-w-[280px] 2xl:max-w-[320px]">
+            <div className="relative w-full max-w-70 2xl:max-w-[320px]">
               <div className="absolute inset-4 rounded-full bg-[radial-gradient(circle,rgba(249,115,22,0.18)_0%,rgba(255,255,255,0)_72%)] blur-2xl" />
               <img
                 src={micWave}
                 alt="Microphone and waveform"
-                className="relative h-auto w-full object-contain drop-shadow-[0_18px_40px_rgba(75,29,24,0.18)]"
+                className="relative h-auto w-full -translate-x-[10%] object-contain drop-shadow-[0_18px_40px_rgba(75,29,24,0.18)]"
               />
             </div>
           </div>
