@@ -101,6 +101,9 @@ export default function Login() {
               Hệ thống nhận diện giọng nói và dịch đa ngôn ngữ
             </p>
           </div>
+          <div className="flex items-center gap-3 text-[#fad29e]/70">
+            <p className="text-base font-light">CNC.2025.A06.01</p>
+          </div>
         </div>
       </div>
 
