@@ -199,19 +199,19 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 rounded-[40px] bg-[radial-gradient(circle_at_top_left,rgba(241,192,153,0.28),transparent_42%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.14),transparent_34%),linear-gradient(180deg,rgba(255,248,242,0.92)_0%,rgba(249,250,251,0)_100%)]" />
 
       <section className="overflow-hidden rounded-[36px] bg-[linear-gradient(135deg,#fff9f5_0%,#fff3eb_52%,#fffdfb_100%)] px-6 py-6 md:px-8 md:py-8 xl:px-10">
-        <div className="grid items-center gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid items-center gap-6 xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
             <span className="inline-flex rounded-full border border-[#ecd7c9] bg-white/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-[#9f6c4d]">
               Chào mừng, {welcomeName}
             </span>
 
-            <h1 className="mt-5 max-w-4xl text-[30px] font-playfair font-bold leading-[1.18] text-[#4b1d18] md:text-[38px] xl:text-[46px]">
+            <h1 className="mt-5 text-[30px] font-playfair font-bold leading-[1.18] text-[#4b1d18] md:text-[38px] xl:text-[42px] 2xl:text-[46px]">
               Hệ thống định danh giọng nói và dịch đa ngôn ngữ
             </h1>
           </div>
 
           <div className="flex justify-center xl:justify-end">
-            <div className="relative w-full max-w-[320px]">
+            <div className="relative w-full max-w-[280px] 2xl:max-w-[320px]">
               <div className="absolute inset-4 rounded-full bg-[radial-gradient(circle,rgba(249,115,22,0.18)_0%,rgba(255,255,255,0)_72%)] blur-2xl" />
               <img
                 src={micWave}
