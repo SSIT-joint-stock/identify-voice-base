@@ -47,6 +47,8 @@ Content-Type: multipart/form-data
 | `hometown`               | `string` | ❌       | Quê quán                                    | Frontend |
 | `job`                    | `string` | ❌       | Nghề nghiệp                                 | Frontend |
 | `passport`               | `string` | ❌       | Số hộ chiếu                                 | Frontend |
+| `age`                    | `number` | ❌       | Tuổi, giá trị >= 0                          | Frontend |
+| `gender`                 | `enum`   | ❌       | `MALE` \| `FEMALE` \| `OTHER`               | Frontend |
 | `criminal_record`        | `string` | ❌       | JSON string: `[{"case":"...","year":2020}]` | Frontend |
 
 > **Lưu ý:** `criminal_record` được gửi là **JSON string** (do giới hạn của multipart/form-data). Backend parse bằng `JSON.parse()` trước khi validate và lưu DB.
@@ -62,6 +64,8 @@ curl -X POST http://localhost:3000/api/voices/enroll \
   -F "phone_number=0912345678" \
   -F "hometown=Hà Nội" \
   -F "job=Kỹ sư phần mềm" \
+  -F "age=30" \
+  -F "gender=MALE" \
   -F 'criminal_record=[{"case":"Trộm cắp tài sản","year":2021}]'
 ```
 
@@ -76,6 +80,8 @@ interface EnrollResponse {
     user_id: string; // = voice_id — đồng nhất trong hệ thống
     audio_url: string; // URL truy cập file audio (VD: http://localhost:3000/cdn/voices/xxx.m4a)
     name: string; // Tên người dùng
+    age: number | null; // Tuổi người được định danh
+    gender: 'MALE' | 'FEMALE' | 'OTHER' | null; // Giới tính
     enrolled_at: string; // ISO 8601 — thời điểm tạo voice_record
   };
 }
@@ -92,6 +98,8 @@ interface EnrollResponse {
     "user_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
     "audio_url": "http://localhost:3000/cdn/voices/f47ac10b.m4a",
     "name": "Nguyễn Văn A",
+    "age": 30,
+    "gender": "MALE",
     "enrolled_at": "2026-04-05T10:00:00.000Z"
   }
 }
@@ -102,6 +110,7 @@ interface EnrollResponse {
 - `voice_id`: **AI Service** trả về (Qdrant point ID)
 - `user_id`: **Backend** set = `voice_id` khi INSERT `users`
 - `audio_url`: **Backend** tính toán từ đường dẫn file đã lưu
+- `age`, `gender`: **Backend** lưu từ metadata cá nhân trong request
 - `enrolled_at`: **Backend** — thời điểm INSERT `voice_records`
 
 ### Response lỗi
@@ -159,6 +168,8 @@ Bước 5: INSERT trong Prisma transaction
   │    hometown,
   │    job,
   │    passport,
+  │    age,
+  │    gender,
   │    criminal_record,       ← JSONB
   │    audio_url              ← URL CDN
   │  }
@@ -187,6 +198,8 @@ const result = await this.prisma.$transaction(async (tx) => {
       hometown: dto.hometown,
       job: dto.job,
       passport: dto.passport,
+      age: dto.age,
+      gender: dto.gender,
       criminal_record: dto.criminal_record
         ? (JSON.parse(dto.criminal_record) as Prisma.JsonArray)
         : undefined,
@@ -265,6 +278,12 @@ export class EnrollVoiceDto {
 
   @IsString() @IsOptional()
   passport?: string;
+
+  @Type(() => Number) @IsNumber() @Min(0) @IsOptional()
+  age?: number;
+
+  @IsEnum(UserGender) @IsOptional()
+  gender?: UserGender;
 
   @IsString() @IsOptional()
   // JSON string — parse thủ công trong service sau khi nhận

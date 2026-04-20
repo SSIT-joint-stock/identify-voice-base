@@ -32,7 +32,7 @@ Hệ thống không bao giờ thực hiện xóa vật lý các biometric data q
 | :---------------------------------------------- | :------------------------------------------------------------------------------------------------ | :----------- |
 | **[Tra cứu danh sách](./list-voices.md)**       | Hướng dẫn sử dụng API `GET /voices`, các bộ lọc tìm kiếm nâng cao và phân trang.                  | FE / Mobile  |
 | **[Chi tiết hồ sơ](./get-voice.md)**            | Cấu trúc dữ liệu User kết hợp Identity Profile và lịch sử nhận dạng 5 phiên gần nhất.             | FE / BA      |
-| **[Cập nhật thông tin](./update-info.md)**      | Quy trình thay đổi metadata cá nhân (Name, Phone, Job) mà không ảnh hưởng Biometric.              | FE           |
+| **[Cập nhật thông tin](./update-info.md)**      | Quy trình thay đổi metadata cá nhân (Name, Phone, Age, Gender, Job) mà không ảnh hưởng Biometric. | FE           |
 | **[Vô hiệu hóa hồ sơ](./deactivate-voice.md)**  | Quy trình UC07 — Chuyển hồ sơ vào kho lưu trữ (Archive) và ẩn khỏi luồng nhận dạng.               | FE / QA      |
 | **[Cập nhật Biometric](./update-embedding.md)** | **[Trọng yếu]** Luồng UC04 — Cập nhật đặc trưng giọng nói từ lịch sử audio (Full FE/BE Workflow). | FE / Workers |
 
@@ -42,7 +42,7 @@ Hệ thống không bao giờ thực hiện xóa vật lý các biometric data q
 
 Trong module này, bạn sẽ làm việc chủ yếu với các bảng sau trong Database:
 
-- **Users**: Lưu trữ thông tin định danh cá nhân (Họ tên, CCCD, Điện thoại...).
+- **Users**: Lưu trữ thông tin định danh cá nhân (Họ tên, CCCD, Điện thoại, tuổi, giới tính...).
 - **Voice Records**: Lưu trữ liên kết giữa `user_id` và `voice_id` (biometric id), kèm theo trạng thái `is_active`.
 - **Audio Files**: Thông tin về tệp âm thanh gốc được dùng để Enroll hoặc lưu vết nhận dạng.
 

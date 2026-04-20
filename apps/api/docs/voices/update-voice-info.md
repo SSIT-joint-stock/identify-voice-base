@@ -1,11 +1,11 @@
-# Update Voice Info — PUT /api/voices/:id
+# Update Voice Info — PATCH /api/voices/:id
 
 Cập nhật thông tin cá nhân của người dùng sở hữu hồ sơ giọng nói. Thao tác này chỉ thay đổi metadata trong PostgreSQL và **không** ảnh hưởng đến vector embedding trong Qdrant.
 
 ## Request
 
 ```http
-PUT /api/voices/f47ac10b-58cc-4372-a567-0e02b2c3d479
+PATCH /api/voices/f47ac10b-58cc-4372-a567-0e02b2c3d479
 Authorization: Bearer <access_token>
 Content-Type: application/json
 ```
@@ -19,6 +19,9 @@ Content-Type: application/json
 | `phone_number`           | `string` | Số điện thoại (10-11 chữ số)   |
 | `hometown`               | `string` | Quê quán                       |
 | `job`                    | `string` | Nghề nghiệp                    |
+| `passport`               | `string` | Số hộ chiếu                    |
+| `age`                    | `number` | Tuổi, giá trị >= 0             |
+| `gender`                 | `enum`   | `MALE`, `FEMALE`, `OTHER`      |
 | `criminal_record`        | `array`  | Danh sách tiền án tiền sự      |
 
 ### Example Request Body
@@ -28,6 +31,8 @@ Content-Type: application/json
   "name": "Nguyễn Văn A",
   "phone_number": "0987654321",
   "job": "Công an",
+  "age": 32,
+  "gender": "MALE",
   "criminal_record": [
     {
       "case": "Trộm cắp tài sản",
@@ -49,7 +54,9 @@ Content-Type: application/json
     "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
     "name": "Nguyễn Văn A",
     "phone_number": "0987654321",
-    "job": "Công an"
+    "job": "Công an",
+    "age": 32,
+    "gender": "MALE"
   }
 }
 ```
@@ -59,4 +66,4 @@ Content-Type: application/json
 Endpoint này chỉ thực hiện lệnh `UPDATE` trên bảng `users`. Nó được tách biệt hoàn toàn với luồng cập nhật đặc trưng giọng nói (UC04 - `/api/voices/:id/update-voice`) để đảm bảo tính toàn vẹn của dữ liệu sinh trắc học.
 
 > [!IMPORTANT]
-> Việc thay đổi `citizen_identification` hoặc `phone_number` tại đây sẽ ảnh hưởng đến kết quả tìm kiếm trong danh sách hồ sơ, nhưng không làm thay đổi định danh `voice_id` dùng để liên kết với hệ thống AI.
+> Việc thay đổi `citizen_identification`, `phone_number`, `age` hoặc `gender` tại đây sẽ ảnh hưởng đến kết quả tìm kiếm trong danh sách hồ sơ, nhưng không làm thay đổi định danh `voice_id` dùng để liên kết với hệ thống AI.

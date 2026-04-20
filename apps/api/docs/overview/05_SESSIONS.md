@@ -95,23 +95,33 @@ Authorization: Bearer <access_token>
       "id": "op-uuid-here",
       "username": "admin"
     },
-    "results": [
+    "speakers": [
       {
         "speaker_label": "SPEAKER_00",
         "matched_voice_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
         "score": 0.91,
+        "segments": [{ "start": 0.5, "end": 4.2 }],
+        "audio_url": "http://localhost:3000/api/v1/sessions/b2c3d4e5-f6a7-8901-bcde-f12345678901/speakers/SPEAKER_00/audio",
         "name": "Nguyễn Văn A",
         "citizen_identification": "012345678901",
         "phone_number": "0912345678",
-        "is_business_truth": true,
-        "segments": [{ "start": 0.5, "end": 4.2 }]
+        "hometown": "Hà Nội",
+        "job": "Kỹ sư phần mềm",
+        "passport": "B1234567",
+        "age": 30,
+        "gender": "MALE",
+        "criminal_record": [],
+        "enroll_audio_url": "http://localhost:3000/cdn/voices/enroll.wav",
+        "truth_source": "BUSINESS"
       }
     ]
   }
 }
 ```
 
-**Trường `is_business_truth`:** Xác định dữ liệu định danh của speaker này là kết quả trích xuất từ bảng `users` thực tế chưa (Business Truth = true), hay chỉ là metadata bộ nhớ tạm từ `ai_identities_cache` (Business Truth = false).
+**Trường `truth_source`:** Xác định dữ liệu định danh của speaker này đến từ bảng `users` thực tế (`BUSINESS`), metadata bộ nhớ tạm từ `ai_identities_cache` (`AI`), hay chưa xác định (`NONE`).
+
+Khi speaker khớp với Business Truth, response được làm giàu thêm các trường hồ sơ cá nhân mở rộng như `hometown`, `job`, `passport`, `age`, `gender`, `criminal_record` và `enroll_audio_url`.
 
 ### Ý tưởng cốt lõi của Lazy Data Enrichment
 
@@ -137,7 +147,7 @@ const aiCaches = await this.prisma.ai_identities_cache.findMany({
 });
 
 // 5. Build Final Payload
-// Phối hợp kết quả lại, gắn cờ is_business_truth = true nếu lấy từ Users.
+// Phối hợp kết quả lại, gắn truth_source = BUSINESS nếu lấy từ Users.
 ```
 
 ---

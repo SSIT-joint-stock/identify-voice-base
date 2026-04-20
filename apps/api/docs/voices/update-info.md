@@ -42,6 +42,8 @@ Toàn bộ các trường trong Body đều là **Tùy chọn** (Optional). Hệ
 | `job`                    | `String`     | < 100 ký tự | Nghề nghiệp hiện tại.                    |
 | `hometown`               | `String`     | < 200 ký tự | Quê quán.                                |
 | `passport`               | `String`     | Duy nhất    | Số hộ chiếu.                             |
+| `age`                    | `Number`     | >= 0        | Tuổi người được định danh.               |
+| `gender`                 | `Enum`       | Optional    | Giới tính: `MALE`, `FEMALE`, `OTHER`.    |
 | `criminal_record`        | `Array`      | JSON Array  | Danh sách tiền án tiền sự được cập nhật. |
 
 ---
@@ -66,7 +68,9 @@ Toàn bộ các trường trong Body đều là **Tùy chọn** (Optional). Hệ
 {
   "name": "Trần Văn Cường",
   "job": "Giám đốc kỹ thuật",
-  "phone_number": "0909123456"
+  "phone_number": "0909123456",
+  "age": 35,
+  "gender": "MALE"
 }
 ```
 
@@ -81,6 +85,8 @@ Toàn bộ các trường trong Body đều là **Tùy chọn** (Optional). Hệ
     "name": "Trần Văn Cường",
     "phone_number": "0909123456",
     "job": "Giám đốc kỹ thuật",
+    "age": 35,
+    "gender": "MALE",
     "updated_at": "2026-04-10T16:00:00Z"
   }
 }
@@ -98,6 +104,8 @@ Xảy ra khi vi phạm các ràng buộc dữ liệu:
 
 - **Trùng số điện thoại**: `{ "message": "Số điện thoại này đã được đăng ký bởi người khác" }`
 - **Trùng CCCD**: `{ "message": "Số căn cước công dân đã tồn tại trong hệ thống" }`
+- **Sai giới tính**: `gender` không thuộc `MALE`, `FEMALE`, `OTHER`.
+- **Sai tuổi**: `age` không phải số hoặc nhỏ hơn 0.
 - **Sai định dạng**: Gửi sai kiểu dữ liệu (vd: mảng JSON không đúng cấu trúc).
 
 ### 401 Unauthorized

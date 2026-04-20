@@ -71,6 +71,15 @@ Hệ thống tạo một bản ghi `identify_sessions` lưu trữ:
         "matched_voice_id": "8d4be585-...",
         "score": 0.9211,
         "name": "Nguyễn Văn A",
+        "citizen_identification": "012345678901",
+        "phone_number": "0912345678",
+        "hometown": "Hà Nội",
+        "job": "Kỹ sư phần mềm",
+        "passport": "B1234567",
+        "age": 30,
+        "gender": "MALE",
+        "criminal_record": [],
+        "enroll_audio_url": "https://cdn.example.com/enrolled/audio.wav",
         "audio_url": "https://api.example.com/api/v1/sessions/session-uuid-multi/speakers/speaker_0/audio"
       },
       {
