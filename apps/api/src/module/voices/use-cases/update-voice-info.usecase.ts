@@ -20,6 +20,8 @@ export class UpdateVoiceInfoUseCase implements BaseUseCase<
       name: updatedUser.name,
       phone_number: updatedUser.phone_number,
       job: updatedUser.job,
+      age: updatedUser.age,
+      gender: updatedUser.gender,
       updated_at: new Date(), // Prisma usually handles this but we can return it as requested in docs
     };
   }

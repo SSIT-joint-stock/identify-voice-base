@@ -62,6 +62,8 @@ export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
       job: user.job,
       passport: user.passport,
       criminal_record: user.criminal_record,
+      age: user.age,
+      gender: user.gender,
       audio_url: activeRecord
         ? `${this.storage.cdnUrl}/${activeRecord.audio_file.file_path}`
         : null,

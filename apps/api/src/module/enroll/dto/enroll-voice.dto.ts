@@ -1,17 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { UserGender } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
+  IsEnum,
   IsJSON,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class EnrollVoiceDto {
   @ApiProperty({
     description: 'Họ tên đầy đủ của người được đăng ký',
-    example: 'Nguyễn Văn A',
+    example: 'Nguyễn Veăn A',
     maxLength: 100,
   })
   @IsString({ message: 'Tên phải là chuỗi ký tự' })
@@ -62,6 +67,29 @@ export class EnrollVoiceDto {
   @IsString()
   @IsOptional()
   passport?: string;
+
+  @ApiPropertyOptional({
+    description: 'Tuổi',
+    example: 30,
+  })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0, {
+    message: 'Vui lòng nhập tuổi số lớn hơn 0',
+  })
+  @IsOptional()
+  age?: number;
+
+  @ApiPropertyOptional({
+    description: 'Giới tính',
+    enum: UserGender,
+    example: UserGender.MALE,
+  })
+  @IsOptional()
+  @IsEnum(UserGender, {
+    message: 'Vui lòng chọn đúng giới tính: Nam, Nữ, Khác',
+  })
+  gender?: UserGender;
 
   @ApiPropertyOptional({
     description: 'Tiền án tiền sự (JSON string)',

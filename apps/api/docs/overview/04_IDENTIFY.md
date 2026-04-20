@@ -69,6 +69,13 @@ interface NormalizedSpeakerResult {
   name: string; // 'Unknown' nếu không nhận ra
   citizen_identification: string | null;
   phone_number: string | null;
+  hometown?: string | null;
+  job?: string | null;
+  passport?: string | null;
+  age?: number | null;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  criminal_record?: Array<{ case: string; year: number }> | null;
+  enroll_audio_url?: string;
   segments: Array<{
     // phân đoạn thời gian speaker này nói
     start: number; // giây
@@ -95,6 +102,13 @@ interface NormalizedSpeakerResult {
         "name": "Nguyễn Văn A",
         "citizen_identification": "012345678901",
         "phone_number": "0912345678",
+        "hometown": "Hà Nội",
+        "job": "Kỹ sư phần mềm",
+        "passport": "B1234567",
+        "age": 30,
+        "gender": "MALE",
+        "criminal_record": [],
+        "enroll_audio_url": "http://localhost:3000/cdn/voices/enroll.wav",
         "segments": [
           { "start": 0.5, "end": 4.2 },
           { "start": 10.1, "end": 15.3 }

@@ -153,6 +153,8 @@ export class IdentifyUseCase {
               hometown: u.hometown,
               job: u.job,
               passport: u.passport,
+              age: u.age,
+              gender: u.gender,
               criminal_record: u.criminal_record,
               enroll_audio_url: u.audio_url ?? undefined,
             };

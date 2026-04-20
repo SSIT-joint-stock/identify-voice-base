@@ -58,6 +58,12 @@ export class EnrollController {
         hometown: { type: 'string', example: 'Hà Nội' },
         job: { type: 'string', example: 'Kỹ sư phần mềm' },
         passport: { type: 'string', example: 'B1234567' },
+        age: { type: 'number', example: 30 },
+        gender: {
+          type: 'string',
+          enum: ['MALE', 'FEMALE', 'OTHER'],
+          example: 'MALE',
+        },
         criminal_record: {
           type: 'string',
           example: '[{"case":"Trộm cắp tài sản","year":2021}]',

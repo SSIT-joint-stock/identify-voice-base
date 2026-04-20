@@ -1,17 +1,20 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { UserGender } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
-  MaxLength,
   Matches,
-  IsArray,
-  ValidateNested,
-  IsInt,
-  Min,
   Max,
-  IsNotEmpty,
+  MaxLength,
+  Min,
+  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class CriminalRecordItemDto {
   @IsString()
@@ -57,6 +60,20 @@ export class UpdateVoiceInfoDto {
   @IsOptional()
   @IsString()
   passport?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0, { message: 'Tuổi phải lớn hơn 0' })
+  age?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEnum(UserGender, {
+    message: 'Vui lòng chọn đúng giới tính: Nam, Nữ, Khác',
+  })
+  gender?: UserGender;
 
   @ApiPropertyOptional({ type: [CriminalRecordItemDto] })
   @IsOptional()

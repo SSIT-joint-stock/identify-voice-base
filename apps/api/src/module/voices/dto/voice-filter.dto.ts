@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, Max, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class VoiceFilterDto {
   @ApiPropertyOptional({ default: 1 })
@@ -18,7 +18,9 @@ export class VoiceFilterDto {
   @Max(100)
   page_size?: number = 10;
 
-  @ApiPropertyOptional({ description: 'Tìm kiếm theo name, CCCD hoặc phone' })
+  @ApiPropertyOptional({
+    description: 'Tìm kiếm theo name, CCCD, SDT, tuổi, giới tính, ...',
+  })
   @IsOptional()
   @IsString()
   search?: string;

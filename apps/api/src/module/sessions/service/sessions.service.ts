@@ -85,6 +85,8 @@ export class SessionsService {
             hometown: voiceRecord.user.hometown,
             job: voiceRecord.user.job,
             passport: voiceRecord.user.passport,
+            age: voiceRecord.user.age,
+            gender: voiceRecord.user.gender,
             criminal_record: voiceRecord.user.criminal_record,
             // Single-voice: Trả về audio mẫu để so sánh
             enroll_audio_url: voiceRecord.user.audio_url,

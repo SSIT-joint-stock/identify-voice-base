@@ -107,6 +107,8 @@ export class EnrollVoiceUseCase {
               ? (JSON.parse(dto.criminal_record) as Prisma.JsonArray)
               : Prisma.JsonNull,
             audio_url: audioUrl, // Lưu URL audio vào hồ sơ user
+            age: dto.age,
+            gender: dto.gender,
           },
         });
 
@@ -130,6 +132,8 @@ export class EnrollVoiceUseCase {
         user_id: result.user.id,
         audio_url: audioUrl,
         name: result.user.name,
+        age: result.user.age,
+        gender: result.user.gender,
         enrolled_at: result.voiceRecord.created_at,
       };
     } catch (dbError) {

@@ -59,6 +59,12 @@ enum UserSource {
   AI_IMPORTED
 }
 
+enum UserGender {
+  MALE
+  FEMALE
+  OTHER
+}
+
 // ============================================================
 // MODELS
 // ============================================================
@@ -108,6 +114,12 @@ model users {
   passport               String?
   /// Tiền án tiền sự dạng JSON string: [{case: string, year: number}]
   criminal_record        Json?   @db.JsonB
+
+  /// Tuổi người địng danh (nullable)
+  age                    Int? @default(0)
+
+  /// Giới tính người đing danh (nullable)
+  gender                 UserGender? @default(OTHER)
 
   /// Nguồn gốc tạo user
   source UserSource @default(SYSTEM)

@@ -2,7 +2,7 @@ import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserGender } from '@prisma/client';
 import { UpdateVoiceInfoDto } from '../dto/update-voice-info.dto';
 import { VoiceFilterDto } from '../dto/voice-filter.dto';
 
@@ -23,6 +23,11 @@ export class VoicesRepository {
       sort_order = 'asc',
     } = filter;
 
+    const searchAge = search ? Number(search) : NaN;
+    const searchGender = Object.values(UserGender).find(
+      (gender) => gender.toLowerCase() === search?.toLowerCase(),
+    );
+
     const where: Prisma.voice_recordsWhereInput = {
       is_active: true,
       ...(search && {
@@ -34,6 +39,10 @@ export class VoicesRepository {
             { job: { contains: search, mode: 'insensitive' } },
             { hometown: { contains: search, mode: 'insensitive' } },
             { passport: { contains: search } },
+            ...(Number.isInteger(searchAge)
+              ? [{ age: { equals: searchAge } }]
+              : []),
+            ...(searchGender ? [{ gender: { equals: searchGender } }] : []),
           ],
         },
       }),
@@ -65,6 +74,8 @@ export class VoicesRepository {
       citizen_identification: record.user.citizen_identification,
       passport: record.user.passport,
       hometown: record.user.hometown,
+      age: record.user.age,
+      gender: record.user.gender,
       job: record.user.job,
       criminal_record: record.user.criminal_record,
       phone_number: record.user.phone_number,

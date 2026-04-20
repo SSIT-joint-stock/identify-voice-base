@@ -70,6 +70,12 @@ Hệ thống trả về một cấu trúc dữ liệu gọn nhẹ để FE xử 
         "name": "Nguyễn Văn A",
         "citizen_identification": "00120000xxxx",
         "phone_number": "0901234567",
+        "hometown": "Hà Nội",
+        "job": "Kỹ sư phần mềm",
+        "passport": "B1234567",
+        "age": 30,
+        "gender": "MALE",
+        "criminal_record": [],
         "enroll_audio_url": "https://cdn.example.com/enrolled/audio.wav"
       }
     ]
