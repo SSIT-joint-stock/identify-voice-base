@@ -14,6 +14,9 @@ export const APP_PERMISSIONS = [
   "voices.update",
   "voices.delete",
   "identify.run",
+  "ocr.run",
+  "s2t.run",
+  "translate.run",
   "sessions.read",
 ] as const;
 

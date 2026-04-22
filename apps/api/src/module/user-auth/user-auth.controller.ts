@@ -1,3 +1,4 @@
+import { PROFILE } from '@/common/auth/permissions';
 import { ApiSuccess, Permissions } from '@/common/decorators';
 import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -28,7 +29,7 @@ export class UserAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Lấy thông tin cá nhân' })
   @ApiSuccess('Lấy thông tin thành công')
-  @Permissions(['profile.read'])
+  @Permissions([PROFILE.READ])
   async getMe(@User() user: auth_accounts) {
     return this.userService.getMe(user.id);
   }
@@ -37,7 +38,7 @@ export class UserAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Người dùng tự cập nhật tài khoản của mình' })
   @ApiSuccess('Cập nhật tài khoản thành công')
-  @Permissions(['profile.update'])
+  @Permissions([PROFILE.UPDATE])
   async updateAccount(
     @User() user: auth_accounts,
     @Body() dto: UpdateAccountDto,
@@ -49,7 +50,7 @@ export class UserAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Xóa tài khoản' })
   @ApiSuccess('Xóa tài khoản thành công')
-  @Permissions(['profile.delete'])
+  @Permissions([PROFILE.DELETE])
   async deleteAccount(@User() user: auth_accounts) {
     return this.userService.deleteAccount(user.id);
   }

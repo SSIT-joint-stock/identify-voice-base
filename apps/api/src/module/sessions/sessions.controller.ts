@@ -1,3 +1,4 @@
+import { SESSIONS } from '@/common/auth/permissions';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { Permissions } from '@/common/decorators';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
@@ -26,7 +27,7 @@ export class SessionsController {
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách các phiên nhận dạng' })
   @ApiResponse({ status: 200 }) // Adjust type if needed
-  @Permissions(['sessions.read'])
+  @Permissions([SESSIONS.READ])
   async findAll(@Query() filter: GetSessionsFilterDto) {
     return this.sessionsRepository.findAll(filter);
   }
@@ -34,14 +35,14 @@ export class SessionsController {
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết một phiên nhận dạng' })
   @ApiResponse({ status: 200 }) // Adjust type if needed
-  @Permissions(['sessions.read'])
+  @Permissions([SESSIONS.READ])
   async findOne(@Param('id') id: string) {
     return this.sessionsService.getSessionDetail(id);
   }
 
   @Get(':id/speakers/:label/audio')
   @ApiOperation({ summary: 'Nghe audio của từng speaker (On-demand merge)' })
-  @Permissions(['sessions.read'])
+  @Permissions([SESSIONS.READ])
   async getSpeakerAudio(
     @Param('id') id: string,
     @Param('label') label: string,

@@ -1,3 +1,4 @@
+import { VOICES } from '@/common/auth/permissions';
 import { Permissions, ApiSuccess } from '@/common/decorators';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
@@ -40,7 +41,7 @@ export class VoicesController {
   @ApiOperation({ summary: 'Lấy danh sách hồ sơ giọng nói (UC06)' })
   @ApiResponse({ status: 200, description: 'Success' })
   @ApiSuccess('Lấy danh sách giọng nói thành công!')
-  @Permissions(['voices.read'])
+  @Permissions([VOICES.READ])
   async findAll(@Query() filter: VoiceFilterDto) {
     return this.voicesService.findAll(filter);
   }
@@ -51,7 +52,7 @@ export class VoicesController {
   @ApiResponse({ status: 200, description: 'Success' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy hồ sơ' })
   @ApiSuccess('Lấy chi tiết giọng nói thành công!')
-  @Permissions(['voices.read'])
+  @Permissions([VOICES.READ])
   async findOne(@Param('id') id: string) {
     return this.voicesService.findOne(id);
   }
@@ -62,7 +63,7 @@ export class VoicesController {
   @ApiResponse({ status: 200, description: 'Cập nhật thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiSuccess('Cập nhật thông tin cá nhân thành công!')
-  @Permissions(['voices.update'])
+  @Permissions([VOICES.UPDATE])
   async update(@Param('id') id: string, @Body() dto: UpdateVoiceInfoDto) {
     return this.voicesService.update(id, dto);
   }
@@ -74,7 +75,7 @@ export class VoicesController {
   @ApiResponse({ status: 200, description: 'Xóa thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy hồ sơ' })
   @ApiSuccess('Xóa hồ sơ giọng nói thành công!')
-  @Permissions(['voices.delete'])
+  @Permissions([VOICES.DELETE])
   async deleteVoice(@Param('id') id: string) {
     return this.voicesService.deleteVoice(id);
   }
@@ -86,7 +87,7 @@ export class VoicesController {
   })
   @ApiParam({ name: 'id', description: 'UUID của user' })
   @ApiSuccess('Yêu cầu cập nhật đã được đưa vào hàng đợi!')
-  @Permissions(['voices.update'])
+  @Permissions([VOICES.UPDATE])
   async updateVoice(
     @Param('id') userId: string,
     @Body() dto: UpdateVoiceAudioDto,

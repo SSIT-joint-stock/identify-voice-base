@@ -1,3 +1,4 @@
+import { IDENTIFY } from '@/common/auth/permissions';
 import { Permissions, ApiSuccess } from '@/common/decorators';
 import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -53,7 +54,7 @@ export class IdentifyController {
   @ApiResponse({ status: 200 }) // Dto currently isn't uniform yet, can ignore or create a unified Dto later
   @ApiSuccess('Nhận dạng thành công')
   @UseInterceptors(FileInterceptor('file'))
-  @Permissions(['identify.run'])
+  @Permissions([IDENTIFY.RUN])
   async identify(
     @UploadedFile() file: Express.Multer.File,
     @User('id') userId: string,

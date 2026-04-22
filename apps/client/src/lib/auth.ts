@@ -31,6 +31,9 @@ export const PERMISSION_LABELS: Record<AppPermission, string> = {
   "voices.update": "Cập nhật hồ sơ giọng nói",
   "voices.delete": "Xóa hồ sơ giọng nói",
   "identify.run": "Chạy nhận dạng",
+  "ocr.run": "Chạy OCR tài liệu",
+  "s2t.run": "Chạy chuyển giọng nói thành văn bản",
+  "translate.run": "Chạy dịch văn bản",
   "sessions.read": "Xem lịch sử phiên nhận dạng",
 };
 
