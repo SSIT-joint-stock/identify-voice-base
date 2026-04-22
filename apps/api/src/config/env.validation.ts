@@ -111,6 +111,11 @@ export const envSchema = z.object({
   COOKIE_MAX_AGE: z.coerce.number().int().positive().default(604800000),
   COOKIE_PATH: z.string().default('/'),
 
+  // AI Service Configuration
+  AI_SERVICE_URL: z.string().default('http://localhost:1122'),
+  AI_SERVICE_TIMEOUT: z.coerce.number().int().positive().default(30000),
+  AUDIO_NORMALIZE_TIMEOUT_MS: z.coerce.number().int().min(0).default(15000),
+
   // Client Configuration
   POSTCODES_API: z.string().default('https://api.postcodes.io'),
 });

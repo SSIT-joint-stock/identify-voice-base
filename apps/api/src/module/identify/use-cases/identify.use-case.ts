@@ -11,7 +11,10 @@ import * as path from 'path';
 import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { AiCoreService } from '@/module/ai-core/service/ai-core.service';
-import { AudioNormalizeService } from '@/module/ai-core/service/audio-normalize.service';
+import {
+  AudioNormalizeService,
+  AudioNormalizeTimeoutError,
+} from '@/module/ai-core/service/audio-normalize.service';
 import { NormalizedIdentifyResponse } from '@/module/ai-core/usecase/ai-identify-single.usecase';
 import { SessionsRepository } from '@/module/sessions/repository/sessions.repository';
 import { UploadService } from '@/module/upload/service/upload.service';
@@ -56,20 +59,35 @@ export class IdentifyUseCase {
     let normalizedAudioPath: string | null = null;
 
     try {
-      const normalizedAudio =
-        await this.audioNormalizeService.normalizeForAi(absolutePath);
-      normalizedAudioPath = normalizedAudio.path;
+      let aiAudioPath = absolutePath;
+      let aiMimeType = audioFile.mime_type;
+
+      try {
+        const normalizedAudio =
+          await this.audioNormalizeService.normalizeForAi(absolutePath);
+        normalizedAudioPath = normalizedAudio.path;
+        aiAudioPath = normalizedAudio.path;
+        aiMimeType = normalizedAudio.mimeType;
+      } catch (error) {
+        if (!(error instanceof AudioNormalizeTimeoutError)) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Chuẩn hóa audio quá lâu, gửi file gốc sang AI Core: ${audioFile.file_path}`,
+        );
+      }
 
       // 2. Gọi AI
       if (type === 'SINGLE') {
         aiResponse = await this.aiCoreService.identifySingle(
-          normalizedAudio.path,
-          normalizedAudio.mimeType,
+          aiAudioPath,
+          aiMimeType,
         );
       } else {
         aiResponse = await this.aiCoreService.identifyMulti(
-          normalizedAudio.path,
-          normalizedAudio.mimeType,
+          aiAudioPath,
+          aiMimeType,
         );
       }
 

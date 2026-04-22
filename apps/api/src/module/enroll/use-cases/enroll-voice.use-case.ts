@@ -11,7 +11,10 @@ import * as path from 'path';
 
 import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
-import { AudioNormalizeService } from '@/module/ai-core/service/audio-normalize.service';
+import {
+  AudioNormalizeService,
+  AudioNormalizeTimeoutError,
+} from '@/module/ai-core/service/audio-normalize.service';
 import { UploadService } from '@/module/upload/service/upload.service';
 
 import { AiCoreService } from '@/module/ai-core/service/ai-core.service';
@@ -59,14 +62,29 @@ export class EnrollVoiceUseCase {
         audioFile.file_path,
       );
 
-      const normalizedAudio =
-        await this.audioNormalizeService.normalizeForAi(absolutePath);
-      normalizedAudioPath = normalizedAudio.path;
+      let aiAudioPath = absolutePath;
+      let aiMimeType = audioFile.mime_type;
+
+      try {
+        const normalizedAudio =
+          await this.audioNormalizeService.normalizeForAi(absolutePath);
+        normalizedAudioPath = normalizedAudio.path;
+        aiAudioPath = normalizedAudio.path;
+        aiMimeType = normalizedAudio.mimeType;
+      } catch (error) {
+        if (!(error instanceof AudioNormalizeTimeoutError)) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Chuẩn hóa audio quá lâu, gửi file gốc sang AI Core: ${audioFile.file_path}`,
+        );
+      }
 
       const aiResponse = await this.core.uploadVoice(
-        normalizedAudio.path,
+        aiAudioPath,
         dto.name,
-        normalizedAudio.mimeType,
+        aiMimeType,
       );
 
       voiceId = aiResponse.voice_id;
