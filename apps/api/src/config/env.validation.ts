@@ -115,13 +115,13 @@ export const envSchema = z.object({
   POSTCODES_API: z.string().default('https://api.postcodes.io'),
 
   // AI Core Configuration
-  AI_CORE_IDENTIFY_URL: z.string().default('http://localhost:1122'),
-  AI_SERVICE_TIMEOUT: z.coerce.number().int().positive().default(30000),
-  AUDIO_NORMALIZE_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
-  AI_CORE_OCR_URL: z.string().default('http://localhost:8003'),
-  AI_CORE_OCR_URl: z.string().optional(),
-  AI_CORE_SPEECH_TO_TEXT_URL: z.string().default('http://localhost:8996'),
-  AI_CORE_TRANSLATION_URL: z.string().default('http://localhost:8505'),
+  // AI_CORE_IDENTIFY_URL: z.string().default('http://localhost:1122'),
+  // AI_SERVICE_TIMEOUT: z.coerce.number().int().positive().default(30000),
+  // AUDIO_NORMALIZE_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
+  // AI_CORE_OCR_URL: z.string().default('http://localhost:8003'),
+  // AI_CORE_OCR_URl: z.string().optional(),
+  // AI_CORE_SPEECH_TO_TEXT_URL: z.string().default('http://localhost:8996'),
+  // AI_CORE_TRANSLATION_URL: z.string().default('http://localhost:8505'),
 });
 
 // define the environment variables type
