@@ -424,7 +424,7 @@ export function VoiceUploadForm({
             <Button
               type="submit"
               disabled={uploadMutation.isPending}
-              className="animate-in fade-in-0 slide-in-from-bottom-4 duration-300 delay-100 bg-primary-50 text-primary-500 shadow-none hover:-translate-y-0.5 hover:bg-primary-50 hover:text-primary-500 hover:shadow-md hover:shadow-primary-100"
+              className="w-full animate-in fade-in-0 slide-in-from-bottom-4 delay-100 duration-300 sm:w-auto"
             >
               {uploadMutation.isPending ? (
                 <>

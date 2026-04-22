@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Play, Plus, Trash2 } from "lucide-react";
+import { Loader2, Play, Plus, Trash2, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ import type { ApiError } from "@/types";
 
 import { VoiceAudioPlayer } from "@/feature/voice/components/voice-audio-player";
 import { voiceDirectoryApi } from "../api/voice-directory.api";
+import { VoiceDuplicateMatchesDialog } from "./VoiceDuplicateMatchesDialog";
 import {
   type UpdateVoiceDirectoryFormValues,
   updateVoiceDirectoryFormSchema,
@@ -96,6 +97,7 @@ export function VoiceDirectoryDetailSheet({
 }: VoiceDirectoryDetailSheetProps) {
   const queryClient = useQueryClient();
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [previewSessionId, setPreviewSessionId] = useState<string | null>(null);
   const [selectedAudioIds, setSelectedAudioIds] = useState<Set<string>>(
     () => new Set(),
@@ -260,9 +262,17 @@ export function VoiceDirectoryDetailSheet({
   }, [detail]);
   console.log(historyRows);
 
+  const handleSheetOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setDuplicateDialogOpen(false);
+    }
+
+    onOpenChange(nextOpen);
+  };
+
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
+      <Sheet open={open} onOpenChange={handleSheetOpenChange}>
         <SheetContent
           side="right"
           className="flex w-full flex-col gap-0 overflow-hidden sm:max-w-xl md:max-w-4xl"
@@ -272,7 +282,7 @@ export function VoiceDirectoryDetailSheet({
             <SheetTitle>{sheetTitle}</SheetTitle>
           </SheetHeader>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
             {detailQuery.isLoading ? (
               <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
                 <Loader2 className="size-5 animate-spin" />
@@ -307,7 +317,17 @@ export function VoiceDirectoryDetailSheet({
                     </p>
                   )}
                 </section>
-
+                <div className="flex justify-end py-1">
+                  <Button
+                    type="button"
+                    className="w-full sm:w-auto"
+                    disabled={!hasEnrollStreamUrl}
+                    onClick={() => setDuplicateDialogOpen(true)}
+                  >
+                    <Users className="mr-2 size-4" />
+                    Xem những hồ sơ có giọng trùng
+                  </Button>
+                </div>
                 <form
                   className="space-y-4"
                   onSubmit={form.handleSubmit(() => updateMutation.mutate())}
@@ -315,7 +335,7 @@ export function VoiceDirectoryDetailSheet({
                   <h3 className="text-sm font-semibold">Thông tin cá nhân</h3>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2">
                       <Label htmlFor="vd-name">Họ và tên</Label>
                       <Input id="vd-name" {...form.register("name")} />
                       {form.formState.errors.name ? (
@@ -325,13 +345,13 @@ export function VoiceDirectoryDetailSheet({
                       ) : null}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="vd-cccd">CCCD / CMND</Label>
+                      <Label htmlFor="vd-cccd">CCCD</Label>
                       <Input
                         id="vd-cccd"
                         {...form.register("citizen_identification")}
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="hidden">
                       <Label htmlFor="vd-phone">Điện thoại</Label>
                       <Input id="vd-phone" {...form.register("phone_number")} />
                       {form.formState.errors.phone_number ? (
@@ -381,7 +401,7 @@ export function VoiceDirectoryDetailSheet({
                       <Label htmlFor="vd-job">Nghề nghiệp</Label>
                       <Input id="vd-job" {...form.register("job")} />
                     </div>
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2">
                       <Label htmlFor="vd-passport">Hộ chiếu</Label>
                       <Input id="vd-passport" {...form.register("passport")} />
                     </div>
@@ -595,6 +615,17 @@ export function VoiceDirectoryDetailSheet({
           </div>
         </SheetContent>
       </Sheet>
+
+      {duplicateDialogOpen ? (
+        <VoiceDuplicateMatchesDialog
+          open={duplicateDialogOpen}
+          onOpenChange={setDuplicateDialogOpen}
+          audioUrl={enrollAudioUrl}
+          currentUserId={detail?.id}
+          currentVoiceId={detail?.voice_id}
+          currentName={detail?.name}
+        />
+      ) : null}
 
       <Dialog
         open={confirmDeactivateOpen}
