@@ -4,10 +4,7 @@ const normalizeUrl = (value: string) => value.replace(/\/$/, '');
 const getNumber = (value: string | undefined, fallback: number) =>
   parseInt(value || String(fallback), 10);
 
-const identifyUrl =
-  process.env.AI_CORE_IDENTIFY_URL ||
-  process.env.AI_SERVICE_URL ||
-  'http://localhost:5000';
+const identifyUrl = process.env.AI_CORE_IDENTIFY_URL || 'http://localhost:5000';
 const ocrUrl =
   process.env.AI_CORE_OCR_URL ||
   process.env.AI_CORE_OCR_URl ||
