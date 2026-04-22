@@ -111,18 +111,13 @@ export const envSchema = z.object({
   COOKIE_MAX_AGE: z.coerce.number().int().positive().default(604800000),
   COOKIE_PATH: z.string().default('/'),
 
-  // AI Service Configuration
-  AI_SERVICE_URL: z.string().default('http://localhost:1122'),
-  AI_SERVICE_TIMEOUT: z.coerce.number().int().positive().default(30000),
-  AUDIO_NORMALIZE_TIMEOUT_MS: z.coerce.number().int().min(0).default(15000),
-
   // Client Configuration
   POSTCODES_API: z.string().default('https://api.postcodes.io'),
 
   // AI Core Configuration
   AI_CORE_IDENTIFY_URL: z.string().default('http://localhost:1122'),
-  // AI_SERVICE_TIMEOUT: z.coerce.number().int().positive().default(30000),
-  // AUDIO_NORMALIZE_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
+  AI_SERVICE_TIMEOUT: z.coerce.number().int().positive().default(30000),
+  AUDIO_NORMALIZE_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
   AI_CORE_OCR_URL: z.string().default('http://localhost:8003'),
   AI_CORE_OCR_URl: z.string().optional(),
   AI_CORE_SPEECH_TO_TEXT_URL: z.string().default('http://localhost:8996'),
