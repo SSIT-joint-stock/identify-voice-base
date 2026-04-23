@@ -49,6 +49,7 @@ AI_CORE_IDENTIFY_URL=http://localhost:1122
 AI_CORE_OCR_URL=http://localhost:8003
 AI_CORE_SPEECH_TO_TEXT_URL=http://localhost:8996
 AI_CORE_TRANSLATION_URL=http://localhost:8505
+AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT=1000
 AI_SERVICE_TIMEOUT=30000
 AUDIO_NORMALIZE_TIMEOUT_MS=15000
 ```
@@ -59,6 +60,7 @@ Lưu ý:
 - `AI_CORE_OCR_URL` dùng cho OCR.
 - `AI_CORE_SPEECH_TO_TEXT_URL` dùng cho Speech-to-Text.
 - `AI_CORE_TRANSLATION_URL` dùng cho translate, detect language, translate summarize.
+- `AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT` là số từ tối đa mỗi request backend gửi sang Translation AI Core. Nếu `source_text` dài hơn giới hạn này, backend tự chia thành nhiều đoạn và ghép kết quả trả về cho FE.
 - `AI_SERVICE_TIMEOUT` là timeout HTTP khi backend gọi sang AI Core.
 - `AUDIO_NORMALIZE_TIMEOUT_MS` dùng cho bước normalize audio trước các luồng voice identify/enroll.
 
@@ -446,6 +448,7 @@ Chức năng:
 - Dịch văn bản sang ngôn ngữ đích.
 - Validate `target_lang` trước khi gọi AI Core.
 - Tránh lỗi `KeyError` từ AI Core khi language không hợp lệ.
+- Với payload dài, backend tự chia `source_text` theo `AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT` trước khi gọi AI Core.
 
 Permission:
 
@@ -481,6 +484,8 @@ Backend gọi sang AI Core:
 POST {AI_CORE_TRANSLATION_URL}/translate
 ```
 
+Nếu `source_text` vượt quá `AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT`, backend sẽ gọi endpoint AI Core này nhiều lần, mỗi lần một đoạn text. Response trả về FE vẫn là một object duy nhất, trong đó `translated_text` được ghép từ các đoạn đã dịch bằng dòng trống.
+
 Body gửi sang AI Core:
 
 ```json
@@ -509,6 +514,7 @@ FE nên triển khai:
 - Render `translated_text` trong output panel.
 - Cho phép copy translated text.
 - Có thể hiển thị `original_text` để đối chiếu.
+- Không cần tự chia text ở FE; giới hạn chunk là chi tiết nội bộ của backend.
 
 Validation:
 
@@ -607,6 +613,7 @@ Chức năng:
 - Dịch văn bản sang ngôn ngữ đích.
 - Đồng thời tóm tắt nội dung.
 - Phù hợp cho file dài hoặc nội dung nhiều ý.
+- Với payload dài, backend tự chia `source_text` theo `AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT` trước khi gọi AI Core.
 
 Permission:
 
@@ -642,6 +649,8 @@ Backend gọi sang AI Core:
 POST {AI_CORE_TRANSLATION_URL}/translate_summarize
 ```
 
+Nếu `source_text` vượt quá `AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT`, backend sẽ gọi endpoint AI Core này nhiều lần, mỗi lần một đoạn text. Response trả về FE vẫn là một object duy nhất, trong đó `translated_text` được ghép từ các đoạn đã dịch/tóm tắt bằng dòng trống.
+
 Body gửi sang AI Core:
 
 ```json
@@ -669,6 +678,7 @@ FE nên triển khai:
 - Không nên ghi đè bản dịch thường bằng bản summarize nếu user muốn so sánh.
 - Có thể render `translated_text` dạng Markdown nếu AI Core trả bullet list.
 - Nên giữ `original_text` để user đối chiếu.
+- Không cần tự chia text ở FE; giới hạn chunk là chi tiết nội bộ của backend.
 
 ---
 
