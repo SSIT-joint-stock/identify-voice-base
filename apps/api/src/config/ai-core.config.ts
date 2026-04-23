@@ -33,5 +33,9 @@ export default registerAs('ai', () => ({
     url: normalizeUrl(
       process.env.AI_CORE_TRANSLATION_URL || 'http://localhost:8505',
     ),
+    chunkWordLimit: getNumber(
+      process.env.AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT,
+      1000,
+    ),
   },
 }));

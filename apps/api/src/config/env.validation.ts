@@ -122,6 +122,11 @@ export const envSchema = z.object({
   AI_CORE_OCR_URl: z.string().optional(),
   AI_CORE_SPEECH_TO_TEXT_URL: z.string().default('http://localhost:8996'),
   AI_CORE_TRANSLATION_URL: z.string().default('http://localhost:8505'),
+  AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(1000),
 });
 
 // define the environment variables type

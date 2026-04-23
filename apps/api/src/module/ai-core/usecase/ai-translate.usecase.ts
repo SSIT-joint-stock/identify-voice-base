@@ -29,10 +29,7 @@ export class AiTranslateUseCase {
   ) {}
 
   async execute(dto: TranslateRequestDto) {
-    return this.postToTranslationCore('/translate', {
-      source_text: dto.source_text,
-      target_lang: dto.target_lang ?? 'en',
-    });
+    return this.translateInChunks('/translate', dto);
   }
 
   async detectLanguage(dto: DetectLanguageRequestDto) {
@@ -42,10 +39,47 @@ export class AiTranslateUseCase {
   }
 
   async translateSummarize(dto: TranslateRequestDto) {
-    return this.postToTranslationCore('/translate_summarize', {
-      source_text: dto.source_text,
-      target_lang: dto.target_lang ?? 'en',
-    });
+    return this.translateInChunks('/translate_summarize', dto);
+  }
+
+  private async translateInChunks(path: string, dto: TranslateRequestDto) {
+    const targetLang = dto.target_lang ?? 'en';
+    const chunkWordLimit = this.config.translation.chunkWordLimit;
+    const chunks = this.splitTextByWordLimit(dto.source_text, chunkWordLimit);
+
+    if (chunks.length <= 1) {
+      return this.postToTranslationCore(path, {
+        source_text: dto.source_text,
+        target_lang: targetLang,
+      });
+    }
+
+    this.logger.log(
+      `Split translation payload into ${chunks.length} chunks (${chunkWordLimit} words/chunk) for ${path}`,
+    );
+
+    const responses: TranslationCoreResponse[] = [];
+
+    for (const chunk of chunks) {
+      responses.push(
+        await this.postToTranslationCore(path, {
+          source_text: chunk,
+          target_lang: targetLang,
+        }),
+      );
+    }
+
+    const translatedText = responses
+      .map((response) => this.getTranslatedText(response))
+      .filter((text) => text.length > 0)
+      .join('\n\n');
+
+    return {
+      ...responses[0],
+      original_text: dto.source_text,
+      translated_text: translatedText,
+      target_lang: targetLang,
+    };
   }
 
   private async postToTranslationCore(
@@ -107,5 +141,49 @@ export class AiTranslateUseCase {
 
   private getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
+  }
+
+  private getTranslatedText(response: TranslationCoreResponse): string {
+    const translatedText = response.translated_text;
+
+    return typeof translatedText === 'string' ? translatedText.trim() : '';
+  }
+
+  private splitTextByWordLimit(text: string, wordLimit: number): string[] {
+    const chunks: string[] = [];
+    const wordMatches = text.matchAll(/\S+/g);
+    let chunkStartIndex: number | null = null;
+    let currentWordCount = 0;
+
+    for (const match of wordMatches) {
+      if (chunkStartIndex === null) {
+        chunkStartIndex = match.index;
+      }
+
+      if (
+        currentWordCount >= wordLimit &&
+        chunkStartIndex !== null &&
+        match.index !== undefined
+      ) {
+        const chunk = text.slice(chunkStartIndex, match.index).trim();
+        if (chunk) {
+          chunks.push(chunk);
+        }
+
+        chunkStartIndex = match.index;
+        currentWordCount = 0;
+      }
+
+      currentWordCount += 1;
+    }
+
+    if (chunkStartIndex !== null) {
+      const chunk = text.slice(chunkStartIndex).trim();
+      if (chunk) {
+        chunks.push(chunk);
+      }
+    }
+
+    return chunks;
   }
 }
