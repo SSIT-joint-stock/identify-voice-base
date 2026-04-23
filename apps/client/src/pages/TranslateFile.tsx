@@ -379,7 +379,7 @@ export default function TranslateFile() {
                 }}
                 disabled={isBusy}
                 placeholder="Nội dung trích xuất sẽ hiển thị tại đây."
-                className="min-h-[360px] resize-y leading-6"
+                className="min-h-90ze-y leading-6"
               />
             </CardContent>
           </Card>
@@ -402,16 +402,16 @@ export default function TranslateFile() {
             </CardHeader>
             <CardContent>
               {processingStep === "translating" ? (
-                <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                <div className="flex min-h-90 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                   <LoaderCircle className="size-8 animate-spin text-primary-500" />
                   <span>Đang dịch nội dung...</span>
                 </div>
               ) : translatedText ? (
-                <div className="min-h-[360px] whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">
+                <div className="min-h-90 whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">
                   {translatedText}
                 </div>
               ) : (
-                <div className="flex min-h-[360px] items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                <div className="flex min-h-90 items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                   Bản dịch sẽ hiển thị ở đây.
                 </div>
               )}

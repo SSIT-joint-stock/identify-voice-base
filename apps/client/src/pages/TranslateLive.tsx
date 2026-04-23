@@ -282,7 +282,7 @@ export default function TranslateLive() {
                 setTranslatedText("");
               }}
               placeholder="Nhập văn bản cần dịch tại đây."
-              className="h-[360px] min-h-[360px] resize-y p-4 text-sm leading-6"
+              className="h-90 min-h-90 resize-y p-4 text-sm leading-6"
             />
           </CardContent>
         </Card>
@@ -305,16 +305,16 @@ export default function TranslateLive() {
           </CardHeader>
           <CardContent>
             {isTranslating ? (
-              <div className="flex h-[360px] min-h-[360px] flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-90 min-h-90 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                 <LoaderCircle className="size-8 animate-spin text-primary-500" />
                 <span>Đang dịch nội dung...</span>
               </div>
             ) : translatedText ? (
-              <div className="h-[360px] min-h-[360px] overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">
+              <div className="h-90 min-h-90 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">
                 {translatedText}
               </div>
             ) : (
-              <div className="flex h-[360px] min-h-[360px] items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-90 min-h-90 items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                 Bản dịch sẽ hiển thị ở đây.
               </div>
             )}
