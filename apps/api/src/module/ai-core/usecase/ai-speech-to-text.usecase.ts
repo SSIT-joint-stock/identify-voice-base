@@ -38,7 +38,6 @@ export class AiSpeechToTextUseCase {
     const params = {
       ...(dto.language ? { language: dto.language } : {}),
       return_timestamp: dto.return_timestamp ?? false,
-      denoise_audio: dto.denoise_audio ?? false,
     };
 
     const url = `${this.config.speechToText.url}/s2t_ml`;

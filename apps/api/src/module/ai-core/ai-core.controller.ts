@@ -104,10 +104,6 @@ export class AiCoreController {
           type: 'boolean',
           default: false,
         },
-        denoise_audio: {
-          type: 'boolean',
-          default: false,
-        },
       },
     },
   })
