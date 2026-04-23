@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Play, Plus, Trash2, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Loader2, Play, Plus, Trash2, Users, X } from "lucide-react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -260,8 +260,6 @@ export function VoiceDirectoryDetailSheet({
     if (!detail) return "Chi tiết hồ sơ";
     return detail.name || "Chi tiết hồ sơ";
   }, [detail]);
-  console.log(historyRows);
-
   const handleSheetOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       setDuplicateDialogOpen(false);
@@ -524,80 +522,111 @@ export function VoiceDirectoryDetailSheet({
                         historyRows.map((row) => {
                           const aid = row.audio_file_id;
                           const selectable = Boolean(aid);
+                          const isPreviewing =
+                            previewSessionId === row.session_id;
                           return (
-                            <TableRow key={row.session_id}>
-                              <TableCell>
-                                {selectable ? (
-                                  <input
-                                    type="checkbox"
-                                    className="size-4 accent-primary"
-                                    checked={
-                                      aid ? selectedAudioIds.has(aid) : false
+                            <Fragment key={row.session_id}>
+                              <TableRow>
+                                <TableCell>
+                                  {selectable ? (
+                                    <input
+                                      type="checkbox"
+                                      className="size-4 accent-primary"
+                                      checked={
+                                        aid ? selectedAudioIds.has(aid) : false
+                                      }
+                                      onChange={() =>
+                                        aid && toggleAudioSelection(aid)
+                                      }
+                                      aria-label="Chọn mẫu để cập nhật embedding"
+                                    />
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">
+                                      —
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap text-xs">
+                                  {new Date(row.identified_at).toLocaleString(
+                                    "vi-VN",
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {row.score != null
+                                    ? row.score.toFixed(4)
+                                    : "—"}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-1"
+                                    onClick={() =>
+                                      setPreviewSessionId((current) =>
+                                        current === row.session_id
+                                          ? null
+                                          : row.session_id,
+                                      )
                                     }
-                                    onChange={() =>
-                                      aid && toggleAudioSelection(aid)
-                                    }
-                                    aria-label="Chọn mẫu để cập nhật embedding"
-                                  />
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">
-                                    —
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell className="whitespace-nowrap text-xs">
-                                {new Date(row.identified_at).toLocaleString(
-                                  "vi-VN",
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {row.score != null ? row.score.toFixed(4) : "—"}
-                              </TableCell>
-                              <TableCell>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-1"
-                                  onClick={() =>
-                                    setPreviewSessionId(row.session_id)
-                                  }
-                                >
-                                  <Play className="size-3" />
-                                  Nghe
-                                </Button>
-                              </TableCell>
-                            </TableRow>
+                                  >
+                                    <Play className="size-3" />
+                                    Nghe
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+
+                              {isPreviewing ? (
+                                <TableRow>
+                                  <TableCell colSpan={4} className="py-3">
+                                    <div className="relative rounded-lg border bg-background p-3 pr-12">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute top-2 right-2 size-8 text-muted-foreground hover:bg-red-50 hover:text-red-500"
+                                        onClick={() =>
+                                          setPreviewSessionId(null)
+                                        }
+                                        aria-label="Đóng audio"
+                                      >
+                                        <X className="size-4" />
+                                      </Button>
+
+                                      <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                        Audio đầu vào phiên{" "}
+                                        {row.session_id.slice(0, 8)}…
+                                      </p>
+                                      {sessionPreviewQuery.isLoading ? (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                          <Loader2 className="size-4 animate-spin" />
+                                          Đang tải…
+                                        </div>
+                                      ) : sessionPreviewQuery.data
+                                          ?.audio_url ? (
+                                        <VoiceAudioPlayer
+                                          file={null}
+                                          audioUrl={
+                                            sessionPreviewQuery.data.audio_url
+                                          }
+                                          fileName={`session-${row.session_id.slice(0, 8)}.wav`}
+                                          compact
+                                        />
+                                      ) : (
+                                        <p className="text-sm text-destructive">
+                                          Không lấy được URL phát phiên này.
+                                        </p>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ) : null}
+                            </Fragment>
                           );
                         })
                       )}
                     </TableBody>
                   </Table>
-
-                  {previewSessionId ? (
-                    <div className="rounded-lg border bg-background p-3">
-                      <p className="mb-2 text-xs font-medium text-muted-foreground">
-                        Audio đầu vào phiên {previewSessionId.slice(0, 8)}…
-                      </p>
-                      {sessionPreviewQuery.isLoading ? (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="size-4 animate-spin" />
-                          Đang tải…
-                        </div>
-                      ) : sessionPreviewQuery.data?.audio_url ? (
-                        <VoiceAudioPlayer
-                          file={null}
-                          audioUrl={sessionPreviewQuery.data.audio_url}
-                          fileName={`session-${previewSessionId.slice(0, 8)}.wav`}
-                          compact
-                        />
-                      ) : (
-                        <p className="text-sm text-destructive">
-                          Không lấy được URL phát phiên này.
-                        </p>
-                      )}
-                    </div>
-                  ) : null}
                 </section>
 
                 <div className="border-t pt-4">
