@@ -1,9 +1,10 @@
 import { AiCoreModule } from '@/module/ai-core/ai-core.module';
 import { AuthTokenService } from '@/module/auth/service/auth-token.service';
-import { UploadModule } from '@/module/upload/upload.module';
 import { StorageModule } from '@/module/storage/storage.module';
-import { Module } from '@nestjs/common';
+import { UploadModule } from '@/module/upload/upload.module';
 import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
+import { SearchUtil } from '@/common/helpers/search.util';
 import { VoicesRepository } from './repository/voices.repository';
 import { VoicesService } from './service/voices.service';
 import { DeleteVoiceUseCase } from './use-cases/delete-voice.usecase';
@@ -34,6 +35,7 @@ import { VoicesController } from './voices.controller';
   providers: [
     VoicesService,
     VoicesRepository,
+    SearchUtil,
     FindAllVoicesUseCase,
     GetVoiceDetailUseCase,
     UpdateVoiceInfoUseCase,

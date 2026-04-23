@@ -1,8 +1,9 @@
 import storageConfig from '@/config/storage.config';
+import { SearchUtil } from '@/common/helpers/search.util';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { Prisma, UserGender } from '@prisma/client';
+import { Prisma, UserGender, UserSource } from '@prisma/client';
 import { UpdateVoiceInfoDto } from '../dto/update-voice-info.dto';
 import { VoiceFilterDto } from '../dto/voice-filter.dto';
 
@@ -10,6 +11,7 @@ import { VoiceFilterDto } from '../dto/voice-filter.dto';
 export class VoicesRepository {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly searchUtil: SearchUtil,
     @Inject(storageConfig.KEY)
     private readonly storage: ConfigType<typeof storageConfig>,
   ) {}
@@ -23,28 +25,107 @@ export class VoicesRepository {
       sort_order = 'asc',
     } = filter;
 
-    const searchAge = search ? Number(search) : NaN;
+    const normalizedSearch = search?.trim();
+    const searchAge = this.searchUtil.parseSearchAge(normalizedSearch);
     const searchGender = Object.values(UserGender).find(
-      (gender) => gender.toLowerCase() === search?.toLowerCase(),
+      (gender) => gender.toLowerCase() === normalizedSearch?.toLowerCase(),
     );
+    const searchSource = Object.values(UserSource).find(
+      (source) => source.toLowerCase() === normalizedSearch?.toLowerCase(),
+    );
+    const searchDateRange =
+      this.searchUtil.parseSearchDateRange(normalizedSearch);
+    const searchUuid = this.searchUtil.isUuid(normalizedSearch)
+      ? normalizedSearch
+      : null;
 
     const where: Prisma.voice_recordsWhereInput = {
       is_active: true,
-      ...(search && {
-        user: {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { citizen_identification: { contains: search } },
-            { phone_number: { contains: search } },
-            { job: { contains: search, mode: 'insensitive' } },
-            { hometown: { contains: search, mode: 'insensitive' } },
-            { passport: { contains: search } },
-            ...(Number.isInteger(searchAge)
-              ? [{ age: { equals: searchAge } }]
-              : []),
-            ...(searchGender ? [{ gender: { equals: searchGender } }] : []),
-          ],
-        },
+      ...(normalizedSearch && {
+        OR: [
+          { voice_id: { contains: normalizedSearch, mode: 'insensitive' } },
+          { user_name: { contains: normalizedSearch, mode: 'insensitive' } },
+          { user_email: { contains: normalizedSearch, mode: 'insensitive' } },
+          ...(searchUuid
+            ? [
+                { id: { equals: searchUuid } },
+                { user_id: { equals: searchUuid } },
+                { audio_file_id: { equals: searchUuid } },
+              ]
+            : []),
+          ...(searchDateRange ? [{ created_at: searchDateRange }] : []),
+          {
+            audio_file: {
+              OR: [
+                {
+                  file_name: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  file_path: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  mime_type: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+              ],
+            },
+          },
+          {
+            user: {
+              OR: [
+                ...(searchUuid ? [{ id: { equals: searchUuid } }] : []),
+                {
+                  name: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  citizen_identification: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  phone_number: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+                { job: { contains: normalizedSearch, mode: 'insensitive' } },
+                {
+                  hometown: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  passport: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  audio_url: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+                ...(searchAge !== null ? [{ age: { equals: searchAge } }] : []),
+                ...(searchGender ? [{ gender: { equals: searchGender } }] : []),
+                ...(searchSource ? [{ source: { equals: searchSource } }] : []),
+              ],
+            },
+          },
+        ],
       }),
     };
 
