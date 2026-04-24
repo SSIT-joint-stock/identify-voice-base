@@ -1,5 +1,3 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   Copy,
   Languages,
@@ -7,6 +5,8 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { PageLayout } from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -193,9 +193,10 @@ export default function TranslateLive() {
       title="Dịch trực tiếp"
       description="Nhập văn bản nguồn để dịch hoặc tóm tắt nội dung."
       titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
+      className="h-[calc(100vh-var(--app-header-height)-3rem)] overflow-y-hidden"
       onRefresh={resetPage}
     >
-      <Card className="gap-0 rounded-md py-5">
+      <Card className="shrink-0 gap-0 rounded-md py-5">
         <CardContent className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl">
             <div className="space-y-2">
@@ -265,10 +266,15 @@ export default function TranslateLive() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-md">
-          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Văn bản nguồn</CardTitle>
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-2">
+        <Card className="flex min-h-0 flex-col rounded-md">
+          <CardHeader className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle className="flex items-center gap-2 ">
+              Văn bản nguồn
+              <div className="shrink-0 text-right text-sm text-muted-foreground border-l border-l-gray-200 pl-2">
+                {sourceText.length} ký tự
+              </div>
+            </CardTitle>
 
             <div className="flex flex-wrap gap-2 sm:justify-end">
               <Button
@@ -297,8 +303,21 @@ export default function TranslateLive() {
                 <RotateCcw className="mr-2 size-4" />
                 Xóa
               </Button>
-
+            </div>
+          </CardHeader>
+          <CardContent className="flex min-h-0 flex-1 flex-col gap-2">
+            <Textarea
+              value={sourceText}
+              onChange={(event) => {
+                setSourceText(event.target.value);
+                setTranslatedText("");
+              }}
+              placeholder="Nhập văn bản cần dịch tại đây."
+              className="min-h-0 flex-1 resize-none p-4 text-sm leading-6"
+            />
+            <div className="flex justify-end">
               <Button
+                className="w-fit"
                 type="button"
                 disabled={!hasSourceText || isTranslating}
                 onClick={() => void translateText()}
@@ -311,22 +330,11 @@ export default function TranslateLive() {
                 {isTranslating ? "Đang dịch..." : "Dịch văn bản"}
               </Button>
             </div>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={sourceText}
-              onChange={(event) => {
-                setSourceText(event.target.value);
-                setTranslatedText("");
-              }}
-              placeholder="Nhập văn bản cần dịch tại đây."
-              className="h-90 min-h-90 resize-y p-4 text-sm leading-6"
-            />
           </CardContent>
         </Card>
 
-        <Card className="rounded-md">
-          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="flex min-h-0 flex-col rounded-md">
+          <CardHeader className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>{outputTitle}</CardTitle>
 
             <Button
@@ -341,18 +349,22 @@ export default function TranslateLive() {
               Sao chép kết quả
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-h-0 flex-1">
             {isTranslating ? (
-              <div className="flex h-90 min-h-90 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-full min-h-0 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                 <LoaderCircle className="size-8 animate-spin text-primary-500" />
-                <span>Đang dịch nội dung...</span>
+                <span>
+                  {mode === "summarize"
+                    ? "Đang tóm tắt nội dung ..."
+                    : "Đang dịch nội dung..."}
+                </span>
               </div>
             ) : translatedText ? (
-              <div className="h-90 min-h-90 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">
+              <div className="h-full min-h-0 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">
                 {translatedText}
               </div>
             ) : (
-              <div className="flex h-90 min-h-90 items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+              <div className="flex h-full min-h-0 items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                 Bản dịch sẽ hiển thị ở đây.
               </div>
             )}

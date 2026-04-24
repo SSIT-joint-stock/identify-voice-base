@@ -11,6 +11,7 @@ interface PageLayoutProps {
   onRefresh?: () => void | Promise<void>;
   showRefreshButton?: boolean;
   titleClassName?: string;
+  className?: string;
 }
 
 export function PageLayout({
@@ -20,6 +21,7 @@ export function PageLayout({
   onRefresh,
   showRefreshButton = true,
   titleClassName,
+  className,
 }: PageLayoutProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -35,7 +37,7 @@ export function PageLayout({
   };
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className={cn("flex h-full flex-col gap-4", className)}>
       <header className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1

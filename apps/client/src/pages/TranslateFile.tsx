@@ -1,5 +1,3 @@
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
 import {
   Copy,
   FileText,
@@ -8,6 +6,8 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { PageLayout } from "@/components/PageLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { translateApi } from "@/feature/translate/api/translate.api";
 import { TranslateAudioPreview } from "@/feature/translate/components/translate-audio-preview";
 import { TranslateFileDropzone } from "@/feature/translate/components/translate-file-dropzone";
 import {
@@ -31,7 +32,6 @@ import {
   SPEECH_LANGUAGES,
   TRANSLATION_LANGUAGES,
 } from "@/feature/translate/constants/translate.constants";
-import { translateApi } from "@/feature/translate/api/translate.api";
 import type {
   SelectedTranslateFile,
   TranslateMode,
@@ -45,6 +45,7 @@ import { formatError } from "@/utils";
 type ProcessingStep = "idle" | "extracting" | "translating";
 
 export default function TranslateFile() {
+  const translateFormRef = useRef<HTMLDivElement | null>(null);
   const [selectedFile, setSelectedFile] =
     useState<SelectedTranslateFile | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState(AUTO_LANGUAGE);
@@ -65,6 +66,19 @@ export default function TranslateFile() {
     () => (isAudio ? SPEECH_LANGUAGES : OCR_LANGUAGES),
     [isAudio],
   );
+
+  useEffect(() => {
+    if (!selectedFile) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      translateFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [selectedFile]);
 
   const resetResult = () => {
     setSourceText("");
@@ -186,6 +200,16 @@ export default function TranslateFile() {
     }
   };
 
+  const handleModeChange = (value: string) => {
+    const nextMode = value as TranslateMode;
+
+    setMode(nextMode);
+
+    if (!sourceText.trim() || isBusy) return;
+
+    void translateText(sourceText, nextMode, targetLanguage);
+  };
+
   const copyText = async (text: string, successMessage: string) => {
     if (!text.trim()) return;
 
@@ -279,16 +303,13 @@ export default function TranslateFile() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Tabs
-                value={mode}
-                onValueChange={(value) => setMode(value as TranslateMode)}
-              >
+              <Tabs value={mode} onValueChange={handleModeChange}>
                 <TabsList>
-                  <TabsTrigger value="translate">
+                  <TabsTrigger value="translate" disabled={isBusy}>
                     <Languages className="size-4" />
                     Dịch
                   </TabsTrigger>
-                  <TabsTrigger value="summarize">
+                  <TabsTrigger value="summarize" disabled={isBusy}>
                     <Sparkles className="size-4" />
                     Tóm tắt
                   </TabsTrigger>
@@ -326,10 +347,15 @@ export default function TranslateFile() {
       ) : null}
 
       {hasFile ? (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div ref={translateFormRef} className="grid gap-4 lg:grid-cols-2">
           <Card className="rounded-md">
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle>Văn bản nguồn</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Văn bản nguồn
+                <div className="shrink-0 text-right text-sm text-muted-foreground border-l border-l-gray-200 pl-2">
+                  {sourceText.length} ký tự
+                </div>
+              </CardTitle>
 
               <div className="flex flex-wrap gap-2 sm:justify-end">
                 <Button
@@ -356,8 +382,22 @@ export default function TranslateFile() {
                   <RotateCcw className="mr-2 size-4" />
                   Xóa
                 </Button>
-
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Textarea
+                value={sourceText}
+                onChange={(event) => {
+                  setSourceText(event.target.value);
+                  setTranslatedText("");
+                }}
+                disabled={isBusy}
+                placeholder="Nội dung trích xuất sẽ hiển thị tại đây."
+                className="h-94 min-h-94 max-h-94 resize-none overflow-y-auto p-4 text-sm leading-6"
+              />
+              <div className="flex justify-end">
                 <Button
+                  className="w-fit"
                   type="button"
                   disabled={!hasSourceText || isBusy}
                   onClick={() => void translateText()}
@@ -372,18 +412,6 @@ export default function TranslateFile() {
                     : "Dịch văn bản"}
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={sourceText}
-                onChange={(event) => {
-                  setSourceText(event.target.value);
-                  setTranslatedText("");
-                }}
-                disabled={isBusy}
-                placeholder="Nội dung trích xuất sẽ hiển thị tại đây."
-                className="min-h-90ze-y leading-6"
-              />
             </CardContent>
           </Card>
 
@@ -405,16 +433,16 @@ export default function TranslateFile() {
             </CardHeader>
             <CardContent>
               {processingStep === "translating" ? (
-                <div className="flex min-h-90 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                <div className="flex h-94 min-h-94 max-h-94 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                   <LoaderCircle className="size-8 animate-spin text-primary-500" />
                   <span>Đang dịch nội dung...</span>
                 </div>
               ) : translatedText ? (
-                <div className="min-h-90 whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">
+                <div className="h-94 min-h-94 max-h-94 overflow-y-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">
                   {translatedText}
                 </div>
               ) : (
-                <div className="flex min-h-90 items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                <div className="flex h-94 min-h-94 max-h-94 items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                   Bản dịch sẽ hiển thị ở đây.
                 </div>
               )}
