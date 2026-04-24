@@ -157,13 +157,15 @@ export function TranslateFileDropzone({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={cn(
-        "relative overflow-hidden rounded-md border border-dashed bg-card p-6 transition",
-        "hover:border-primary-300 hover:bg-primary-50/20",
+        "relative overflow-hidden rounded-2xl border border-dashed bg-card p-6 text-card-foreground transition-all duration-200",
+        "hover:border-violet-300 hover:bg-violet-50/30",
         disabled && "cursor-not-allowed opacity-60",
+        visibleError &&
+          "border-destructive bg-destructive/5 hover:border-destructive hover:bg-destructive/5",
         isDragOver &&
           !disabled &&
-          "border-primary-400 bg-primary-50/50 shadow-[0_0_0_4px_rgba(34,197,94,0.12)]",
-        visibleError && "border-destructive bg-destructive/5",
+          !visibleError &&
+          "border-violet-400 bg-violet-50/80 shadow-[0_0_0_4px_rgba(167,139,250,0.16)]",
       )}
     >
       <input
@@ -178,7 +180,7 @@ export function TranslateFileDropzone({
       {isDragOver && !disabled ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-3 rounded-md border border-dashed border-primary-300 bg-primary-50/60"
+          className="pointer-events-none absolute inset-3 rounded-[20px] border border-dashed border-violet-300 bg-violet-100/55"
         />
       ) : null}
 
@@ -186,16 +188,22 @@ export function TranslateFileDropzone({
         <div className="relative z-10 flex min-h-44 flex-col items-center justify-center gap-4 text-center">
           <div
             className={cn(
-              "rounded-full border bg-background p-3 transition",
-              isDragOver &&
-                "border-primary-300 bg-primary-100 text-primary-700",
+              "rounded-full border p-3 transition-colors duration-200",
+              isDragOver
+                ? "border-violet-300 bg-violet-100 text-violet-700"
+                : "border-slate-200 bg-white",
             )}
           >
             <Upload className="size-5" />
           </div>
 
           <div className="space-y-1">
-            <p className="text-sm font-semibold">
+            <p
+              className={cn(
+                "text-sm font-semibold",
+                isDragOver && "text-violet-700",
+              )}
+            >
               {isDragOver ? "Thả tệp vào đây" : "Kéo thả hoặc tải tệp lên"}
             </p>
             <p className="text-sm text-muted-foreground">
@@ -203,14 +211,30 @@ export function TranslateFileDropzone({
             </p>
           </div>
 
-          <Button type="button" variant="outline" onClick={handlePickFile}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePickFile}
+            className={cn(
+              "transition-colors",
+              isDragOver &&
+                "border-violet-300 bg-violet-100 text-violet-700 hover:bg-violet-100",
+            )}
+          >
             Chọn tệp
           </Button>
         </div>
       ) : (
         <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="rounded-full border bg-background p-3">
+            <div
+              className={cn(
+                "rounded-full border p-3 transition-colors duration-200",
+                isDragOver
+                  ? "border-violet-300 bg-violet-100 text-violet-700"
+                  : "border-slate-200 bg-white",
+              )}
+            >
               <SelectedIcon className="size-5" />
             </div>
 

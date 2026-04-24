@@ -4,7 +4,7 @@ import {
   BookOpenText,
   BookUser,
   ChevronRight,
-  FileAudio2,
+  FileText,
   History,
   Languages,
   Mic,
@@ -101,7 +101,7 @@ const quickLinkGroups: QuickLinkGroup[] = [
         description:
           "Tải lên tệp âm thanh và nhận bản dịch theo nội dung ghi âm.",
         to: ROUTES.TRANSLATE_FILE,
-        icon: FileAudio2,
+        icon: FileText,
         iconClassName:
           "bg-[#ea580c] text-white shadow-[0_10px_24px_rgba(234,88,12,0.2)]",
       },

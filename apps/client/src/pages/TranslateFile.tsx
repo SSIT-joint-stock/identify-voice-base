@@ -209,12 +209,15 @@ export default function TranslateFile() {
           <CardTitle>Dịch từ tệp</CardTitle>
         </CardHeader>
         <CardContent>
-          <TranslateFileDropzone
-            value={selectedFile}
-            disabled={isBusy}
-            onChange={handleSelectedFileChange}
-            onValidationError={setErrorMessage}
-          />
+          <div className="space-y-3">
+            <Label>File</Label>
+            <TranslateFileDropzone
+              value={selectedFile}
+              disabled={isBusy}
+              onChange={handleSelectedFileChange}
+              onValidationError={setErrorMessage}
+            />
+          </div>
         </CardContent>
       </Card>
 

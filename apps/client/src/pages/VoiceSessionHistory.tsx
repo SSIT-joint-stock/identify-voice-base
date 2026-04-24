@@ -250,7 +250,7 @@ export default function VoiceSessionHistory() {
                 return (
                   <TableRow
                     key={row.id}
-                    className="cursor-pointer hover:bg-slate-50/80"
+                    className="group cursor-pointer hover:bg-slate-50/80"
                     onClick={() => openDetail(row.id)}
                   >
                     <TableCell className="pl-6">
@@ -293,7 +293,7 @@ export default function VoiceSessionHistory() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-slate-400 hover:bg-primary-50 hover:text-primary-400"
+                        className="h-8 w-8 p-0 text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-400 hover:bg-primary-50 hover:text-primary-400"
                         aria-label="Xem chi tiết"
                       >
                         <ChevronRight className="size-4" />

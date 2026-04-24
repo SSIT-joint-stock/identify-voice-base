@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  FileText,
   History,
   Home,
   KeyRound,
@@ -105,8 +106,8 @@ const navigation: NavItem[] = [
     title: "Dịch đa ngôn ngữ",
     icon: Languages,
     children: [
-      { title: "Dịch trực tiếp", url: ROUTES.TRANSLATE_LIVE, icon: Mic },
-      { title: "Dịch tệp tin", url: ROUTES.TRANSLATE_FILE, icon: BookOpenText },
+      { title: "Dịch trực tiếp", url: ROUTES.TRANSLATE_LIVE, icon: Languages },
+      { title: "Dịch tệp tin", url: ROUTES.TRANSLATE_FILE, icon: FileText },
     ],
   },
   {
