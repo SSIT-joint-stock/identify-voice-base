@@ -1,18 +1,10 @@
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ChevronRight,
-  IdCard,
-  Loader2,
-  Phone,
-  Search,
-  UserRound,
-} from "lucide-react";
+import { ChevronRight, IdCard, Loader2, Phone, UserRound } from "lucide-react";
 import { useState } from "react";
 
 import { PageLayout } from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -40,6 +32,10 @@ import {
 import { QUERY_KEYS } from "@/constants";
 import { voiceDirectoryApi } from "@/feature/voice-directory/api/voice-directory.api";
 import { VoiceDirectoryDetailSheet } from "@/feature/voice-directory/components/VoiceDirectoryDetailSheet";
+import {
+  type VoiceDirectorySearchField,
+  VoiceDirectorySearchBar,
+} from "@/feature/voice-directory/components/VoiceDirectorySearchBar";
 
 const AVATAR_COLORS = [
   "bg-violet-100 text-violet-700",
@@ -54,8 +50,8 @@ const AVATAR_COLORS = [
 
 function getAvatarColor(name: string): string {
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  for (let index = 0; index < name.length; index += 1) {
+    hash = name.charCodeAt(index) + ((hash << 5) - hash);
   }
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]!;
 }
@@ -90,12 +86,12 @@ function GenderPill({
     );
   }
 
-  return <span className="text-xs text-slate-400">—</span>;
+  return <span className="text-xs text-slate-400">-</span>;
 }
 
 function AgePill({ age }: { age?: number | null }) {
   if (typeof age !== "number" || !Number.isFinite(age) || age <= 0) {
-    return <span className="text-xs text-slate-400">—</span>;
+    return <span className="text-xs text-slate-400">-</span>;
   }
 
   return (
@@ -107,7 +103,7 @@ function AgePill({ age }: { age?: number | null }) {
 
 function PassportPill({ value }: { value?: string | null }) {
   if (!value) {
-    return <span className="text-xs text-slate-400">—</span>;
+    return <span className="text-xs text-slate-400">-</span>;
   }
 
   return (
@@ -166,10 +162,9 @@ function buildPaginationItems(currentPage: number, totalPages: number) {
 
 export default function VoiceDirectory() {
   const [searchInput, setSearchInput] = useState("");
-  // Always call useDebounce, then select value for query
-  const debounced = useDebounce(searchInput.trim(), 500);
-  const querySearch =
-    searchInput.trim().length > 0 ? searchInput.trim() : debounced;
+  const [selectedSearchField, setSelectedSearchField] =
+    useState<VoiceDirectorySearchField | null>(null);
+  const querySearch = useDebounce(searchInput.trim(), 500);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] =
     useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
@@ -210,7 +205,9 @@ export default function VoiceDirectory() {
 
   const handleSheetOpenChange = (open: boolean) => {
     setSheetOpen(open);
-    if (!open) setSelectedId(null);
+    if (!open) {
+      setSelectedId(null);
+    }
   };
 
   return (
@@ -223,24 +220,17 @@ export default function VoiceDirectory() {
       titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
     >
       <div className="flex flex-wrap items-center gap-4 lg:flex-nowrap lg:gap-6">
-        <div className="flex flex-1 flex-col gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm md:flex-row md:items-center">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Search className="size-4 shrink-0 text-slate-400" />
-            <Input
-              value={searchInput}
-              onChange={(e) => {
-                setSearchInput(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Tìm theo tên, CCCD, SĐT…"
-              className="h-auto border-none p-0 text-sm shadow-none focus-visible:ring-0"
-              aria-label="Tìm kiếm danh bạ"
-            />
-            {isFetching && (
-              <Loader2 className="size-4 animate-spin text-slate-400" />
-            )}
-          </div>
-        </div>
+        <VoiceDirectorySearchBar
+          value={searchInput}
+          selectedField={selectedSearchField}
+          isFetching={isFetching}
+          onValueChange={(nextValue) => {
+            setSearchInput(nextValue);
+            setPage(1);
+          }}
+          onSelectedFieldChange={setSelectedSearchField}
+        />
+
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
           <Select
             value={sortValue}
@@ -265,6 +255,7 @@ export default function VoiceDirectory() {
               ))}
             </SelectContent>
           </Select>
+
           <Select
             value={String(pageSize)}
             onValueChange={(value) => {
@@ -283,20 +274,22 @@ export default function VoiceDirectory() {
               ))}
             </SelectContent>
           </Select>
-          {total > 0 && !isLoading && (
+
+          {total > 0 && !isLoading ? (
             <span className="shrink-0 whitespace-nowrap pl-1 text-xs font-medium text-slate-400">
               {total} liên hệ
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm no-scrollbar relative">
-        {isLoading && (
+      <div className="relative min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm no-scrollbar">
+        {isLoading ? (
           <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60">
             <Loader2 className="size-8 animate-spin text-slate-400" />
           </div>
-        )}
+        ) : null}
+
         {!isLoading && isError ? (
           <div className="flex h-full min-h-48 items-center justify-center p-8">
             <p className="text-center text-sm text-destructive">
@@ -309,19 +302,20 @@ export default function VoiceDirectory() {
             <p className="text-sm text-muted-foreground">
               {querySearch ? "Không có hồ sơ phù hợp." : "Chưa có hồ sơ nào."}
             </p>
-            {querySearch && (
+            {querySearch ? (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   setSearchInput("");
+                  setSelectedSearchField(null);
                   setPage(1);
                 }}
               >
                 Xóa tìm kiếm
               </Button>
-            )}
+            ) : null}
           </div>
         ) : (
           <Table className="table-fixed">
@@ -339,6 +333,7 @@ export default function VoiceDirectory() {
                 </TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {items.map((row) => {
                 const avatarColor = getAvatarColor(row.name);
@@ -350,7 +345,6 @@ export default function VoiceDirectory() {
                     className="group cursor-pointer hover:bg-slate-50/80"
                     onClick={() => openDetail(row.id)}
                   >
-                    {/* Name + Avatar */}
                     <TableCell className="py-3 pl-6">
                       <div className="flex items-center gap-3">
                         <div
@@ -364,17 +358,14 @@ export default function VoiceDirectory() {
                       </div>
                     </TableCell>
 
-                    {/* Giới tính */}
                     <TableCell>
                       <GenderPill gender={row.gender} />
                     </TableCell>
 
-                    {/* Độ tuổi */}
                     <TableCell>
                       <AgePill age={row.age} />
                     </TableCell>
 
-                    {/* CCCD */}
                     <TableCell>
                       {row.citizen_identification ? (
                         <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
@@ -388,7 +379,6 @@ export default function VoiceDirectory() {
                       )}
                     </TableCell>
 
-                    {/* Số điện thoại */}
                     <TableCell>
                       {row.phone_number ? (
                         <span className="inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
@@ -402,12 +392,10 @@ export default function VoiceDirectory() {
                       )}
                     </TableCell>
 
-                    {/* Hộ chiếu */}
                     <TableCell>
                       <PassportPill value={row.passport} />
                     </TableCell>
 
-                    {/* Ngày định danh */}
                     <TableCell>
                       {row.enrolled_at ? (
                         <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
@@ -417,11 +405,10 @@ export default function VoiceDirectory() {
                           )}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-xs text-slate-400">-</span>
                       )}
                     </TableCell>
 
-                    {/* Action */}
                     <TableCell className="pr-6 text-center">
                       <Button
                         type="button"
@@ -440,11 +427,12 @@ export default function VoiceDirectory() {
         )}
       </div>
 
-      {!isLoading && !isError && total > 0 && (
+      {!isLoading && !isError && total > 0 ? (
         <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-muted-foreground">
             Trang {pagination?.page ?? 1} / {totalPages}
           </p>
+
           <Pagination className="mx-0 w-auto justify-start md:justify-end">
             <PaginationContent>
               <PaginationItem>
@@ -454,6 +442,7 @@ export default function VoiceDirectory() {
                   disabled={page <= 1 || isFetching}
                 />
               </PaginationItem>
+
               {paginationItems.map((item, index) => (
                 <PaginationItem key={`${item}-${index}`}>
                   {item === "ellipsis" ? (
@@ -470,6 +459,7 @@ export default function VoiceDirectory() {
                   )}
                 </PaginationItem>
               ))}
+
               <PaginationItem>
                 <PaginationNext
                   type="button"
@@ -482,7 +472,7 @@ export default function VoiceDirectory() {
             </PaginationContent>
           </Pagination>
         </div>
-      )}
+      ) : null}
 
       <VoiceDirectoryDetailSheet
         voiceId={selectedId}
