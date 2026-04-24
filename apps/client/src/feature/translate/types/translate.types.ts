@@ -20,6 +20,11 @@ export interface TranslateResponse {
   target_lang: string;
 }
 
+export interface DetectLanguageResponse {
+  success?: boolean;
+  detected_languages?: string | string[];
+}
+
 export interface OcrTextBox {
   text?: string;
 }

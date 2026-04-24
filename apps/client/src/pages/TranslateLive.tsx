@@ -23,16 +23,38 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { translateApi } from "@/feature/translate/api/translate.api";
 import {
-  OCR_LANGUAGES,
+  AUTO_LANGUAGE,
+  LIVE_TRANSLATE_SOURCE_LANGUAGE_OPTIONS,
   TRANSLATION_LANGUAGES,
 } from "@/feature/translate/constants/translate.constants";
 import type { TranslateMode } from "@/feature/translate/types/translate.types";
 import { formatError } from "@/utils";
 
+const AUTO_DETECT_ERROR_MESSAGE = "Không thể tự động nhận diện ngôn ngữ nguồn.";
+
+function getDetectedLanguageCode(
+  value: string | string[] | undefined,
+): string | null {
+  if (Array.isArray(value)) {
+    return value.find((item) => item.trim())?.trim() ?? null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return (
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .find(Boolean) ?? null
+  );
+}
+
 export default function TranslateLive() {
   const translateRequestIdRef = useRef(0);
-  const [sourceLanguage, setSourceLanguage] = useState("vi");
-  const [targetLanguage, setTargetLanguage] = useState("en");
+  const [sourceLanguage, setSourceLanguage] = useState(AUTO_LANGUAGE);
+  const [targetLanguage, setTargetLanguage] = useState("vi");
   const [mode, setMode] = useState<TranslateMode>("translate");
   const [sourceText, setSourceText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
@@ -43,8 +65,8 @@ export default function TranslateLive() {
 
   const resetPage = () => {
     translateRequestIdRef.current += 1;
-    setSourceLanguage("vi");
-    setTargetLanguage("en");
+    setSourceLanguage(AUTO_LANGUAGE);
+    setTargetLanguage("vi");
     setMode("translate");
     setSourceText("");
     setTranslatedText("");
@@ -72,6 +94,22 @@ export default function TranslateLive() {
       setTranslatedText("");
 
       try {
+        if (sourceLanguage === AUTO_LANGUAGE) {
+          const detectedResult = await translateApi.detectLanguage({
+            text: normalizedText,
+          });
+
+          if (requestId !== translateRequestIdRef.current) return;
+
+          const nextDetectedLanguage = getDetectedLanguageCode(
+            detectedResult.detected_languages,
+          );
+
+          if (!nextDetectedLanguage) {
+            throw new Error(AUTO_DETECT_ERROR_MESSAGE);
+          }
+        }
+
         const result =
           translateMode === "summarize"
             ? await translateApi.translateSummarize({
@@ -103,7 +141,7 @@ export default function TranslateLive() {
         }
       }
     },
-    [],
+    [sourceLanguage],
   );
 
   useEffect(() => {
@@ -176,7 +214,7 @@ export default function TranslateLive() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {OCR_LANGUAGES.map((language) => (
+                  {LIVE_TRANSLATE_SOURCE_LANGUAGE_OPTIONS.map((language) => (
                     <SelectItem key={language.value} value={language.value}>
                       {language.label}
                     </SelectItem>
