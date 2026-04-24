@@ -28,9 +28,33 @@ import {
   TRANSLATION_LANGUAGES,
 } from "@/feature/translate/constants/translate.constants";
 import type { TranslateMode } from "@/feature/translate/types/translate.types";
-import { formatError } from "@/utils";
+import {
+  AUTO_DETECT_ERROR_MESSAGE,
+  formatError,
+  TRANSLATE_JOB_POLL_INTERVAL_MS,
+  TRANSLATE_PROGRESS_STEP_DELAY_MS,
+} from "@/utils";
 
-const AUTO_DETECT_ERROR_MESSAGE = "Không thể tự động nhận diện ngôn ngữ nguồn.";
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function animateProgressTo(
+  fromProgress: number,
+  toProgress: number,
+  onProgress: (progress: number) => void,
+  shouldContinue: () => boolean,
+) {
+  const start = Math.max(0, Math.min(100, Math.round(fromProgress)));
+  const end = Math.max(start, Math.min(100, Math.round(toProgress)));
+
+  for (let progress = start + 1; progress <= end; progress += 1) {
+    if (!shouldContinue()) return;
+
+    onProgress(progress);
+    await wait(TRANSLATE_PROGRESS_STEP_DELAY_MS);
+  }
+}
 
 function getDetectedLanguageCode(
   value: string | string[] | undefined,
@@ -53,24 +77,32 @@ function getDetectedLanguageCode(
 
 export default function TranslateLive() {
   const translateRequestIdRef = useRef(0);
+  const translateProgressRef = useRef(0);
   const [sourceLanguage, setSourceLanguage] = useState(AUTO_LANGUAGE);
-  const [targetLanguage, setTargetLanguage] = useState("vi");
+  const [targetLanguage, setTargetLanguage] = useState("en");
   const [mode, setMode] = useState<TranslateMode>("translate");
   const [sourceText, setSourceText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
+  const [translateProgress, setTranslateProgress] = useState(0);
 
   const hasSourceText = sourceText.trim().length > 0;
   const outputTitle = mode === "summarize" ? "Bản dịch tóm tắt" : "Bản dịch";
 
+  const updateTranslateProgress = useCallback((progress: number) => {
+    translateProgressRef.current = progress;
+    setTranslateProgress(progress);
+  }, []);
+
   const resetPage = () => {
     translateRequestIdRef.current += 1;
     setSourceLanguage(AUTO_LANGUAGE);
-    setTargetLanguage("vi");
+    setTargetLanguage("en");
     setMode("translate");
     setSourceText("");
     setTranslatedText("");
     setIsTranslating(false);
+    updateTranslateProgress(0);
   };
 
   const runTranslate = useCallback(
@@ -91,10 +123,18 @@ export default function TranslateLive() {
       const requestId = translateRequestIdRef.current + 1;
       translateRequestIdRef.current = requestId;
       setIsTranslating(true);
+      updateTranslateProgress(0);
       setTranslatedText("");
 
       try {
         if (sourceLanguage === AUTO_LANGUAGE) {
+          await animateProgressTo(
+            translateProgressRef.current,
+            3,
+            updateTranslateProgress,
+            () => requestId === translateRequestIdRef.current,
+          );
+
           const detectedResult = await translateApi.detectLanguage({
             text: normalizedText,
           });
@@ -110,20 +150,56 @@ export default function TranslateLive() {
           }
         }
 
-        const result =
+        await animateProgressTo(
+          translateProgressRef.current,
+          5,
+          updateTranslateProgress,
+          () => requestId === translateRequestIdRef.current,
+        );
+
+        const job =
           translateMode === "summarize"
-            ? await translateApi.translateSummarize({
+            ? await translateApi.createTranslateSummarizeJob({
                 sourceText: normalizedText,
                 targetLang: translateTargetLanguage,
               })
-            : await translateApi.translate({
+            : await translateApi.createTranslateJob({
                 sourceText: normalizedText,
                 targetLang: translateTargetLanguage,
               });
 
         if (requestId !== translateRequestIdRef.current) return;
 
-        setTranslatedText(result.translated_text ?? "");
+        while (requestId === translateRequestIdRef.current) {
+          const jobStatus = await translateApi.getTranslateJob(job.job_id);
+
+          if (requestId !== translateRequestIdRef.current) return;
+
+          if (jobStatus.status === "completed") {
+            await animateProgressTo(
+              translateProgressRef.current,
+              100,
+              updateTranslateProgress,
+              () => requestId === translateRequestIdRef.current,
+            );
+            setTranslatedText(jobStatus.result?.translated_text ?? "");
+            break;
+          }
+
+          await animateProgressTo(
+            translateProgressRef.current,
+            jobStatus.progress,
+            updateTranslateProgress,
+            () => requestId === translateRequestIdRef.current,
+          );
+
+          if (jobStatus.status === "failed") {
+            throw new Error(jobStatus.error ?? "Không thể dịch nội dung.");
+          }
+
+          await wait(TRANSLATE_JOB_POLL_INTERVAL_MS);
+        }
+
         if (showToast) {
           toast.success(
             translateMode === "summarize"
@@ -141,7 +217,7 @@ export default function TranslateLive() {
         }
       }
     },
-    [sourceLanguage],
+    [sourceLanguage, updateTranslateProgress],
   );
 
   useEffect(() => {
@@ -151,6 +227,7 @@ export default function TranslateLive() {
       translateRequestIdRef.current += 1;
       setTranslatedText("");
       setIsTranslating(false);
+      updateTranslateProgress(0);
       return;
     }
 
@@ -166,7 +243,7 @@ export default function TranslateLive() {
       window.clearTimeout(timeoutId);
       translateRequestIdRef.current += 1;
     };
-  }, [mode, runTranslate, sourceText, targetLanguage]);
+  }, [mode, runTranslate, sourceText, targetLanguage, updateTranslateProgress]);
 
   const translateText = async () => {
     await runTranslate({
@@ -298,6 +375,7 @@ export default function TranslateLive() {
                   setSourceText("");
                   setTranslatedText("");
                   setIsTranslating(false);
+                  updateTranslateProgress(0);
                 }}
               >
                 <RotateCcw className="mr-2 size-4" />
@@ -311,6 +389,7 @@ export default function TranslateLive() {
               onChange={(event) => {
                 setSourceText(event.target.value);
                 setTranslatedText("");
+                updateTranslateProgress(0);
               }}
               placeholder="Nhập văn bản cần dịch tại đây."
               className="min-h-0 flex-1 resize-none p-4 text-sm leading-6"
@@ -327,7 +406,9 @@ export default function TranslateLive() {
                 ) : (
                   <Languages className="mr-2 size-4" />
                 )}
-                {isTranslating ? "Đang dịch..." : "Dịch văn bản"}
+                {isTranslating
+                  ? `Đang dịch... ${translateProgress}%`
+                  : "Dịch văn bản"}
               </Button>
             </div>
           </CardContent>
@@ -353,11 +434,22 @@ export default function TranslateLive() {
             {isTranslating ? (
               <div className="flex h-full min-h-0 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                 <LoaderCircle className="size-8 animate-spin text-primary-500" />
-                <span>
-                  {mode === "summarize"
-                    ? "Đang tóm tắt nội dung ..."
-                    : "Đang dịch nội dung..."}
-                </span>
+                <div className="flex w-full max-w-xs flex-col items-center gap-2">
+                  <span>
+                    {mode === "summarize"
+                      ? "Đang tóm tắt nội dung ..."
+                      : "Đang dịch nội dung..."}
+                  </span>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary-500 transition-all duration-500 ease-out"
+                      style={{ width: `${translateProgress}%` }}
+                    />
+                  </div>
+                  <span className="font-medium text-primary-600">
+                    {translateProgress}%
+                  </span>
+                </div>
               </div>
             ) : translatedText ? (
               <div className="h-full min-h-0 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">

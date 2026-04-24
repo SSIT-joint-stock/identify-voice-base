@@ -4,6 +4,8 @@ import type {
   DetectLanguageResponse,
   OcrResponse,
   SpeechToTextResponse,
+  TranslateJobCreateResponse,
+  TranslateJobResponse,
   TranslateResponse,
 } from "../types/translate.types";
 
@@ -97,6 +99,27 @@ export const translateApi = {
     return unwrapApiResponse(response.data);
   },
 
+  async createTranslateJob(
+    payload: TranslateTextRequest,
+  ): Promise<TranslateJobCreateResponse> {
+    const response = await axiosInstance.post<
+      ApiResponse<TranslateJobCreateResponse>
+    >("/ai-core/translate/jobs", {
+      source_text: payload.sourceText,
+      target_lang: payload.targetLang,
+    });
+
+    return unwrapApiResponse(response.data);
+  },
+
+  async getTranslateJob(jobId: string): Promise<TranslateJobResponse> {
+    const response = await axiosInstance.get<ApiResponse<TranslateJobResponse>>(
+      `/ai-core/translate/jobs/${jobId}`,
+    );
+
+    return unwrapApiResponse(response.data);
+  },
+
   async translateSummarize(
     payload: TranslateTextRequest,
   ): Promise<TranslateResponse> {
@@ -107,6 +130,19 @@ export const translateApi = {
         target_lang: payload.targetLang,
       },
     );
+
+    return unwrapApiResponse(response.data);
+  },
+
+  async createTranslateSummarizeJob(
+    payload: TranslateTextRequest,
+  ): Promise<TranslateJobCreateResponse> {
+    const response = await axiosInstance.post<
+      ApiResponse<TranslateJobCreateResponse>
+    >("/ai-core/translate-summarize/jobs", {
+      source_text: payload.sourceText,
+      target_lang: payload.targetLang,
+    });
 
     return unwrapApiResponse(response.data);
   },
