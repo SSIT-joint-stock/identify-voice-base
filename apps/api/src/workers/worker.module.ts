@@ -3,6 +3,7 @@ import {
   bullConfig,
   bullConfigFactory,
   databaseConfig,
+  jwtConfig,
   redisConfig,
   storageConfig,
   validateEnv,
@@ -38,6 +39,7 @@ const workerEnvFiles = [
       load: [
         aiCoreConfig,
         databaseConfig,
+        jwtConfig,
         bullConfig,
         redisConfig,
         storageConfig,
