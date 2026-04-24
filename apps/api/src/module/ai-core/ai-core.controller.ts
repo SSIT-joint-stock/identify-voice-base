@@ -5,6 +5,8 @@ import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import {
   Body,
   Controller,
+  Get,
+  Param,
   Post,
   UploadedFile,
   UseGuards,
@@ -30,13 +32,17 @@ import {
   TranslateRequestDto,
 } from './dto/translate-request.dto';
 import { AiCoreService } from './service/ai-core.service';
+import { AiTranslateJobService } from './service/ai-translate-job.service';
 
 @ApiTags('ai-core')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('ai-core')
 export class AiCoreController {
-  constructor(private readonly aiCoreService: AiCoreService) {}
+  constructor(
+    private readonly aiCoreService: AiCoreService,
+    private readonly translateJobService: AiTranslateJobService,
+  ) {}
 
   @Post('ocr')
   @ApiOperation({
@@ -147,6 +153,30 @@ export class AiCoreController {
     return this.aiCoreService.translate(dto);
   }
 
+  @Post('translate/jobs')
+  @ApiOperation({
+    summary: 'Tạo job dịch văn bản qua AI CORE',
+    description:
+      'Tạo job dịch nền để FE có thể poll tiến trình theo phần trăm.',
+  })
+  @ApiSuccess('Tạo job dịch thành công')
+  @Permissions([TRANSLATE.RUN])
+  async createTranslateJob(@Body() dto: TranslateRequestDto) {
+    return this.translateJobService.createJob('translate', dto);
+  }
+
+  @Get('translate/jobs/:jobId')
+  @ApiOperation({
+    summary: 'Lấy tiến trình job dịch văn bản',
+    description:
+      'Trả về status, progress và result nếu job dịch đã hoàn thành.',
+  })
+  @ApiSuccess('Lấy tiến trình job dịch thành công')
+  @Permissions([TRANSLATE.RUN])
+  async getTranslateJob(@Param('jobId') jobId: string) {
+    return this.translateJobService.getJob(jobId);
+  }
+
   @Post('detect-language')
   @ApiOperation({
     summary: 'Phát hiện ngôn ngữ văn bản qua AI CORE',
@@ -199,5 +229,17 @@ export class AiCoreController {
   @Permissions([TRANSLATE.RUN])
   async translateSummarize(@Body() dto: TranslateRequestDto) {
     return this.aiCoreService.translateSummarize(dto);
+  }
+
+  @Post('translate-summarize/jobs')
+  @ApiOperation({
+    summary: 'Tạo job dịch và tóm tắt văn bản qua AI CORE',
+    description:
+      'Tạo job dịch/tóm tắt nền để FE có thể poll tiến trình theo phần trăm.',
+  })
+  @ApiSuccess('Tạo job dịch và tóm tắt thành công')
+  @Permissions([TRANSLATE.RUN])
+  async createTranslateSummarizeJob(@Body() dto: TranslateRequestDto) {
+    return this.translateJobService.createJob('summarize', dto);
   }
 }

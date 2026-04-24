@@ -1,9 +1,11 @@
 import { AiCoreService } from '@/module/ai-core/service/ai-core.service';
 import { AuthTokenService } from '@/module/auth/service/auth-token.service';
+import { RedisModule } from '@/database/redis/redis.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AiCoreController } from './ai-core.controller';
+import { AiTranslateJobService } from './service/ai-translate-job.service';
 import { AudioNormalizeService } from './service/audio-normalize.service';
 import { AudioSegmentService } from './service/audio-segment.service';
 import { AiDeleteVoiceUseCase } from './usecase/ai-delete-voice.usecase';
@@ -15,10 +17,11 @@ import { AiTranslateUseCase } from './usecase/ai-translate.usecase';
 import { UploadVoiceUseCase } from './usecase/ai-upload-voice.usecase';
 
 @Module({
-  imports: [HttpModule, ConfigModule],
+  imports: [HttpModule, ConfigModule, RedisModule],
   controllers: [AiCoreController],
   providers: [
     AiCoreService,
+    AiTranslateJobService,
     AudioNormalizeService,
     AudioSegmentService,
     UploadVoiceUseCase,

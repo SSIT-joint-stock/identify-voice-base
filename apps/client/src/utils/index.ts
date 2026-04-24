@@ -2,12 +2,12 @@
  * Formats an error to a human-readable string.
  */
 export function formatError(error: unknown): string {
-  if (typeof error === 'string') return error;
+  if (typeof error === "string") return error;
   if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error !== null && 'message' in error) {
+  if (typeof error === "object" && error !== null && "message" in error) {
     return String((error as { message: unknown }).message);
   }
-  return 'An unexpected error occurred';
+  return "An unexpected error occurred";
 }
 
 /**
@@ -21,14 +21,14 @@ export function sleep(ms: number): Promise<void> {
  * Capitalizes the first letter of a string.
  */
 export function capitalize(str: string): string {
-  if (!str) return '';
+  if (!str) return "";
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 /**
  * Truncates a string to the specified length.
  */
-export function truncate(str: string, length: number, suffix = '...'): string {
+export function truncate(str: string, length: number, suffix = "..."): string {
   if (str.length <= length) return str;
   return str.slice(0, length) + suffix;
 }
@@ -43,6 +43,13 @@ export function isDefined<T>(value: T | null | undefined): value is T {
 /**
  * Removes undefined keys from an object.
  */
-export function cleanObject<T extends Record<string, unknown>>(obj: T): Partial<T> {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
+export function cleanObject<T extends Record<string, unknown>>(
+  obj: T,
+): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined),
+  ) as Partial<T>;
 }
+
+export * from "./constant";
+export * from "./translate-process.utils";

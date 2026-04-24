@@ -17,6 +17,7 @@ import {
 
 type TranslationCoreRequest = Record<string, string>;
 type TranslationCoreResponse = Record<string, unknown>;
+export type TranslationProgressCallback = (progress: number) => void;
 
 @Injectable()
 export class AiTranslateUseCase {
@@ -32,6 +33,13 @@ export class AiTranslateUseCase {
     return this.translateInChunks('/translate', dto);
   }
 
+  async executeWithProgress(
+    dto: TranslateRequestDto,
+    onProgress: TranslationProgressCallback,
+  ) {
+    return this.translateInChunks('/translate', dto, onProgress);
+  }
+
   async detectLanguage(dto: DetectLanguageRequestDto) {
     return this.postToTranslationCore('/detect_language', {
       text: dto.text,
@@ -42,16 +50,31 @@ export class AiTranslateUseCase {
     return this.translateInChunks('/translate_summarize', dto);
   }
 
-  private async translateInChunks(path: string, dto: TranslateRequestDto) {
+  async translateSummarizeWithProgress(
+    dto: TranslateRequestDto,
+    onProgress: TranslationProgressCallback,
+  ) {
+    return this.translateInChunks('/translate_summarize', dto, onProgress);
+  }
+
+  private async translateInChunks(
+    path: string,
+    dto: TranslateRequestDto,
+    onProgress?: TranslationProgressCallback,
+  ) {
     const targetLang = dto.target_lang ?? 'en';
     const chunkWordLimit = this.config.translation.chunkWordLimit;
     const chunks = this.splitTextByWordLimit(dto.source_text, chunkWordLimit);
 
     if (chunks.length <= 1) {
-      return this.postToTranslationCore(path, {
+      onProgress?.(10);
+      const response = await this.postToTranslationCore(path, {
         source_text: dto.source_text,
         target_lang: targetLang,
       });
+      onProgress?.(100);
+
+      return response;
     }
 
     this.logger.log(
@@ -60,13 +83,17 @@ export class AiTranslateUseCase {
 
     const responses: TranslationCoreResponse[] = [];
 
-    for (const chunk of chunks) {
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunk = chunks[index];
+
       responses.push(
         await this.postToTranslationCore(path, {
           source_text: chunk,
           target_lang: targetLang,
         }),
       );
+
+      onProgress?.(Math.round(((index + 1) / chunks.length) * 100));
     }
 
     const translatedText = responses

@@ -6,7 +6,7 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PageLayout } from "@/components/PageLayout";
@@ -40,12 +40,17 @@ import {
   getOcrText,
   getTranscriptText,
 } from "@/feature/translate/utils/translate-file.utils";
-import { formatError } from "@/utils";
-
-type ProcessingStep = "idle" | "extracting" | "translating";
+import {
+  animateProgressTo,
+  formatError,
+  TRANSLATE_JOB_POLL_INTERVAL_MS,
+  wait,
+  type ProcessingStep,
+} from "@/utils";
 
 export default function TranslateFile() {
   const translateFormRef = useRef<HTMLDivElement | null>(null);
+  const translateProgressRef = useRef(0);
   const [selectedFile, setSelectedFile] =
     useState<SelectedTranslateFile | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState(AUTO_LANGUAGE);
@@ -55,12 +60,18 @@ export default function TranslateFile() {
   const [translatedText, setTranslatedText] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [processingStep, setProcessingStep] = useState<ProcessingStep>("idle");
+  const [translateProgress, setTranslateProgress] = useState(0);
 
   const isBusy = processingStep !== "idle";
   const isAudio = selectedFile?.kind === "audio";
   const hasFile = Boolean(selectedFile);
   const hasSourceText = sourceText.trim().length > 0;
   const outputTitle = mode === "summarize" ? "Bản dịch tóm tắt" : "Bản dịch";
+
+  const updateTranslateProgress = useCallback((progress: number) => {
+    translateProgressRef.current = progress;
+    setTranslateProgress(progress);
+  }, []);
 
   const sourceLanguageOptions = useMemo(
     () => (isAudio ? SPEECH_LANGUAGES : OCR_LANGUAGES),
@@ -84,6 +95,7 @@ export default function TranslateFile() {
     setSourceText("");
     setTranslatedText("");
     setErrorMessage(null);
+    updateTranslateProgress(0);
   };
 
   const resetPage = () => {
@@ -146,21 +158,47 @@ export default function TranslateFile() {
     if (!normalizedText || processingStep !== "idle") return;
 
     setProcessingStep("translating");
+    updateTranslateProgress(0);
     setErrorMessage(null);
 
     try {
-      const result =
+      const job =
         translateMode === "summarize"
-          ? await translateApi.translateSummarize({
+          ? await translateApi.createTranslateSummarizeJob({
               sourceText: normalizedText,
               targetLang: translateTargetLanguage,
             })
-          : await translateApi.translate({
+          : await translateApi.createTranslateJob({
               sourceText: normalizedText,
               targetLang: translateTargetLanguage,
             });
 
-      setTranslatedText(result.translated_text ?? "");
+      while (true) {
+        const jobStatus = await translateApi.getTranslateJob(job.job_id);
+
+        if (jobStatus.status === "completed") {
+          await animateProgressTo(
+            translateProgressRef.current,
+            100,
+            updateTranslateProgress,
+          );
+          setTranslatedText(jobStatus.result?.translated_text ?? "");
+          break;
+        }
+
+        await animateProgressTo(
+          translateProgressRef.current,
+          jobStatus.progress,
+          updateTranslateProgress,
+        );
+
+        if (jobStatus.status === "failed") {
+          throw new Error(jobStatus.error ?? "Không thể dịch nội dung.");
+        }
+
+        await wait(TRANSLATE_JOB_POLL_INTERVAL_MS);
+      }
+
       toast.success(
         translateMode === "summarize"
           ? "Đã dịch và tóm tắt nội dung."
@@ -377,6 +415,7 @@ export default function TranslateFile() {
                   onClick={() => {
                     setSourceText("");
                     setTranslatedText("");
+                    updateTranslateProgress(0);
                   }}
                 >
                   <RotateCcw className="mr-2 size-4" />
@@ -390,6 +429,7 @@ export default function TranslateFile() {
                 onChange={(event) => {
                   setSourceText(event.target.value);
                   setTranslatedText("");
+                  updateTranslateProgress(0);
                 }}
                 disabled={isBusy}
                 placeholder="Nội dung trích xuất sẽ hiển thị tại đây."
@@ -408,7 +448,7 @@ export default function TranslateFile() {
                     <Languages className="mr-2 size-4" />
                   )}
                   {processingStep === "translating"
-                    ? "Đang dịch..."
+                    ? `Đang dịch... ${translateProgress}%`
                     : "Dịch văn bản"}
                 </Button>
               </div>
@@ -435,7 +475,18 @@ export default function TranslateFile() {
               {processingStep === "translating" ? (
                 <div className="flex h-94 min-h-94 max-h-94 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                   <LoaderCircle className="size-8 animate-spin text-primary-500" />
-                  <span>Đang dịch nội dung...</span>
+                  <div className="flex w-full max-w-xs flex-col items-center gap-2">
+                    <span>Đang dịch nội dung...</span>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary-500 transition-all duration-500 ease-out"
+                        style={{ width: `${translateProgress}%` }}
+                      />
+                    </div>
+                    <span className="font-medium text-primary-600">
+                      {translateProgress}%
+                    </span>
+                  </div>
                 </div>
               ) : translatedText ? (
                 <div className="h-94 min-h-94 max-h-94 overflow-y-auto whitespace-pre-wrap rounded-md border bg-muted/30 p-4 text-sm leading-6">
