@@ -1,7 +1,9 @@
 -include .env.production
 
-ENV_FILE ?= .env.production
-COMPOSE_FILE ?= docker-compose.prod.yml
+ROOT_DIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+
+ENV_FILE ?= $(ROOT_DIR)/.env.production
+COMPOSE_FILE ?= $(ROOT_DIR)/docker-compose.prod.yml
 BACKEND_IMAGE ?= ghcr.io/your-org/identify-voice-backend
 CLIENT_IMAGE ?= ghcr.io/your-org/identify-voice-client
 IMAGE_TAG ?= latest
@@ -21,12 +23,12 @@ export CLIENT_API_BASE_URL
 build: build-backend build-client
 
 build-backend:
-	docker build -f apps/api/Dockerfile -t $(BACKEND_IMAGE):$(IMAGE_TAG) .
+	docker build -f $(ROOT_DIR)/apps/api/Dockerfile -t $(BACKEND_IMAGE):$(IMAGE_TAG) $(ROOT_DIR)
 
 build-client:
-	docker build -f apps/client/Dockerfile \
+	docker build -f $(ROOT_DIR)/apps/client/Dockerfile \
 		--build-arg VITE_API_BASE_URL=$(CLIENT_API_BASE_URL) \
-		-t $(CLIENT_IMAGE):$(IMAGE_TAG) .
+		-t $(CLIENT_IMAGE):$(IMAGE_TAG) $(ROOT_DIR)
 
 push:
 	docker push $(BACKEND_IMAGE):$(IMAGE_TAG)
@@ -55,5 +57,4 @@ restart:
 
 seed:
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) run --rm backend pnpm run db:seed:prod
-
 
