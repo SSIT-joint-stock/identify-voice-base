@@ -76,11 +76,6 @@ const navigation: NavItem[] = [
     icon: Home,
   },
   {
-    title: "Trang chủ",
-    url: ROUTES.HOME,
-    icon: Home,
-  },
-  {
     title: "Nhận dạng giọng nói",
     icon: Mic,
     children: [
