@@ -1,5 +1,5 @@
-import storageConfig from '@/config/storage.config';
 import { SearchUtil } from '@/common/helpers/search.util';
+import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -33,55 +33,16 @@ export class VoicesRepository {
     const searchSource = Object.values(UserSource).find(
       (source) => source.toLowerCase() === normalizedSearch?.toLowerCase(),
     );
-    const searchDateRange =
-      this.searchUtil.parseSearchDateRange(normalizedSearch);
-    const searchUuid = this.searchUtil.isUuid(normalizedSearch)
-      ? normalizedSearch
-      : null;
 
     const where: Prisma.voice_recordsWhereInput = {
       is_active: true,
       ...(normalizedSearch && {
         OR: [
-          { voice_id: { contains: normalizedSearch, mode: 'insensitive' } },
           { user_name: { contains: normalizedSearch, mode: 'insensitive' } },
           { user_email: { contains: normalizedSearch, mode: 'insensitive' } },
-          ...(searchUuid
-            ? [
-                { id: { equals: searchUuid } },
-                { user_id: { equals: searchUuid } },
-                { audio_file_id: { equals: searchUuid } },
-              ]
-            : []),
-          ...(searchDateRange ? [{ created_at: searchDateRange }] : []),
-          {
-            audio_file: {
-              OR: [
-                {
-                  file_name: {
-                    contains: normalizedSearch,
-                    mode: 'insensitive',
-                  },
-                },
-                {
-                  file_path: {
-                    contains: normalizedSearch,
-                    mode: 'insensitive',
-                  },
-                },
-                {
-                  mime_type: {
-                    contains: normalizedSearch,
-                    mode: 'insensitive',
-                  },
-                },
-              ],
-            },
-          },
           {
             user: {
               OR: [
-                ...(searchUuid ? [{ id: { equals: searchUuid } }] : []),
                 {
                   name: {
                     contains: normalizedSearch,
@@ -119,6 +80,10 @@ export class VoicesRepository {
                     mode: 'insensitive',
                   },
                 },
+                ...this.buildCriminalRecordSearchFilters(
+                  normalizedSearch,
+                  searchAge,
+                ),
                 ...(searchAge !== null ? [{ age: { equals: searchAge } }] : []),
                 ...(searchGender ? [{ gender: { equals: searchGender } }] : []),
                 ...(searchSource ? [{ source: { equals: searchSource } }] : []),
@@ -258,6 +223,34 @@ export class VoicesRepository {
       audioFileIds: activeRecord ? [activeRecord.audio_file_id] : [],
       audioPaths: activeRecord ? [activeRecord.audio_file.file_path] : [],
     };
+  }
+
+  private buildCriminalRecordSearchFilters(
+    search: string,
+    searchYear: number | null,
+  ): Prisma.usersWhereInput[] {
+    const maxCriminalRecordItems = 20;
+    const filters: Prisma.usersWhereInput[] = [];
+
+    for (let index = 0; index < maxCriminalRecordItems; index += 1) {
+      filters.push({
+        criminal_record: {
+          path: [String(index), 'case'],
+          string_contains: search,
+        },
+      });
+
+      if (searchYear !== null) {
+        filters.push({
+          criminal_record: {
+            path: [String(index), 'year'],
+            equals: searchYear,
+          },
+        });
+      }
+    }
+
+    return filters;
   }
 
   /**

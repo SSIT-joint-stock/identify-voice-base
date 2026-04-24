@@ -32,13 +32,13 @@ Authorization: Bearer <access_token>
 
 **Query parameters:**
 
-| Param        | Type     | Default | Mô tả                                                                                                              |
-| ------------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------ |
-| `page`       | `number` | `1`     | Số trang (bắt đầu từ 1)                                                                                            |
-| `page_size`  | `number` | `10`    | Kích thước trang, tối đa `100`                                                                                     |
-| `search`     | `string` | —       | Tìm kiếm theo `name`, `citizen_identification`, `phone_number`, `job`, `hometown`, `passport`, tuổi hoặc giới tính |
-| `sort_by`    | `enum`   | `name`  | Trường sắp xếp: `name` hoặc `enrolled_at`                                                                          |
-| `sort_order` | `enum`   | `asc`   | Chiều sắp xếp: `asc` hoặc `desc`                                                                                   |
+| Param        | Type     | Default | Mô tả                                                                                                                                 |
+| ------------ | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `page`       | `number` | `1`     | Số trang (bắt đầu từ 1)                                                                                                               |
+| `page_size`  | `number` | `10`    | Kích thước trang, tối đa `100`                                                                                                        |
+| `search`     | `string` | —       | Tìm kiếm theo `name`, `citizen_identification`, `phone_number`, `job`, `hometown`, `passport`, `criminal_record`, `age` hoặc `gender` |
+| `sort_by`    | `enum`   | `name`  | Trường sắp xếp: `name` hoặc `enrolled_at`                                                                                             |
+| `sort_order` | `enum`   | `asc`   | Chiều sắp xếp: `asc` hoặc `desc`                                                                                                      |
 
 **cURL:**
 
@@ -135,27 +135,23 @@ const where: Prisma.voice_recordsWhereInput = {
           { job: { contains: search, mode: 'insensitive' } },
           { hometown: { contains: search, mode: 'insensitive' } },
           { passport: { contains: search } },
-          ...(Number.isInteger(searchAge) ? [{ age: { equals: searchAge } }] : []),
+          {
+            criminal_record: {
+              path: ['0', 'case'],
+              string_contains: search,
+            },
+          },
+          ...(Number.isInteger(searchAge)
+            ? [{ age: { equals: searchAge } }]
+            : []),
           ...(searchGender ? [{ gender: { equals: searchGender } }] : []),
         ],
       }
     : undefined,
 };
-
-const [items, total] = await Promise.all([
-  prisma.voice_records.findMany({
-    where,
-    include: { user: true },
-    orderBy: { created_at: 'desc' },
-    skip: (page - 1) * page_size,
-    take: page_size,
-  }),
-  prisma.voice_records.count({ where }),
-]);
-
-// 4. Transform kết quả trả về cho Client
-const transformed = items.map((record) => ({ ... }));
 ```
+
+`criminal_record` là JSONB array dạng `[{ "case": "...", "year": 2021 }]`, nên backend search qua Prisma JSON `path` trên các phần tử `criminal_record[n].case` và `criminal_record[n].year`.
 
 > **Lưu ý:** Chỉ trả về các bản ghi có `is_active = true`. Các bản ghi bị vô hiệu hóa sẽ bị ẩn khỏi danh sách này.
 
