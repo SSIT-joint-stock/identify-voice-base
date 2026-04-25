@@ -81,6 +81,7 @@ export class AiIdentifyMultiUseCase {
 
       aiResults = response.data;
     } catch (error) {
+      console.log(error);
       if (error instanceof InternalServerErrorException) throw error;
       throw new InternalServerErrorException(
         `Lỗi khi gọi AI Service (Multi): ${error.message}`,

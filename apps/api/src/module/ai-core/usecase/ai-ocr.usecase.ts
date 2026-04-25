@@ -77,6 +77,7 @@ export class AiOcrUseCase {
 
       return response.data;
     } catch (error) {
+      console.log(error);
       if (
         error instanceof BadRequestException ||
         error instanceof InternalServerErrorException

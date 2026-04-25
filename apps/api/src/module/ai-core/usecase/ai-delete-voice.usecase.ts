@@ -63,6 +63,7 @@ export class AiDeleteVoiceUseCase {
           ),
       );
     } catch (error) {
+      console.log(error);
       if (error instanceof InternalServerErrorException) throw error;
 
       throw new InternalServerErrorException(
