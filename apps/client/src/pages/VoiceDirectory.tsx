@@ -32,133 +32,21 @@ import {
 import { QUERY_KEYS } from "@/constants";
 import { voiceDirectoryApi } from "@/feature/voice-directory/api/voice-directory.api";
 import { VoiceDirectoryDetailSheet } from "@/feature/voice-directory/components/VoiceDirectoryDetailSheet";
+import { VoiceDirectorySearchBar } from "@/feature/voice-directory/components/VoiceDirectorySearchBar";
+import type { VoiceDirectorySearchField } from "@/feature/voice-directory/types/voice-directory.types";
 import {
-  type VoiceDirectorySearchField,
-  VoiceDirectorySearchBar,
-} from "@/feature/voice-directory/components/VoiceDirectorySearchBar";
-
-const AVATAR_COLORS = [
-  "bg-violet-100 text-violet-700",
-  "bg-sky-100 text-sky-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-amber-100 text-amber-700",
-  "bg-rose-100 text-rose-700",
-  "bg-indigo-100 text-indigo-700",
-  "bg-teal-100 text-teal-700",
-  "bg-orange-100 text-orange-700",
-];
-
-function getAvatarColor(name: string): string {
-  let hash = 0;
-  for (let index = 0; index < name.length; index += 1) {
-    hash = name.charCodeAt(index) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]!;
-}
-
-const SORT_OPTIONS = [
-  { value: "name:asc", label: "Sắp xếp theo tên (A - Z)" },
-  { value: "name:desc", label: "Sắp xếp theo tên (Z - A)" },
-  { value: "enrolled_at:desc", label: "Sắp xếp theo ngày mới nhất" },
-  { value: "enrolled_at:asc", label: "Sắp xếp theo ngày cũ nhất" },
-] as const;
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
-
-function GenderPill({
-  gender,
-}: {
-  gender?: "MALE" | "FEMALE" | "OTHER" | null;
-}) {
-  if (gender === "MALE") {
-    return (
-      <span className="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-        Nam
-      </span>
-    );
-  }
-
-  if (gender === "FEMALE") {
-    return (
-      <span className="inline-flex items-center rounded-md bg-pink-50 px-2 py-0.5 text-xs font-medium text-pink-700">
-        Nữ
-      </span>
-    );
-  }
-
-  return <span className="text-xs text-slate-400">-</span>;
-}
-
-function AgePill({ age }: { age?: number | null }) {
-  if (typeof age !== "number" || !Number.isFinite(age) || age <= 0) {
-    return <span className="text-xs text-slate-400">-</span>;
-  }
-
-  return (
-    <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-      {age}
-    </span>
-  );
-}
-
-function PassportPill({ value }: { value?: string | null }) {
-  if (!value) {
-    return <span className="text-xs text-slate-400">-</span>;
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-      <svg
-        viewBox="0 0 24 24"
-        className="size-3 text-indigo-500"
-        aria-hidden="true"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      >
-        <rect x="5" y="3" width="14" height="18" rx="2" />
-        <circle cx="12" cy="10" r="3" />
-        <path d="M9 10h6" />
-        <path d="M12 7c1 1.7 1 4.3 0 6" />
-        <path d="M8 17h8" />
-      </svg>
-      {value}
-    </span>
-  );
-}
-
-function buildPaginationItems(currentPage: number, totalPages: number) {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 3) {
-    return [1, 2, 3, 4, "ellipsis", totalPages] as const;
-  }
-
-  if (currentPage >= totalPages - 2) {
-    return [
-      1,
-      "ellipsis",
-      totalPages - 3,
-      totalPages - 2,
-      totalPages - 1,
-      totalPages,
-    ] as const;
-  }
-
-  return [
-    1,
-    "ellipsis",
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    "ellipsis",
-    totalPages,
-  ] as const;
-}
+  GENDER_FILTER_OPTIONS,
+  PAGE_SIZE_OPTIONS,
+  SORT_OPTIONS,
+  buildPaginationItems,
+  getAvatarColor,
+} from "./VoiceDirectory.constants";
+import {
+  AgePill,
+  GenderPill,
+  InfoTooltip,
+  PassportPill,
+} from "./VoiceDirectory.helpers";
 
 export default function VoiceDirectory() {
   const [searchInput, setSearchInput] = useState("");
@@ -168,6 +56,8 @@ export default function VoiceDirectory() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] =
     useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
+  const [selectedGender, setSelectedGender] =
+    useState<(typeof GENDER_FILTER_OPTIONS)[number]["value"]>("all");
   const [sortBy, setSortBy] = useState<"name" | "enrolled_at">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -176,6 +66,8 @@ export default function VoiceDirectory() {
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: QUERY_KEYS.voice.directory.list({
       search: querySearch,
+      searchField: selectedSearchField,
+      gender: selectedGender,
       page,
       pageSize,
       sortBy,
@@ -186,6 +78,8 @@ export default function VoiceDirectory() {
         page,
         page_size: pageSize,
         search: querySearch || undefined,
+        search_field: selectedSearchField || undefined,
+        gender: selectedGender === "all" ? undefined : selectedGender,
         sort_by: sortBy,
         sort_order: sortOrder,
       }),
@@ -197,6 +91,7 @@ export default function VoiceDirectory() {
   const totalPages = pagination?.total_pages ?? 1;
   const sortValue = `${sortBy}:${sortOrder}` as const;
   const paginationItems = buildPaginationItems(page, totalPages);
+  const hasActiveFilter = Boolean(querySearch) || selectedGender !== "all";
 
   const openDetail = (id: string) => {
     setSelectedId(id);
@@ -232,6 +127,27 @@ export default function VoiceDirectory() {
         />
 
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
+          <Select
+            value={selectedGender}
+            onValueChange={(value) => {
+              setSelectedGender(
+                value as (typeof GENDER_FILTER_OPTIONS)[number]["value"],
+              );
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-40 shrink-0 bg-white">
+              <SelectValue placeholder="Lọc giới tính" />
+            </SelectTrigger>
+            <SelectContent>
+              {GENDER_FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Select
             value={sortValue}
             onValueChange={(value) => {
@@ -300,9 +216,11 @@ export default function VoiceDirectory() {
           <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 text-center">
             <UserRound className="size-10 text-slate-300" />
             <p className="text-sm text-muted-foreground">
-              {querySearch ? "Không có hồ sơ phù hợp." : "Chưa có hồ sơ nào."}
+              {hasActiveFilter
+                ? "Không có hồ sơ phù hợp."
+                : "Chưa có hồ sơ nào."}
             </p>
-            {querySearch ? (
+            {hasActiveFilter ? (
               <Button
                 type="button"
                 variant="outline"
@@ -310,6 +228,7 @@ export default function VoiceDirectory() {
                 onClick={() => {
                   setSearchInput("");
                   setSelectedSearchField(null);
+                  setSelectedGender("all");
                   setPage(1);
                 }}
               >
@@ -318,7 +237,7 @@ export default function VoiceDirectory() {
             ) : null}
           </div>
         ) : (
-          <Table className="table-fixed">
+          <Table className=" table-fixed">
             <TableHeader className="sticky top-0 z-20 bg-white shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-[20%] pl-6">Họ và tên</TableHead>
@@ -352,8 +271,10 @@ export default function VoiceDirectory() {
                         >
                           {initial}
                         </div>
-                        <span className="truncate text-sm font-semibold text-slate-800">
-                          {row.name}
+                        <span className="min-w-0 truncate text-sm font-semibold text-slate-800">
+                          <InfoTooltip value={row.name}>
+                            <span className="block truncate">{row.name}</span>
+                          </InfoTooltip>
                         </span>
                       </div>
                     </TableCell>
@@ -368,10 +289,14 @@ export default function VoiceDirectory() {
 
                     <TableCell>
                       {row.citizen_identification ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-                          <IdCard className="size-3 text-blue-500" />
-                          {row.citizen_identification}
-                        </span>
+                        <InfoTooltip value={row.citizen_identification}>
+                          <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                            <IdCard className="size-3 shrink-0 text-blue-500" />
+                            <span className="truncate">
+                              {row.citizen_identification}
+                            </span>
+                          </span>
+                        </InfoTooltip>
                       ) : (
                         <span className="text-xs text-slate-400">
                           Chưa có CCCD
@@ -381,10 +306,12 @@ export default function VoiceDirectory() {
 
                     <TableCell>
                       {row.phone_number ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-                          <Phone className="size-3 text-green-500" />
-                          {row.phone_number}
-                        </span>
+                        <InfoTooltip value={row.phone_number}>
+                          <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                            <Phone className="size-3 shrink-0 text-green-500" />
+                            <span className="truncate">{row.phone_number}</span>
+                          </span>
+                        </InfoTooltip>
                       ) : (
                         <span className="text-xs text-slate-400">
                           Chưa có SĐT
@@ -398,12 +325,20 @@ export default function VoiceDirectory() {
 
                     <TableCell>
                       {row.enrolled_at ? (
-                        <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                          ✓{" "}
-                          {new Date(row.enrolled_at).toLocaleDateString(
+                        <InfoTooltip
+                          value={new Date(row.enrolled_at).toLocaleString(
                             "vi-VN",
                           )}
-                        </span>
+                        >
+                          <span className="inline-flex max-w-full items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                            <span className="truncate">
+                              ✓{" "}
+                              {new Date(row.enrolled_at).toLocaleDateString(
+                                "vi-VN",
+                              )}
+                            </span>
+                          </span>
+                        </InfoTooltip>
                       ) : (
                         <span className="text-xs text-slate-400">-</span>
                       )}

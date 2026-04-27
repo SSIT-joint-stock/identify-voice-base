@@ -16,15 +16,7 @@ import {
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { cn } from "@/lib/utils";
-
-export type VoiceDirectorySearchField =
-  | "name"
-  | "hometown"
-  | "phone_number"
-  | "citizen_identification"
-  | "criminal_record"
-  | "passport"
-  | "age";
+import type { VoiceDirectorySearchField } from "../types/voice-directory.types";
 
 type SearchFieldOption = {
   id: VoiceDirectorySearchField;
@@ -99,6 +91,14 @@ const SEARCH_FIELD_OPTIONS: SearchFieldOption[] = [
     icon: Hash,
     inputMode: "numeric",
     placeholder: "Nhập độ tuổi cần tìm...",
+  },
+  {
+    id: "gender",
+    label: "Giới tính",
+    description: "Tra cứu theo giới tính đã lưu trong hồ sơ.",
+    aliases: ["gioi tinh", "nam", "nu", "male", "female"],
+    icon: UserRound,
+    placeholder: "Nhập Nam hoặc Nữ...",
   },
 ];
 

@@ -6,6 +6,7 @@ import { registerAs } from '@nestjs/config';
  */
 const AUDIO_MIME_MAP: Record<string, string> = {
   'audio/wav': 'wav',
+  'audio/vnd.wave': 'wav',
   'audio/wave': 'wav',
   'audio/x-wav': 'wav',
   'audio/mpeg': 'mp3',
@@ -19,13 +20,18 @@ const AUDIO_MIME_MAP: Record<string, string> = {
   'audio/webm': 'webm',
 };
 
+const normalizeMimeType = (mimeType: string): string =>
+  mimeType.split(';')[0]?.trim().toLowerCase() || mimeType;
+
 /**
  * Storage & Asset configuration
  */
 export default registerAs('storage', () => {
   const allowedMimes = (
     process.env.STORAGE_ALLOWED_MIMES ?? 'audio/mpeg,audio/wav,audio/webm'
-  ).split(',');
+  )
+    .split(',')
+    .map(normalizeMimeType);
 
   return {
     driver: process.env.STORAGE_DRIVER ?? 'local',
@@ -44,14 +50,14 @@ export default registerAs('storage', () => {
      * Returns 'bin' as fallback.
      */
     getExtension: (mimeType: string): string => {
-      return AUDIO_MIME_MAP[mimeType] ?? 'bin';
+      return AUDIO_MIME_MAP[normalizeMimeType(mimeType)] ?? 'bin';
     },
 
     /**
      * Check if mime type is allowed based on config.
      */
     isMimeAllowed: (mimeType: string): boolean => {
-      return allowedMimes.includes(mimeType);
+      return allowedMimes.includes(normalizeMimeType(mimeType));
     },
   };
 });

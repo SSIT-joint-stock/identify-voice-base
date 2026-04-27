@@ -23,6 +23,17 @@ export const QUERY_KEYS = {
     directory: {
       list: (params: {
         search: string;
+        searchField:
+          | "name"
+          | "hometown"
+          | "phone_number"
+          | "citizen_identification"
+          | "criminal_record"
+          | "passport"
+          | "age"
+          | "gender"
+          | null;
+        gender: "all" | "MALE" | "FEMALE" | "OTHER";
         page: number;
         pageSize: 10 | 20 | 50;
         sortBy: "name" | "enrolled_at";

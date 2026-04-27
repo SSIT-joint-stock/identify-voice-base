@@ -335,7 +335,11 @@ export function VoiceDirectoryDetailSheet({
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="vd-name">Họ và tên</Label>
-                      <Input id="vd-name" {...form.register("name")} />
+                      <Input
+                        id="vd-name"
+                        placeholder="Nhập họ tên"
+                        {...form.register("name")}
+                      />
                       {form.formState.errors.name ? (
                         <p className="text-xs text-destructive">
                           {form.formState.errors.name.message}
@@ -346,12 +350,18 @@ export function VoiceDirectoryDetailSheet({
                       <Label htmlFor="vd-cccd">CCCD</Label>
                       <Input
                         id="vd-cccd"
+                        placeholder="Nhập CCCD"
                         {...form.register("citizen_identification")}
                       />
                     </div>
-                    <div className="hidden">
-                      <Label htmlFor="vd-phone">Điện thoại</Label>
-                      <Input id="vd-phone" {...form.register("phone_number")} />
+                    <div className="space-y-2">
+                      <Label htmlFor="vd-phone">Số điện thoại</Label>
+                      <Input
+                        id="vd-phone"
+                        inputMode="tel"
+                        placeholder="Nhập số điện thoại"
+                        {...form.register("phone_number")}
+                      />
                       {form.formState.errors.phone_number ? (
                         <p className="text-xs text-destructive">
                           {form.formState.errors.phone_number.message}
@@ -376,6 +386,7 @@ export function VoiceDirectoryDetailSheet({
                         id="vd-age"
                         inputMode="numeric"
                         pattern="[0-9]*"
+                        placeholder="Nhập tuổi"
                         {...form.register("age", {
                           onChange: (event) => {
                             event.target.value = event.target.value.replace(
@@ -393,15 +404,27 @@ export function VoiceDirectoryDetailSheet({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="vd-hometown">Quê quán</Label>
-                      <Input id="vd-hometown" {...form.register("hometown")} />
+                      <Input
+                        id="vd-hometown"
+                        placeholder="Nhập quê quán"
+                        {...form.register("hometown")}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="vd-job">Nghề nghiệp</Label>
-                      <Input id="vd-job" {...form.register("job")} />
+                      <Input
+                        id="vd-job"
+                        placeholder="Nhập nghề nghiệp"
+                        {...form.register("job")}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="vd-passport">Hộ chiếu</Label>
-                      <Input id="vd-passport" {...form.register("passport")} />
+                      <Input
+                        id="vd-passport"
+                        placeholder="Nhập số hộ chiếu"
+                        {...form.register("passport")}
+                      />
                     </div>
                   </div>
 
@@ -432,6 +455,7 @@ export function VoiceDirectoryDetailSheet({
                           <div className="flex-1 space-y-1">
                             <Label className="text-xs">Vụ việc</Label>
                             <Input
+                              placeholder="Ví dụ: Tội trộm cắp"
                               {...form.register(
                                 `criminal_record.${index}.case`,
                               )}
@@ -440,6 +464,7 @@ export function VoiceDirectoryDetailSheet({
                           <div className="flex-1 space-y-1">
                             <Label className="text-xs">Năm</Label>
                             <Input
+                              placeholder="Nhập năm"
                               {...form.register(
                                 `criminal_record.${index}.year`,
                               )}

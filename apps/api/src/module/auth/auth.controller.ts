@@ -30,6 +30,17 @@ export class AuthController {
     private readonly cookieCfg: ConfigType<typeof cookieConfig>,
   ) {}
 
+  private getRefreshCookieOptions() {
+    return {
+      httpOnly: this.cookieCfg.httpOnly,
+      secure: this.cookieCfg.secure,
+      sameSite: this.cookieCfg.sameSite,
+      maxAge: this.cookieCfg.maxAge,
+      path: this.cookieCfg.path,
+      domain: this.cookieCfg.domain,
+    } as const;
+  }
+
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Đăng nhập người dùng' })
@@ -40,12 +51,7 @@ export class AuthController {
   ) {
     const result = await this.authService.login(dto);
     res.cookie('refresh_token', result.refresh_token, {
-      httpOnly: this.cookieCfg.httpOnly,
-      secure: this.cookieCfg.secure,
-      sameSite: this.cookieCfg.sameSite,
-      maxAge: this.cookieCfg.maxAge,
-      path: this.cookieCfg.path,
-      domain: this.cookieCfg.domain,
+      ...this.getRefreshCookieOptions(),
     });
     return result;
   }
@@ -61,12 +67,7 @@ export class AuthController {
     const refreshToken = (req.cookies as Record<string, string>)?.refresh_token;
     const result = await this.authService.refresh(refreshToken);
     res.cookie('refresh_token', result.refresh_token, {
-      httpOnly: this.cookieCfg.httpOnly,
-      secure: this.cookieCfg.secure,
-      sameSite: this.cookieCfg.sameSite,
-      maxAge: this.cookieCfg.maxAge,
-      path: this.cookieCfg.path,
-      domain: this.cookieCfg.domain,
+      ...this.getRefreshCookieOptions(),
     });
     return result;
   }
@@ -82,7 +83,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logout(user.id);
-    res.clearCookie('refresh_token');
+    res.clearCookie('refresh_token', {
+      ...this.getRefreshCookieOptions(),
+      maxAge: undefined,
+    });
   }
 
   @Post('reset-password')

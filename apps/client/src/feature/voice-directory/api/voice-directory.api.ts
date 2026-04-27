@@ -2,6 +2,7 @@ import axiosInstance from "@/api/axios.instance";
 import { VOICE_API_ENDPOINTS } from "@/constants";
 import type { ApiResponse } from "@/types";
 import type {
+  VoiceDirectorySearchField,
   SessionDetailForAudio,
   UpdateEmbeddingJobResponse,
   UpdateVoiceInfoPayload,
@@ -25,6 +26,8 @@ export interface ListVoicesParams {
   page?: number;
   page_size?: number;
   search?: string;
+  search_field?: VoiceDirectorySearchField;
+  gender?: "MALE" | "FEMALE" | "OTHER";
   sort_by?: "name" | "enrolled_at";
   sort_order?: "asc" | "desc";
 }

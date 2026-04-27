@@ -5,6 +5,16 @@ export interface VoiceDirectoryPagination {
   total_pages: number;
 }
 
+export type VoiceDirectorySearchField =
+  | "name"
+  | "hometown"
+  | "phone_number"
+  | "citizen_identification"
+  | "criminal_record"
+  | "passport"
+  | "age"
+  | "gender";
+
 export interface VoiceDirectoryListItem {
   id: string;
   voice_id: string;

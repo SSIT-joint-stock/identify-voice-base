@@ -74,7 +74,14 @@ function isCurrentSpeaker(
 }
 
 function getFileNameFromUrl(audioUrl: string, currentName?: string | null) {
-  const fallbackName = `${currentName?.trim() || "voice-sample"}.wav`;
+  const trimmedName = currentName?.trim();
+  const fallbackName = trimmedName
+    ? `${trimmedName.replace(/\.[^.]+$/, "")}.wav`
+    : "voice-sample.wav";
+
+  if (trimmedName) {
+    return fallbackName;
+  }
 
   try {
     const parsed = new URL(audioUrl, window.location.origin);
@@ -89,6 +96,10 @@ function getFileNameFromUrl(audioUrl: string, currentName?: string | null) {
 
 function getItemAudioUrl(item: VoiceIdentifyItem) {
   return item.audio_url || item.enroll_audio_url || undefined;
+}
+
+function getAudioMimeType(blob: Blob) {
+  return blob.type.startsWith("audio/") ? blob.type : "audio/wav";
 }
 
 function getDisplayName(item: VoiceIdentifyItem, index: number) {
@@ -126,7 +137,7 @@ export function VoiceDuplicateMatchesDialog({
       const blob = await fetchProtectedAudioBlob(audioUrl);
       const fileName = getFileNameFromUrl(audioUrl, currentName);
       const file = new File([blob], fileName, {
-        type: blob.type || "audio/wav",
+        type: getAudioMimeType(blob),
         lastModified: Date.now(),
       });
 

@@ -77,7 +77,7 @@ export async function getValidAccessToken(options?: {
     return accessToken;
   }
 
-  if (!user) {
+  if (!user && !forceRefresh) {
     return accessToken ?? null;
   }
 
