@@ -169,6 +169,7 @@ export default function VoiceSearchSingle() {
             description="Sắp xếp theo điểm số giảm dần."
             items={items}
             emptyText="Chưa có kết quả nhận diện."
+            fallbackAudioFile={audioFile}
             onRegisterItem={openRegisterDialog}
             onDeleteItem={setDeleteTarget}
             deletingUserId={

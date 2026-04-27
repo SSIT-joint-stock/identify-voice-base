@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Info, Loader2, Play, Trash2 } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -12,25 +12,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { QUERY_KEYS } from "@/constants";
 import { voiceApi } from "@/feature/voice/api/voice.api";
 import { VoiceAudioPlayer } from "@/feature/voice/components/voice-audio-player";
+import { VoiceEnrollDialog } from "@/feature/voice/components/voice-enroll-dialog";
+import { VoiceTop5MatchTable } from "@/feature/voice/components/voice-top5-match-table";
 import { useNormalizeAudio } from "@/feature/voice/hooks/use-normalize-audio";
-import type { VoiceIdentifyItem } from "@/feature/voice/types/voice.types";
-import { getVoiceScoreMeta } from "@/feature/voice/utils/voice-score";
+import type {
+  VoiceIdentifyItem,
+  VoiceIdentifyTwoItem,
+} from "@/feature/voice/types/voice.types";
 import type { ApiError } from "@/types";
 
 import { voiceDirectoryApi } from "../api/voice-directory.api";
@@ -42,12 +33,6 @@ interface VoiceDuplicateMatchesDialogProps {
   currentUserId?: string | null;
   currentVoiceId?: string | null;
   currentName?: string | null;
-}
-
-interface AudioDialogState {
-  audioUrl: string;
-  fileName: string;
-  personName: string;
 }
 
 function normalizeId(value?: string | null) {
@@ -74,7 +59,14 @@ function isCurrentSpeaker(
 }
 
 function getFileNameFromUrl(audioUrl: string, currentName?: string | null) {
-  const fallbackName = `${currentName?.trim() || "voice-sample"}.wav`;
+  const trimmedName = currentName?.trim();
+  const fallbackName = trimmedName
+    ? `${trimmedName.replace(/\.[^.]+$/, "")}.wav`
+    : "voice-sample.wav";
+
+  if (trimmedName) {
+    return fallbackName;
+  }
 
   try {
     const parsed = new URL(audioUrl, window.location.origin);
@@ -87,18 +79,8 @@ function getFileNameFromUrl(audioUrl: string, currentName?: string | null) {
   }
 }
 
-function getItemAudioUrl(item: VoiceIdentifyItem) {
-  return item.audio_url || item.enroll_audio_url || undefined;
-}
-
-function getDisplayName(item: VoiceIdentifyItem, index: number) {
-  return item.name?.trim() || `Người ${index + 1}`;
-}
-
-function formatGender(gender: VoiceIdentifyItem["gender"]) {
-  if (gender === "MALE") return "Nam";
-  if (gender === "FEMALE") return "Nữ";
-  return "-";
+function getAudioMimeType(blob: Blob) {
+  return blob.type.startsWith("audio/") ? blob.type : "audio/wav";
 }
 
 export function VoiceDuplicateMatchesDialog({
@@ -115,7 +97,13 @@ export function VoiceDuplicateMatchesDialog({
   const [deleteTarget, setDeleteTarget] = useState<VoiceIdentifyItem | null>(
     null,
   );
-  const [audioDialog, setAudioDialog] = useState<AudioDialogState | null>(null);
+  const [openEnrollDialog, setOpenEnrollDialog] = useState(false);
+  const [selectedRegisterItem, setSelectedRegisterItem] =
+    useState<VoiceIdentifyItem | null>(null);
+  const [selectedRegisterIndex, setSelectedRegisterIndex] = useState<
+    number | null
+  >(null);
+  const [sampleAudioFile, setSampleAudioFile] = useState<File | null>(null);
 
   const searchMutation = useMutation({
     mutationFn: async () => {
@@ -126,10 +114,11 @@ export function VoiceDuplicateMatchesDialog({
       const blob = await fetchProtectedAudioBlob(audioUrl);
       const fileName = getFileNameFromUrl(audioUrl, currentName);
       const file = new File([blob], fileName, {
-        type: blob.type || "audio/wav",
+        type: getAudioMimeType(blob),
         lastModified: Date.now(),
       });
 
+      setSampleAudioFile(file);
       return voiceApi.identifyVoice({ file });
     },
     onSuccess: (data) => {
@@ -153,6 +142,7 @@ export function VoiceDuplicateMatchesDialog({
           : "Không thể tra cứu giọng trùng.";
       toast.error(msg);
       setItems([]);
+      setSampleAudioFile(null);
     },
   });
 
@@ -188,6 +178,38 @@ export function VoiceDuplicateMatchesDialog({
 
   const searchDuplicateMatches = searchMutation.mutate;
 
+  const openRegisterDialog = (item: VoiceIdentifyItem) => {
+    const nextIndex = items.findIndex(
+      (candidate) =>
+        candidate === item ||
+        (!!candidate.matched_voice_id &&
+          candidate.matched_voice_id === item.matched_voice_id) ||
+        (!!candidate.voice_id && candidate.voice_id === item.voice_id) ||
+        (!!candidate.user_id && candidate.user_id === item.user_id) ||
+        (candidate.name === item.name && candidate.score === item.score),
+    );
+
+    setSelectedRegisterItem(item);
+    setSelectedRegisterIndex(nextIndex >= 0 ? nextIndex : null);
+    setOpenEnrollDialog(true);
+  };
+
+  const handleEnrollSuccess = (data: VoiceIdentifyTwoItem) => {
+    if (selectedRegisterIndex === null) {
+      return;
+    }
+
+    setItems((prev) => {
+      const nextItems = [...prev];
+      nextItems[selectedRegisterIndex] = data;
+      return nextItems;
+    });
+
+    void queryClient.invalidateQueries({
+      queryKey: ["voice", "directory"],
+    });
+  };
+
   useEffect(() => {
     if (!open) return;
 
@@ -195,10 +217,6 @@ export function VoiceDuplicateMatchesDialog({
   }, [open, searchDuplicateMatches]);
 
   const isLoading = searchMutation.isPending;
-  const filteredCurrentVoiceId = useMemo(
-    () => normalizeId(currentVoiceId),
-    [currentVoiceId],
-  );
   const sampleAudioFileName = useMemo(
     () =>
       audioUrl
@@ -250,146 +268,20 @@ export function VoiceDuplicateMatchesDialog({
                       Không có hồ sơ giọng trùng khác.
                     </div>
                   ) : (
-                    <div className="no-scrollbar overflow-x-auto rounded-md border">
-                      <Table className="w-full table-fixed">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[6%] text-center">
-                              STT
-                            </TableHead>
-                            <TableHead className="w-[8%] text-center">
-                              Audio
-                            </TableHead>
-                            <TableHead className="w-[18%]">Họ và tên</TableHead>
-                            <TableHead className="w-[10%] text-center">
-                              Giới tính
-                            </TableHead>
-                            <TableHead className="w-[9%] text-center">
-                              Độ tuổi
-                            </TableHead>
-                            <TableHead className="w-[15%] text-center">
-                              CCCD
-                            </TableHead>
-                            <TableHead className="w-[13%] text-center">
-                              SĐT
-                            </TableHead>
-                            <TableHead className="w-[10%] text-center">
-                              Điểm số
-                            </TableHead>
-                            <TableHead className="w-[11%] text-center">
-                              Thao tác
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {items.map((item, index) => {
-                            const personName = getDisplayName(item, index);
-                            const rowAudioUrl = getItemAudioUrl(item);
-                            const scoreMeta = getVoiceScoreMeta(item.score);
-                            const isCurrentVoice =
-                              filteredCurrentVoiceId &&
-                              getItemVoiceId(item) === filteredCurrentVoiceId;
-
-                            return (
-                              <TableRow
-                                key={`duplicate-${getItemVoiceId(item) || item.user_id || index}`}
-                              >
-                                <TableCell className="text-center">
-                                  {index + 1}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {rowAudioUrl ? (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          type="button"
-                                          size="icon-sm"
-                                          variant="outline"
-                                          className="size-8 rounded-full"
-                                          onClick={() =>
-                                            setAudioDialog({
-                                              audioUrl: rowAudioUrl,
-                                              fileName: `${personName}.wav`,
-                                              personName,
-                                            })
-                                          }
-                                          aria-label={`Phát audio của ${personName}`}
-                                        >
-                                          <Play className="size-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        Phát audio của {personName}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  ) : (
-                                    <span className="text-muted-foreground">
-                                      -
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="min-w-0">
-                                  <div className="truncate font-medium">
-                                    {personName}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {formatGender(item.gender)}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {typeof item.age === "number" && item.age > 0
-                                    ? item.age
-                                    : "-"}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {item.citizen_identification || "-"}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  {item.phone_number || "-"}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <span
-                                    className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-medium ${scoreMeta.badgeClassName}`}
-                                  >
-                                    {typeof item.score === "number"
-                                      ? item.score.toFixed(4)
-                                      : "-"}
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        type="button"
-                                        size="icon-sm"
-                                        variant="destructive"
-                                        className="size-8 rounded-full"
-                                        disabled={
-                                          !item.user_id ||
-                                          isCurrentVoice ||
-                                          deleteVoiceMutation.isPending
-                                        }
-                                        onClick={() => setDeleteTarget(item)}
-                                        aria-label={`Xóa hồ sơ của ${personName}`}
-                                      >
-                                        <Trash2 className="size-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      {!item.user_id
-                                        ? "Chỉ xóa được hồ sơ đã đăng ký"
-                                        : isCurrentVoice
-                                          ? "Không thể xóa hồ sơ đang mở"
-                                          : `Xóa hồ sơ của ${personName}`}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
+                    <VoiceTop5MatchTable
+                      title="Những hồ sơ có giọng trùng"
+                      description="Sắp xếp theo điểm số giảm dần."
+                      items={items}
+                      emptyText="Không có hồ sơ giọng trùng khác."
+                      fallbackAudioFile={sampleAudioFile}
+                      onDeleteItem={setDeleteTarget}
+                      deletingUserId={
+                        deleteVoiceMutation.isPending
+                          ? (deleteTarget?.user_id ?? null)
+                          : null
+                      }
+                      onRegisterItem={openRegisterDialog}
+                    />
                   )}
                 </div>
               </div>
@@ -440,30 +332,19 @@ export function VoiceDuplicateMatchesDialog({
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={audioDialog !== null}
-        onOpenChange={(nextOpen) => !nextOpen && setAudioDialog(null)}
-      >
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{audioDialog?.personName || "Phát audio"}</DialogTitle>
-            <DialogDescription>
-              {audioDialog
-                ? `Phát audio của ${audioDialog.personName}`
-                : "Audio player"}
-            </DialogDescription>
-          </DialogHeader>
-
-          {audioDialog ? (
-            <VoiceAudioPlayer
-              file={null}
-              audioUrl={audioDialog.audioUrl}
-              fileName={audioDialog.fileName}
-              title={`Audio của ${audioDialog.personName}`}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <VoiceEnrollDialog
+        open={openEnrollDialog}
+        onOpenChange={(nextOpen) => {
+          setOpenEnrollDialog(nextOpen);
+          if (!nextOpen) {
+            setSelectedRegisterItem(null);
+            setSelectedRegisterIndex(null);
+          }
+        }}
+        sourceFile={sampleAudioFile}
+        speakerItem={selectedRegisterItem as VoiceIdentifyTwoItem | null}
+        onEnrollSuccess={handleEnrollSuccess}
+      />
     </>
   );
 }
