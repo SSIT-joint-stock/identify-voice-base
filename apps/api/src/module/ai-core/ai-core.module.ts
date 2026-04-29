@@ -8,6 +8,7 @@ import { AiCoreController } from './ai-core.controller';
 import { AiTranslateJobService } from './service/ai-translate-job.service';
 import { AudioNormalizeService } from './service/audio-normalize.service';
 import { AudioSegmentService } from './service/audio-segment.service';
+import { TranslateExportService } from './service/translate-export.service';
 import { AiDeleteVoiceUseCase } from './usecase/ai-delete-voice.usecase';
 import { AiIdentifyMultiUseCase } from './usecase/ai-identify-multi.usecase';
 import { AiIdentifySingleUseCase } from './usecase/ai-identify-single.usecase';
@@ -22,6 +23,7 @@ import { UploadVoiceUseCase } from './usecase/ai-upload-voice.usecase';
   providers: [
     AiCoreService,
     AiTranslateJobService,
+    TranslateExportService,
     AudioNormalizeService,
     AudioSegmentService,
     UploadVoiceUseCase,

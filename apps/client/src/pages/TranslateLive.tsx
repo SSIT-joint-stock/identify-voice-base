@@ -1,5 +1,6 @@
 import {
   Copy,
+  Download,
   Languages,
   LoaderCircle,
   RotateCcw,
@@ -22,6 +23,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { translateApi } from "@/feature/translate/api/translate.api";
+import type { TranslateExportFormat } from "@/feature/translate/api/translate.api";
 import {
   AUTO_LANGUAGE,
   LIVE_TRANSLATE_SOURCE_LANGUAGE_OPTIONS,
@@ -67,6 +69,8 @@ export default function TranslateLive() {
   const [translatedText, setTranslatedText] = useState("");
   const [isTranslating, setIsTranslating] = useState(false);
   const [translateProgress, setTranslateProgress] = useState(0);
+  const [exportingFormat, setExportingFormat] =
+    useState<TranslateExportFormat | null>(null);
 
   const hasSourceText = sourceText.trim().length > 0;
   const outputTitle = mode === "summarize" ? "Bản dịch tóm tắt" : "Bản dịch";
@@ -259,6 +263,40 @@ export default function TranslateLive() {
     }
   };
 
+  const getExportFilename = () =>
+    mode === "summarize" ? "ban-dich-tom-tat-truc-tiep" : "ban-dich-truc-tiep";
+
+  const downloadTranslatedFile = async (format: TranslateExportFormat) => {
+    const text = translatedText.trim();
+    if (!text || exportingFormat) return;
+
+    setExportingFormat(format);
+
+    try {
+      const filename = getExportFilename();
+      const blob = await translateApi.exportTranslation({
+        text,
+        format,
+        filename,
+        title: outputTitle,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `${filename}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Đã tải ${format.toUpperCase()}.`);
+    } catch (error) {
+      toast.error(formatError(error));
+    } finally {
+      setExportingFormat(null);
+    }
+  };
+
   return (
     <PageLayout
       title="Dịch trực tiếp"
@@ -412,17 +450,47 @@ export default function TranslateLive() {
           <CardHeader className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>{outputTitle}</CardTitle>
 
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!translatedText.trim()}
-              onClick={() =>
-                void copyText(translatedText, "Đã sao chép bản dịch.")
-              }
-            >
-              <Copy className="mr-2 size-4" />
-              Sao chép kết quả
-            </Button>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!translatedText.trim()}
+                onClick={() =>
+                  void copyText(translatedText, "Đã sao chép bản dịch.")
+                }
+              >
+                <Copy className="mr-2 size-4" />
+                Sao chép kết quả
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!translatedText.trim() || Boolean(exportingFormat)}
+                onClick={() => void downloadTranslatedFile("docx")}
+              >
+                {exportingFormat === "docx" ? (
+                  <LoaderCircle className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 size-4" />
+                )}
+                DOCX
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!translatedText.trim() || Boolean(exportingFormat)}
+                onClick={() => void downloadTranslatedFile("pdf")}
+              >
+                {exportingFormat === "pdf" ? (
+                  <LoaderCircle className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 size-4" />
+                )}
+                PDF
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="min-h-0 flex-1">
             {isTranslating ? (

@@ -1,5 +1,6 @@
 import {
   Copy,
+  Download,
   FileText,
   Languages,
   LoaderCircle,
@@ -24,6 +25,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { translateApi } from "@/feature/translate/api/translate.api";
+import type { TranslateExportFormat } from "@/feature/translate/api/translate.api";
 import { TranslateAudioPreview } from "@/feature/translate/components/translate-audio-preview";
 import { TranslateFileDropzone } from "@/feature/translate/components/translate-file-dropzone";
 import {
@@ -48,6 +50,24 @@ import {
   type ProcessingStep,
 } from "@/utils";
 
+function getDetectedLanguageCode(
+  detectedLanguages?: string | string[],
+): string | null {
+  const rawLanguage = Array.isArray(detectedLanguages)
+    ? detectedLanguages[0]
+    : detectedLanguages;
+  const normalizedLanguage = rawLanguage?.trim();
+
+  return normalizedLanguage || null;
+}
+
+function getLanguageLabel(languageCode: string) {
+  return (
+    TRANSLATION_LANGUAGES.find((language) => language.value === languageCode)
+      ?.label ?? languageCode
+  );
+}
+
 export default function TranslateFile() {
   const translateFormRef = useRef<HTMLDivElement | null>(null);
   const translateProgressRef = useRef(0);
@@ -63,6 +83,8 @@ export default function TranslateFile() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [processingStep, setProcessingStep] = useState<ProcessingStep>("idle");
   const [translateProgress, setTranslateProgress] = useState(0);
+  const [exportingFormat, setExportingFormat] =
+    useState<TranslateExportFormat | null>(null);
 
   const isBusy = processingStep !== "idle";
   const isAudio = selectedFile?.kind === "audio";
@@ -75,10 +97,47 @@ export default function TranslateFile() {
     setTranslateProgress(progress);
   }, []);
 
-  const sourceLanguageOptions = useMemo(
-    () => (isAudio ? SPEECH_LANGUAGES : OCR_LANGUAGES),
-    [isAudio],
-  );
+  const sourceLanguageOptions = useMemo(() => {
+    const baseOptions = isAudio ? SPEECH_LANGUAGES : OCR_LANGUAGES;
+
+    if (
+      sourceLanguage !== AUTO_LANGUAGE &&
+      !baseOptions.some((language) => language.value === sourceLanguage)
+    ) {
+      return [
+        ...baseOptions,
+        {
+          value: sourceLanguage,
+          label: getLanguageLabel(sourceLanguage),
+        },
+      ];
+    }
+
+    return baseOptions;
+  }, [isAudio, sourceLanguage]);
+
+  const detectSourceLanguage = async (text: string) => {
+    const normalizedText = text.trim();
+    if (!normalizedText) return null;
+
+    try {
+      const result = await translateApi.detectLanguage({
+        text: normalizedText,
+      });
+      const detectedLanguage = getDetectedLanguageCode(
+        result.detected_languages,
+      );
+
+      if (detectedLanguage) {
+        setSourceLanguage(detectedLanguage);
+      }
+
+      return detectedLanguage;
+    } catch {
+      toast.warning("Không thể tự nhận diện ngôn ngữ nguồn.");
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (!selectedFile) return;
@@ -138,7 +197,12 @@ export default function TranslateFile() {
           denoiseAudio: shouldDenoiseAudio,
         });
         const text = getTranscriptText(result.transcript);
+        const detectedLanguage =
+          result.language ?? (await detectSourceLanguage(text));
 
+        if (detectedLanguage) {
+          setSourceLanguage(detectedLanguage);
+        }
         setSourceText(text);
         toast.success("Đã nhận dạng audio.", {
           id: loadingToastId,
@@ -151,6 +215,7 @@ export default function TranslateFile() {
         language,
       });
       const text = getOcrText(result.results);
+      await detectSourceLanguage(text);
 
       setSourceText(text);
       toast.success("Đã trích xuất văn bản.", {
@@ -233,25 +298,6 @@ export default function TranslateFile() {
     }
   };
 
-  const processFile = async (
-    file = selectedFile,
-    language = sourceLanguage,
-    translateMode = mode,
-    translateTargetLanguage = targetLanguage,
-    shouldReturnTimestamp = returnTimestamp,
-    shouldDenoiseAudio = denoiseAudio,
-  ) => {
-    const extractedText = await extractText(
-      file,
-      language,
-      shouldReturnTimestamp,
-      shouldDenoiseAudio,
-    );
-    if (!extractedText.trim()) return;
-
-    await translateText(extractedText, translateMode, translateTargetLanguage);
-  };
-
   const handleSelectedFileChange = (nextFile: SelectedTranslateFile | null) => {
     const nextSourceLanguage =
       nextFile?.kind === "audio" ? AUTO_LANGUAGE : "vi";
@@ -263,12 +309,7 @@ export default function TranslateFile() {
     resetResult();
 
     if (nextFile) {
-      if (nextFile.kind === "audio") {
-        void extractText(nextFile, nextSourceLanguage, false, false);
-        return;
-      }
-
-      void processFile(nextFile, nextSourceLanguage, mode, targetLanguage);
+      void extractText(nextFile, nextSourceLanguage, false, false);
     }
   };
 
@@ -304,6 +345,43 @@ export default function TranslateFile() {
       toast.success(successMessage);
     } catch {
       toast.error("Không thể sao chép nội dung.");
+    }
+  };
+
+  const getExportFilename = () => {
+    const sourceName = selectedFile?.file.name.replace(/\.[^.]+$/, "").trim();
+    const prefix = mode === "summarize" ? "ban-dich-tom-tat" : "ban-dich";
+
+    return sourceName ? `${prefix}-${sourceName}` : prefix;
+  };
+
+  const downloadTranslatedFile = async (format: TranslateExportFormat) => {
+    const text = translatedText.trim();
+    if (!text || exportingFormat) return;
+
+    setExportingFormat(format);
+
+    try {
+      const blob = await translateApi.exportTranslation({
+        text,
+        format,
+        filename: getExportFilename(),
+        title: outputTitle,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `${getExportFilename()}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Đã tải ${format.toUpperCase()}.`);
+    } catch (error) {
+      toast.error(formatError(error));
+    } finally {
+      setExportingFormat(null);
     }
   };
 
@@ -451,11 +529,7 @@ export default function TranslateFile() {
                 variant="outline"
                 className="shadow-lg shadow-slate-200/80 transition-shadow hover:shadow-xl hover:shadow-slate-300/80"
                 disabled={!selectedFile || isBusy}
-                onClick={() =>
-                  selectedFile?.kind === "audio"
-                    ? void extractText()
-                    : void processFile()
-                }
+                onClick={() => void extractText()}
               >
                 {processingStep === "extracting" ? (
                   <LoaderCircle className="mr-2 size-4 animate-spin" />
@@ -555,17 +629,47 @@ export default function TranslateFile() {
             <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle>{outputTitle}</CardTitle>
 
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!translatedText.trim()}
-                onClick={() =>
-                  void copyText(translatedText, "Đã sao chép bản dịch.")
-                }
-              >
-                <Copy className="mr-2 size-4" />
-                Sao chép kết quả
-              </Button>
+              <div className="flex flex-wrap gap-2 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!translatedText.trim()}
+                  onClick={() =>
+                    void copyText(translatedText, "Đã sao chép bản dịch.")
+                  }
+                >
+                  <Copy className="mr-2 size-4" />
+                  Sao chép kết quả
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!translatedText.trim() || Boolean(exportingFormat)}
+                  onClick={() => void downloadTranslatedFile("docx")}
+                >
+                  {exportingFormat === "docx" ? (
+                    <LoaderCircle className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 size-4" />
+                  )}
+                  DOCX
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!translatedText.trim() || Boolean(exportingFormat)}
+                  onClick={() => void downloadTranslatedFile("pdf")}
+                >
+                  {exportingFormat === "pdf" ? (
+                    <LoaderCircle className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 size-4" />
+                  )}
+                  PDF
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {processingStep === "translating" ? (

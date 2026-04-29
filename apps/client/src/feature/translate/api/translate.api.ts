@@ -26,6 +26,15 @@ export interface TranslateTextRequest {
   targetLang: string;
 }
 
+export type TranslateExportFormat = "docx" | "pdf";
+
+export interface TranslateExportRequest {
+  text: string;
+  format: TranslateExportFormat;
+  filename?: string;
+  title?: string;
+}
+
 export interface DetectLanguageRequest {
   text: string;
 }
@@ -123,6 +132,18 @@ export const translateApi = {
     );
 
     return unwrapApiResponse(response.data);
+  },
+
+  async exportTranslation(payload: TranslateExportRequest): Promise<Blob> {
+    const response = await axiosInstance.post<Blob>(
+      "/ai-core/translate/export",
+      payload,
+      {
+        responseType: "blob",
+      },
+    );
+
+    return response.data;
   },
 
   async translateSummarize(

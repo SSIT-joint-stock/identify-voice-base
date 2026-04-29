@@ -1,5 +1,5 @@
 import { OCR, S2T, TRANSLATE } from '@/common/auth/permissions';
-import { ApiSuccess, Permissions } from '@/common/decorators';
+import { ApiSuccess, Permissions, RawResponse } from '@/common/decorators';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import {
@@ -8,6 +8,7 @@ import {
   Get,
   Param,
   Post,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -20,6 +21,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
 import {
   OCR_LANGUAGES,
   SPEECH_TO_TEXT_LANGUAGES,
@@ -29,10 +31,13 @@ import { OcrRequestDto } from './dto/ocr-request.dto';
 import { SpeechToTextRequestDto } from './dto/speech-to-text-request.dto';
 import {
   DetectLanguageRequestDto,
+  TranslateExportRequestDto,
+  TRANSLATE_EXPORT_FORMATS,
   TranslateRequestDto,
 } from './dto/translate-request.dto';
 import { AiCoreService } from './service/ai-core.service';
 import { AiTranslateJobService } from './service/ai-translate-job.service';
+import { TranslateExportService } from './service/translate-export.service';
 
 @ApiTags('ai-core')
 @ApiBearerAuth()
@@ -42,6 +47,7 @@ export class AiCoreController {
   constructor(
     private readonly aiCoreService: AiCoreService,
     private readonly translateJobService: AiTranslateJobService,
+    private readonly translateExportService: TranslateExportService,
   ) {}
 
   @Post('ocr')
@@ -180,6 +186,59 @@ export class AiCoreController {
   @Permissions([TRANSLATE.RUN])
   async getTranslateJob(@Param('jobId') jobId: string) {
     return this.translateJobService.getJob(jobId);
+  }
+
+  @Post('translate/export')
+  @ApiOperation({
+    summary: 'Xuất bản dịch sang DOCX hoặc PDF',
+    description:
+      'Tạo file DOCX/PDF từ nội dung đã dịch và trả về binary để FE tải xuống.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['text', 'format'],
+      properties: {
+        text: {
+          type: 'string',
+          example: 'Hello world',
+        },
+        format: {
+          type: 'string',
+          enum: [...TRANSLATE_EXPORT_FORMATS],
+          example: 'docx',
+        },
+        filename: {
+          type: 'string',
+          example: 'ban-dich',
+        },
+        title: {
+          type: 'string',
+          example: 'Bản dịch',
+        },
+      },
+    },
+  })
+  @RawResponse()
+  @Permissions([TRANSLATE.RUN])
+  async exportTranslate(
+    @Body() dto: TranslateExportRequestDto,
+    @Res() response: Response,
+  ) {
+    const file = await this.translateExportService.export(dto);
+    const encodedFilename = encodeURIComponent(file.filename);
+    const fallbackFilename = file.filename
+      .replace(/[^\x20-\x7e]+/g, '-')
+      .replace(/"/g, '');
+
+    response.setHeader('Content-Type', file.mimeType);
+    response.setHeader('Content-Length', file.buffer.length);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fallbackFilename}"; filename*=UTF-8''${encodedFilename}`,
+    );
+
+    response.send(file.buffer);
   }
 
   @Post('detect-language')
