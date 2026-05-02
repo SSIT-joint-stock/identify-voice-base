@@ -700,24 +700,56 @@ export default function AdminTranslationHistory() {
                 </pre>
               </div>
               <div className="overflow-hidden rounded-md border bg-white">
-                <div className="flex min-h-12 items-center justify-between gap-3 border-b px-4 py-2">
+                <div className="flex min-h-12 flex-wrap items-center justify-between gap-3 border-b px-4 py-2">
                   <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
                     Bản dịch
                   </p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      void copyText(
-                        selectedRecord.translated_text,
-                        "Đã sao chép bản dịch.",
-                      )
-                    }
-                  >
-                    <Copy className="size-4" />
-                    Sao chép
-                  </Button>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        void copyText(
+                          selectedRecord.translated_text,
+                          "Đã sao chép bản dịch.",
+                        )
+                      }
+                    >
+                      <Copy className="size-4" />
+                      Sao chép
+                    </Button>
+                    {(["docx", "pdf"] as const).map((format) => {
+                      const isExporting =
+                        exportingRecord?.id === selectedRecord.id &&
+                        exportingRecord.format === format;
+
+                      return (
+                        <Button
+                          key={format}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={Boolean(exportingRecord)}
+                          onClick={() =>
+                            void downloadTranslation(
+                              selectedRecord.id,
+                              selectedRecord.translated_text,
+                              selectedRecord.mode,
+                              format,
+                            )
+                          }
+                        >
+                          {isExporting ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Download className="size-4" />
+                          )}
+                          {format.toUpperCase()}
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <pre className="max-h-[55vh] min-h-72 overflow-auto whitespace-pre-wrap bg-slate-50 p-4 text-sm text-slate-700">
                   {selectedRecord.translated_text}
