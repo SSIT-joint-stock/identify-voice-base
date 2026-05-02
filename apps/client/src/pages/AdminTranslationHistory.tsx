@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Download,
   Languages,
   Loader2,
@@ -318,6 +319,17 @@ export default function AdminTranslationHistory() {
     setSourceLang(ALL_LANGUAGES);
     setTargetLang(ALL_LANGUAGES);
     setPage(1);
+  };
+
+  const copyText = async (text: string, successMessage: string) => {
+    if (!text.trim()) return;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(successMessage);
+    } catch {
+      toast.error("Không thể sao chép nội dung.");
+    }
   };
 
   const downloadTranslation = async (
@@ -663,19 +675,51 @@ export default function AdminTranslationHistory() {
           </DialogHeader>
           {selectedRecord ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-slate-700">
-                  Dữ liệu nguồn{" "}
-                </p>
-                <pre className="max-h-[55vh] overflow-auto whitespace-pre-wrap rounded-md border bg-slate-50 p-3 text-sm">
+              <div className="overflow-hidden rounded-md border bg-white">
+                <div className="flex min-h-12 items-center justify-between gap-3 border-b px-4 py-2">
+                  <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                    Văn bản gốc
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      void copyText(
+                        selectedRecord.source_text,
+                        "Đã sao chép văn bản gốc.",
+                      )
+                    }
+                  >
+                    <Copy className="size-4" />
+                    Sao chép
+                  </Button>
+                </div>
+                <pre className="max-h-[55vh] min-h-72 overflow-auto whitespace-pre-wrap bg-slate-50 p-4 text-sm text-slate-700">
                   {selectedRecord.source_text}
                 </pre>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-slate-700">
-                  Dữ liệu dịch
-                </p>
-                <pre className="max-h-[55vh] overflow-auto whitespace-pre-wrap rounded-md border bg-slate-50 p-3 text-sm">
+              <div className="overflow-hidden rounded-md border bg-white">
+                <div className="flex min-h-12 items-center justify-between gap-3 border-b px-4 py-2">
+                  <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                    Bản dịch
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      void copyText(
+                        selectedRecord.translated_text,
+                        "Đã sao chép bản dịch.",
+                      )
+                    }
+                  >
+                    <Copy className="size-4" />
+                    Sao chép
+                  </Button>
+                </div>
+                <pre className="max-h-[55vh] min-h-72 overflow-auto whitespace-pre-wrap bg-slate-50 p-4 text-sm text-slate-700">
                   {selectedRecord.translated_text}
                 </pre>
               </div>
