@@ -37,6 +37,7 @@ import {
   TranslateRequestDto,
 } from './dto/translate-request.dto';
 import { AiCoreService } from './service/ai-core.service';
+import { AiExtractionJobService } from './service/ai-extraction-job.service';
 import { AiTranslateJobService } from './service/ai-translate-job.service';
 import { TranslateExportService } from './service/translate-export.service';
 
@@ -47,6 +48,7 @@ import { TranslateExportService } from './service/translate-export.service';
 export class AiCoreController {
   constructor(
     private readonly aiCoreService: AiCoreService,
+    private readonly extractionJobService: AiExtractionJobService,
     private readonly translateJobService: AiTranslateJobService,
     private readonly translateExportService: TranslateExportService,
   ) {}
@@ -91,6 +93,22 @@ export class AiCoreController {
     return this.aiCoreService.ocr(file, dto);
   }
 
+  @Post('ocr/jobs')
+  @ApiOperation({
+    summary: 'Tạo job OCR file ảnh/PDF/DOCX/TXT qua AI CORE',
+    description: 'Tạo job OCR nền để FE có thể poll tiến trình theo phần trăm.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiSuccess('Tạo job OCR thành công')
+  @UseInterceptors(FileInterceptor('file'))
+  @Permissions([OCR.RUN])
+  async createOcrJob(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: OcrRequestDto,
+  ) {
+    return this.extractionJobService.createOcrJob(file, dto);
+  }
+
   @Post('speech-to-text')
   @ApiOperation({
     summary: 'Speech-to-Text qua AI CORE',
@@ -133,6 +151,44 @@ export class AiCoreController {
     @Body() dto: SpeechToTextRequestDto,
   ) {
     return this.aiCoreService.speechToText(file, dto);
+  }
+
+  @Post('speech-to-text/jobs')
+  @ApiOperation({
+    summary: 'Tạo job Speech-to-Text qua AI CORE',
+    description: 'Tạo job S2T nền để FE có thể poll tiến trình theo phần trăm.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiSuccess('Tạo job Speech-to-Text thành công')
+  @UseInterceptors(FileInterceptor('file'))
+  @Permissions([S2T.RUN])
+  async createSpeechToTextJob(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: SpeechToTextRequestDto,
+  ) {
+    return this.extractionJobService.createSpeechToTextJob(file, dto);
+  }
+
+  @Get('ocr/jobs/:jobId')
+  @ApiOperation({
+    summary: 'Lấy tiến trình job OCR',
+    description: 'Trả về status, progress và result nếu job OCR đã hoàn thành.',
+  })
+  @ApiSuccess('Lấy tiến trình job OCR thành công')
+  @Permissions([OCR.RUN])
+  async getOcrJob(@Param('jobId') jobId: string) {
+    return this.extractionJobService.getJob(jobId);
+  }
+
+  @Get('speech-to-text/jobs/:jobId')
+  @ApiOperation({
+    summary: 'Lấy tiến trình job Speech-to-Text',
+    description: 'Trả về status, progress và result nếu job S2T đã hoàn thành.',
+  })
+  @ApiSuccess('Lấy tiến trình job Speech-to-Text thành công')
+  @Permissions([S2T.RUN])
+  async getSpeechToTextJob(@Param('jobId') jobId: string) {
+    return this.extractionJobService.getJob(jobId);
   }
 
   @Post('translate')

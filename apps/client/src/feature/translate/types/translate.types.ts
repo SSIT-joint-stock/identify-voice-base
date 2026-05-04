@@ -30,6 +30,23 @@ export interface TranslateJobCreateResponse {
   job_id: string;
 }
 
+export type ExtractionJobMode = "ocr" | "speech-to-text";
+
+export interface ExtractionJobCreateResponse {
+  job_id: string;
+}
+
+export interface ExtractionJobResponse<T = unknown> {
+  job_id: string;
+  status: TranslateJobStatus;
+  progress: number;
+  mode: ExtractionJobMode;
+  result?: T;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TranslateJobResponse {
   job_id: string;
   status: TranslateJobStatus;

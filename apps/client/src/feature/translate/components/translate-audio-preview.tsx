@@ -9,6 +9,7 @@ import { formatAudioTime } from "../utils/translate-file.utils";
 interface TranslateAudioPreviewProps {
   file: File | null;
   className?: string;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
 const WAVEFORM_FALLBACK_MESSAGE =
@@ -17,6 +18,7 @@ const WAVEFORM_FALLBACK_MESSAGE =
 export function TranslateAudioPreview({
   file,
   className,
+  onLoadingChange,
 }: TranslateAudioPreviewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
@@ -25,6 +27,7 @@ export function TranslateAudioPreview({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const isLoading = Boolean(file) && !audioError && !isReady;
 
   const objectUrl = useMemo(() => {
     if (!file) return null;
@@ -38,6 +41,10 @@ export function TranslateAudioPreview({
       }
     };
   }, [objectUrl]);
+
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
 
   useEffect(() => {
     if (!file || !containerRef.current) return;
@@ -162,7 +169,7 @@ export function TranslateAudioPreview({
             className={cn("w-full", audioError && "hidden")}
           />
 
-          {!audioError && !isReady ? (
+          {isLoading ? (
             <div className="flex min-h-24 items-center justify-center text-sm text-muted-foreground">
               <LoaderCircle className="mr-2 size-4 animate-spin" />
               Đang tải audio...

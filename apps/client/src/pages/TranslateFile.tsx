@@ -116,6 +116,7 @@ export default function TranslateFile() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [processingStep, setProcessingStep] = useState<ProcessingStep>("idle");
   const [translateProgress, setTranslateProgress] = useState(0);
+  const [isAudioPreviewLoading, setIsAudioPreviewLoading] = useState(false);
   const [exportingFormat, setExportingFormat] =
     useState<TranslateExportFormat | null>(null);
 
@@ -128,6 +129,10 @@ export default function TranslateFile() {
   const updateTranslateProgress = useCallback((progress: number) => {
     translateProgressRef.current = progress;
     setTranslateProgress(progress);
+  }, []);
+
+  const handleAudioPreviewLoadingChange = useCallback((isLoading: boolean) => {
+    setIsAudioPreviewLoading(isLoading);
   }, []);
 
   const sourceLanguageOptions = useMemo(() => {
@@ -184,6 +189,7 @@ export default function TranslateFile() {
   const resetPage = () => {
     translateRequestIdRef.current += 1;
     setSelectedFile(null);
+    setIsAudioPreviewLoading(false);
     setSourceLanguage(AUTO_LANGUAGE);
     setTargetLanguage(DEFAULT_TARGET_LANGUAGE);
     setReturnTimestamp(false);
@@ -204,6 +210,10 @@ export default function TranslateFile() {
     setProcessingStep("extracting");
     setErrorMessage(null);
     setTranslatedText("");
+    updateTranslateProgress(0);
+    const requestId = translateRequestIdRef.current + 1;
+    translateRequestIdRef.current = requestId;
+    const isCurrentRequest = () => requestId === translateRequestIdRef.current;
 
     const loadingToastId = toast.loading(
       file.kind === "audio"
@@ -213,12 +223,49 @@ export default function TranslateFile() {
 
     try {
       if (file.kind === "audio") {
-        const result = await translateApi.speechToText({
+        const job = await translateApi.createSpeechToTextJob({
           file: file.file,
           language: language === AUTO_LANGUAGE ? undefined : language,
           returnTimestamp: shouldReturnTimestamp,
           denoiseAudio: shouldDenoiseAudio,
         });
+
+        if (!isCurrentRequest()) return "";
+
+        let result = null;
+
+        while (isCurrentRequest()) {
+          const jobStatus = await translateApi.getSpeechToTextJob(job.job_id);
+
+          if (!isCurrentRequest()) return "";
+
+          if (jobStatus.status === "completed") {
+            await animateProgressTo(
+              translateProgressRef.current,
+              100,
+              updateTranslateProgress,
+              isCurrentRequest,
+            );
+            result = jobStatus.result ?? null;
+            break;
+          }
+
+          await animateProgressTo(
+            translateProgressRef.current,
+            jobStatus.progress,
+            updateTranslateProgress,
+            isCurrentRequest,
+          );
+
+          if (jobStatus.status === "failed") {
+            throw new Error(jobStatus.error ?? "Không thể nhận dạng audio.");
+          }
+
+          await wait(TRANSLATE_JOB_POLL_INTERVAL_MS);
+        }
+
+        if (!isCurrentRequest() || !result) return "";
+
         const text = getTranscriptText(result.transcript);
         const detectedLanguage =
           getSupportedSourceLanguage(result.language ?? null, true) ??
@@ -234,10 +281,47 @@ export default function TranslateFile() {
         return text;
       }
 
-      const result = await translateApi.ocr({
+      const job = await translateApi.createOcrJob({
         file: file.file,
         language: getOcrRequestLanguage(language),
       });
+
+      if (!isCurrentRequest()) return "";
+
+      let result = null;
+
+      while (isCurrentRequest()) {
+        const jobStatus = await translateApi.getOcrJob(job.job_id);
+
+        if (!isCurrentRequest()) return "";
+
+        if (jobStatus.status === "completed") {
+          await animateProgressTo(
+            translateProgressRef.current,
+            100,
+            updateTranslateProgress,
+            isCurrentRequest,
+          );
+          result = jobStatus.result ?? null;
+          break;
+        }
+
+        await animateProgressTo(
+          translateProgressRef.current,
+          jobStatus.progress,
+          updateTranslateProgress,
+          isCurrentRequest,
+        );
+
+        if (jobStatus.status === "failed") {
+          throw new Error(jobStatus.error ?? "Không thể trích xuất văn bản.");
+        }
+
+        await wait(TRANSLATE_JOB_POLL_INTERVAL_MS);
+      }
+
+      if (!isCurrentRequest() || !result) return "";
+
       const text = getOcrText(result.results);
       await detectSourceLanguage(text);
 
@@ -254,7 +338,9 @@ export default function TranslateFile() {
       });
       return "";
     } finally {
-      setProcessingStep("idle");
+      if (isCurrentRequest()) {
+        setProcessingStep("idle");
+      }
     }
   };
 
@@ -359,6 +445,7 @@ export default function TranslateFile() {
     const nextSourceLanguage = AUTO_LANGUAGE;
 
     setSelectedFile(nextFile);
+    setIsAudioPreviewLoading(false);
     setSourceLanguage(nextSourceLanguage);
     setReturnTimestamp(false);
     setDenoiseAudio(false);
@@ -460,7 +547,10 @@ export default function TranslateFile() {
       </Card>
 
       {isAudio ? (
-        <TranslateAudioPreview file={selectedFile?.file ?? null} />
+        <TranslateAudioPreview
+          file={selectedFile?.file ?? null}
+          onLoadingChange={handleAudioPreviewLoadingChange}
+        />
       ) : null}
 
       {hasFile ? (
@@ -578,19 +668,24 @@ export default function TranslateFile() {
                 type="button"
                 variant="outline"
                 className="shadow-lg shadow-slate-200/80 transition-shadow hover:shadow-xl hover:shadow-slate-300/80"
-                disabled={!selectedFile || isBusy}
+                disabled={
+                  !selectedFile || isBusy || (isAudio && isAudioPreviewLoading)
+                }
                 onClick={() => void extractText()}
               >
-                {processingStep === "extracting" ? (
+                {processingStep === "extracting" ||
+                (isAudio && isAudioPreviewLoading) ? (
                   <LoaderCircle className="mr-2 size-4 animate-spin" />
                 ) : (
                   <FileText className="mr-2 size-4" />
                 )}
                 {processingStep === "extracting"
                   ? "Đang trích xuất..."
-                  : selectedFile?.kind === "audio"
-                    ? "Nhận dạng audio"
-                    : "Trích xuất văn bản"}
+                  : isAudio && isAudioPreviewLoading
+                    ? "Đang tải audio..."
+                    : selectedFile?.kind === "audio"
+                      ? "Nhận dạng audio"
+                      : "Trích xuất văn bản"}
               </Button>
             </div>
           </CardContent>
@@ -644,17 +739,32 @@ export default function TranslateFile() {
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
-              <Textarea
-                value={sourceText}
-                onChange={(event) => {
-                  setSourceText(event.target.value);
-                  setTranslatedText("");
-                  updateTranslateProgress(0);
-                }}
-                disabled={isBusy}
-                placeholder="Nội dung trích xuất sẽ hiển thị tại đây."
-                className="h-94 min-h-94 max-h-94 resize-none overflow-y-auto p-4 text-sm leading-6"
-              />
+              <div className="relative">
+                <Textarea
+                  value={sourceText}
+                  onChange={(event) => {
+                    setSourceText(event.target.value);
+                    setTranslatedText("");
+                    updateTranslateProgress(0);
+                  }}
+                  disabled={isBusy}
+                  placeholder="Nội dung trích xuất sẽ hiển thị tại đây."
+                  className="h-94 min-h-94 max-h-94 resize-none overflow-y-auto p-4 text-sm leading-6"
+                />
+                {processingStep === "extracting" ? (
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-md bg-gray-50 p-6 text-center text-sm text-muted-foreground">
+                    <LoaderCircle className="size-8 animate-spin text-primary-500" />
+                    <span>
+                      {isAudio
+                        ? "Đang nhận dạng audio..."
+                        : "Đang trích xuất văn bản..."}
+                    </span>
+                    <span className="text-lg font-semibold text-primary-600">
+                      {translateProgress}%
+                    </span>
+                  </div>
+                ) : null}
+              </div>
               <div className="flex justify-end gap-2">
                 {processingStep === "translating" ? (
                   <Button

@@ -2,6 +2,8 @@ import axiosInstance from "@/api/axios.instance";
 import type { ApiResponse } from "@/types";
 import type {
   DetectLanguageResponse,
+  ExtractionJobCreateResponse,
+  ExtractionJobResponse,
   OcrResponse,
   SpeechToTextResponse,
   TranslateJobCreateResponse,
@@ -72,6 +74,31 @@ export const translateApi = {
     return unwrapApiResponse(response.data);
   },
 
+  async createOcrJob(
+    payload: OcrRequest,
+  ): Promise<ExtractionJobCreateResponse> {
+    const formData = new FormData();
+    formData.append("file", payload.file);
+    if (payload.language) {
+      formData.append("language", payload.language);
+    }
+    formData.append("format", "true");
+
+    const response = await axiosInstance.post<
+      ApiResponse<ExtractionJobCreateResponse>
+    >("/ai-core/ocr/jobs", formData);
+
+    return unwrapApiResponse(response.data);
+  },
+
+  async getOcrJob(jobId: string): Promise<ExtractionJobResponse<OcrResponse>> {
+    const response = await axiosInstance.get<
+      ApiResponse<ExtractionJobResponse<OcrResponse>>
+    >(`/ai-core/ocr/jobs/${jobId}`);
+
+    return unwrapApiResponse(response.data);
+  },
+
   async speechToText(
     payload: SpeechToTextRequest,
   ): Promise<SpeechToTextResponse> {
@@ -89,6 +116,37 @@ export const translateApi = {
     const response = await axiosInstance.post<
       ApiResponse<SpeechToTextResponse>
     >("/ai-core/speech-to-text", formData);
+
+    return unwrapApiResponse(response.data);
+  },
+
+  async createSpeechToTextJob(
+    payload: SpeechToTextRequest,
+  ): Promise<ExtractionJobCreateResponse> {
+    const formData = new FormData();
+    formData.append("file", payload.file);
+    if (payload.language) {
+      formData.append("language", payload.language);
+    }
+    formData.append(
+      "return_timestamp",
+      String(payload.returnTimestamp ?? false),
+    );
+    formData.append("denoise_audio", String(payload.denoiseAudio ?? false));
+
+    const response = await axiosInstance.post<
+      ApiResponse<ExtractionJobCreateResponse>
+    >("/ai-core/speech-to-text/jobs", formData);
+
+    return unwrapApiResponse(response.data);
+  },
+
+  async getSpeechToTextJob(
+    jobId: string,
+  ): Promise<ExtractionJobResponse<SpeechToTextResponse>> {
+    const response = await axiosInstance.get<
+      ApiResponse<ExtractionJobResponse<SpeechToTextResponse>>
+    >(`/ai-core/speech-to-text/jobs/${jobId}`);
 
     return unwrapApiResponse(response.data);
   },

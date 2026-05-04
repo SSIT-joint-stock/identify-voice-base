@@ -7,6 +7,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AiCoreController } from './ai-core.controller';
 import { AiTranslateJobService } from './service/ai-translate-job.service';
+import { AiExtractionJobService } from './service/ai-extraction-job.service';
 import { AudioNormalizeService } from './service/audio-normalize.service';
 import { AudioSegmentService } from './service/audio-segment.service';
 import { TranslateExportService } from './service/translate-export.service';
@@ -24,6 +25,7 @@ import { UploadVoiceUseCase } from './usecase/ai-upload-voice.usecase';
   providers: [
     AiCoreService,
     AiTranslateJobService,
+    AiExtractionJobService,
     TranslateExportService,
     AudioNormalizeService,
     AudioSegmentService,
