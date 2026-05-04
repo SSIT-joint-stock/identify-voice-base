@@ -104,6 +104,7 @@ export default function TranslateFile() {
   const translateFormRef = useRef<HTMLDivElement | null>(null);
   const translateProgressRef = useRef(0);
   const translateRequestIdRef = useRef(0);
+  const autoExtractedAudioFileRef = useRef<File | null>(null);
   const [selectedFile, setSelectedFile] =
     useState<SelectedTranslateFile | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState(AUTO_LANGUAGE);
@@ -116,6 +117,7 @@ export default function TranslateFile() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [processingStep, setProcessingStep] = useState<ProcessingStep>("idle");
   const [translateProgress, setTranslateProgress] = useState(0);
+  const [visibleIsLoadingAudio, setVisibleIsLoadingAudio] = useState(false);
   const [exportingFormat, setExportingFormat] =
     useState<TranslateExportFormat | null>(null);
 
@@ -183,6 +185,7 @@ export default function TranslateFile() {
 
   const resetPage = () => {
     translateRequestIdRef.current += 1;
+    autoExtractedAudioFileRef.current = null;
     setSelectedFile(null);
     setSourceLanguage(AUTO_LANGUAGE);
     setTargetLanguage(DEFAULT_TARGET_LANGUAGE);
@@ -190,6 +193,7 @@ export default function TranslateFile() {
     setDenoiseAudio(false);
     setMode("translate");
     setProcessingStep("idle");
+    setVisibleIsLoadingAudio(false);
     resetResult();
   };
 
@@ -438,13 +442,15 @@ export default function TranslateFile() {
   const handleSelectedFileChange = (nextFile: SelectedTranslateFile | null) => {
     const nextSourceLanguage = AUTO_LANGUAGE;
 
+    autoExtractedAudioFileRef.current = null;
     setSelectedFile(nextFile);
     setSourceLanguage(nextSourceLanguage);
     setReturnTimestamp(false);
     setDenoiseAudio(false);
+    setVisibleIsLoadingAudio(nextFile?.kind === "audio");
     resetResult();
 
-    if (nextFile) {
+    if (nextFile && nextFile.kind !== "audio") {
       void extractText(nextFile, nextSourceLanguage, false, false);
     }
   };
@@ -453,6 +459,8 @@ export default function TranslateFile() {
     setSourceLanguage(value);
 
     if (selectedFile?.kind === "audio") {
+      if (visibleIsLoadingAudio) return;
+
       void extractText(selectedFile, value, returnTimestamp, denoiseAudio);
     }
   };
@@ -462,6 +470,8 @@ export default function TranslateFile() {
     setReturnTimestamp(nextReturnTimestamp);
 
     if (selectedFile?.kind === "audio") {
+      if (visibleIsLoadingAudio) return;
+
       void extractText(
         selectedFile,
         sourceLanguage,
@@ -476,6 +486,8 @@ export default function TranslateFile() {
     setDenoiseAudio(nextDenoiseAudio);
 
     if (selectedFile?.kind === "audio") {
+      if (visibleIsLoadingAudio) return;
+
       void extractText(
         selectedFile,
         sourceLanguage,
@@ -484,6 +496,33 @@ export default function TranslateFile() {
       );
     }
   };
+
+  useEffect(() => {
+    if (
+      !selectedFile ||
+      selectedFile.kind !== "audio" ||
+      visibleIsLoadingAudio ||
+      processingStep !== "idle" ||
+      autoExtractedAudioFileRef.current === selectedFile.file
+    ) {
+      return;
+    }
+
+    autoExtractedAudioFileRef.current = selectedFile.file;
+    void extractText(
+      selectedFile,
+      sourceLanguage,
+      returnTimestamp,
+      denoiseAudio,
+    );
+  }, [
+    selectedFile,
+    visibleIsLoadingAudio,
+    processingStep,
+    sourceLanguage,
+    returnTimestamp,
+    denoiseAudio,
+  ]);
 
   const handleModeChange = (value: string) => {
     const nextMode = value as TranslateMode;
@@ -568,7 +607,10 @@ export default function TranslateFile() {
       </Card>
 
       {isAudio ? (
-        <TranslateAudioPreview file={selectedFile?.file ?? null} />
+        <TranslateAudioPreview
+          file={selectedFile?.file ?? null}
+          onLoadingChange={setVisibleIsLoadingAudio}
+        />
       ) : null}
 
       {hasFile ? (
@@ -768,17 +810,29 @@ export default function TranslateFile() {
                   placeholder="Nội dung trích xuất sẽ hiển thị tại đây."
                   className="h-94 min-h-94 max-h-94 resize-none overflow-y-auto p-4 text-sm leading-6"
                 />
-                {processingStep === "extracting" ? (
+                {visibleIsLoadingAudio || processingStep === "extracting" ? (
                   <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-md bg-gray-50 p-6 text-center text-sm text-muted-foreground">
                     <LoaderCircle className="size-8 animate-spin text-primary-500" />
                     <span>
-                      {isAudio
-                        ? "Đang nhận dạng audio..."
-                        : "Đang trích xuất văn bản..."}
+                      {visibleIsLoadingAudio
+                        ? "Đang tải audio..."
+                        : isAudio
+                          ? "Đang nhận dạng audio..."
+                          : "Đang trích xuất văn bản..."}
                     </span>
-                    <span className="text-lg font-semibold text-primary-600">
-                      {translateProgress}%
-                    </span>
+                    {processingStep === "extracting" ? (
+                      <div className="flex w-full max-w-xs flex-col items-center gap-2">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-primary-500 transition-all duration-500 ease-out"
+                            style={{ width: `${translateProgress}%` }}
+                          />
+                        </div>
+                        <span className="text-lg font-semibold text-primary-600">
+                          {translateProgress}%
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

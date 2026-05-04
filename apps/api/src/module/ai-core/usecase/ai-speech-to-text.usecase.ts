@@ -12,9 +12,11 @@ import {
 import { type ConfigType } from '@nestjs/config';
 import { AxiosError, AxiosResponse } from 'axios';
 import FormData from 'form-data';
-import * as path from 'path';
+import { createReadStream } from 'fs';
+import { stat } from 'fs/promises';
 import { catchError, firstValueFrom } from 'rxjs';
 import { SpeechToTextRequestDto } from '../dto/speech-to-text-request.dto';
+import { AudioNormalizeService } from '../service/audio-normalize.service';
 
 const S2T_FORCE_SIMPLE_OPTIONS_SIZE_BYTES = 50 * 1024 * 1024;
 
@@ -24,6 +26,7 @@ export class AiSpeechToTextUseCase {
 
   constructor(
     private readonly httpService: HttpService,
+    private readonly audioNormalizeService: AudioNormalizeService,
     @Inject(aiCoreConfig.KEY)
     private readonly config: ConfigType<typeof aiCoreConfig>,
   ) {}
@@ -40,27 +43,6 @@ export class AiSpeechToTextUseCase {
     return 'Lỗi Speech-to-Text từ AI CORE';
   }
 
-  private getForwardedFileName(file: Express.Multer.File) {
-    const extFromName = path.extname(file.originalname).toLowerCase();
-    const extFromMime: Record<string, string> = {
-      'audio/mpeg': '.mp3',
-      'audio/mp3': '.mp3',
-      'audio/wav': '.wav',
-      'audio/x-wav': '.wav',
-      'audio/webm': '.webm',
-      'audio/ogg': '.ogg',
-      'audio/flac': '.flac',
-      'audio/mp4': '.m4a',
-      'video/mp4': '.mp4',
-      'audio/x-m4a': '.m4a',
-    };
-    const ext = /^[a-z0-9.]{2,8}$/.test(extFromName)
-      ? extFromName
-      : (extFromMime[file.mimetype] ?? '.bin');
-
-    return `speech-to-text-input${ext}`;
-  }
-
   private getFormDataLength(formData: FormData): Promise<number> {
     return new Promise((resolve, reject) => {
       formData.getLength((error, length) => {
@@ -74,8 +56,8 @@ export class AiSpeechToTextUseCase {
     });
   }
 
-  private shouldForceSimpleOptions(file: Express.Multer.File) {
-    return file.size > S2T_FORCE_SIMPLE_OPTIONS_SIZE_BYTES;
+  private shouldForceSimpleOptions(fileSize: number) {
+    return fileSize > S2T_FORCE_SIMPLE_OPTIONS_SIZE_BYTES;
   }
 
   async execute(file: Express.Multer.File, dto: SpeechToTextRequestDto) {
@@ -83,31 +65,42 @@ export class AiSpeechToTextUseCase {
       throw new UnprocessableEntityException('Vui lòng đính kèm file audio');
     }
 
-    const forwardedFileName = this.getForwardedFileName(file);
-    const formData = new FormData();
-    formData.append('file', file.buffer, {
-      filename: forwardedFileName,
-      contentType: file.mimetype,
-      knownLength: file.size,
-    });
-
-    const forceSimpleOptions = this.shouldForceSimpleOptions(file);
-    const params = {
-      ...(dto.language ? { language: dto.language } : {}),
-      return_timestamp: dto.return_timestamp ?? false,
-      denoise_audio: forceSimpleOptions ? false : (dto.denoise_audio ?? false),
-    };
-
-    if (forceSimpleOptions) {
-      this.logger.warn(
-        `S2T file lớn hơn 50MB, ép denoise_audio=false: file=${file.originalname} size=${file.size}`,
-      );
-    }
-
     const url = `${this.config.speechToText.url}/s2t_ml`;
-    const contentLength = await this.getFormDataLength(formData);
+    let normalizedAudioPath: string | null = null;
 
     try {
+      const normalizedAudio =
+        await this.audioNormalizeService.normalizeUploadedFileForAi(file);
+      normalizedAudioPath = normalizedAudio.path;
+
+      const normalizedAudioStat = await stat(normalizedAudio.path);
+      const forwardedFileName = 'speech-to-text-input.wav';
+      const formData = new FormData();
+      formData.append('file', createReadStream(normalizedAudio.path), {
+        filename: forwardedFileName,
+        contentType: normalizedAudio.mimeType,
+        knownLength: normalizedAudioStat.size,
+      });
+
+      const forceSimpleOptions = this.shouldForceSimpleOptions(
+        normalizedAudioStat.size,
+      );
+      const params = {
+        ...(dto.language ? { language: dto.language } : {}),
+        return_timestamp: dto.return_timestamp ?? false,
+        denoise_audio: forceSimpleOptions
+          ? false
+          : (dto.denoise_audio ?? false),
+      };
+
+      if (forceSimpleOptions) {
+        this.logger.warn(
+          `S2T file sau chuẩn hóa lớn hơn 50MB, ép denoise_audio=false: file=${file.originalname} normalizedFile=${forwardedFileName} originalSize=${file.size} normalizedSize=${normalizedAudioStat.size}`,
+        );
+      }
+
+      const contentLength = await this.getFormDataLength(formData);
+
       const response = (await firstValueFrom(
         this.httpService
           .post<any, FormData>(url, formData, {
@@ -126,7 +119,7 @@ export class AiSpeechToTextUseCase {
                 const upstreamData = error.response?.data;
 
                 this.logger.error(
-                  `AI S2T Error [POST ${url}] status=${upstreamStatus ?? 'N/A'} originalFile=${file.originalname} forwardedFile=${forwardedFileName} size=${file.size} forwardedContentLength=${contentLength} params=${JSON.stringify(params)}: ${error.message}`,
+                  `AI S2T Error [POST ${url}] status=${upstreamStatus ?? 'N/A'} originalFile=${file.originalname} forwardedFile=${forwardedFileName} originalSize=${file.size} normalizedSize=${normalizedAudioStat.size} forwardedContentLength=${contentLength} params=${JSON.stringify(params)}: ${error.message}`,
                   upstreamData,
                 );
 
@@ -144,18 +137,21 @@ export class AiSpeechToTextUseCase {
 
       return response.data;
     } catch (error) {
-      console.log(error);
       if (
         error instanceof BadRequestException ||
         error instanceof BadGatewayException ||
+        error instanceof UnprocessableEntityException ||
         error instanceof InternalServerErrorException
       ) {
         throw error;
       }
 
+      const message = error instanceof Error ? error.message : String(error);
       throw new InternalServerErrorException(
-        `Lỗi khi gọi AI Speech-to-Text: ${error.message}`,
+        `Lỗi khi gọi AI Speech-to-Text: ${message}`,
       );
+    } finally {
+      await this.audioNormalizeService.cleanup(normalizedAudioPath);
     }
   }
 }

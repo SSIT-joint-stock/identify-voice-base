@@ -337,7 +337,8 @@ POST /api/v1/ai-core/speech-to-text
 Chức năng:
 
 - Nhận file audio từ FE.
-- Gửi sang AI Core Speech-to-Text.
+- Chuẩn hóa audio về WAV PCM 16-bit, 16kHz, mono.
+- Gửi file audio đã chuẩn hóa sang AI Core Speech-to-Text.
 - Trả transcript và language detect được.
 
 Permission:
@@ -377,7 +378,7 @@ Query params gửi sang AI Core:
 
 Body gửi sang AI Core:
 
-- `file`: multipart form-data.
+- `file`: multipart form-data, luôn là file WAV đã chuẩn hóa từ backend.
 
 Ví dụ FE dùng Axios:
 
