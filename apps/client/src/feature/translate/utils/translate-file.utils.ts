@@ -130,9 +130,14 @@ export function getTranscriptText(transcript: string | SpeechSegment[]) {
   if (typeof transcript === "string") return transcript.trim();
 
   return transcript
-    .map((segment) => segment.text.trim())
+    .map((segment) => {
+      const text = segment.text.trim();
+      if (!text) return "";
+
+      return `[${formatAudioTime(segment.start)} - ${formatAudioTime(segment.end)}] ${text}`;
+    })
     .filter(Boolean)
-    .join(" ");
+    .join("\n");
 }
 
 export function getOcrText(results: string | OcrPageResult[]) {

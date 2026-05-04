@@ -203,6 +203,7 @@ export default function VoiceSessionHistory() {
               onClick={() => {
                 setFromDate("");
                 setToDate("");
+                setPageSize(10);
                 setPage(1);
               }}
             >

@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Plus, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   useFieldArray,
   useForm,
@@ -19,6 +19,7 @@ import {
   type SubmitHandler,
 } from "react-hook-form";
 import { toast } from "sonner";
+import { voiceApi } from "../api/voice.api";
 import { useNormalizeAudio } from "../hooks/use-normalize-audio";
 import { useUploadVoice } from "../hooks/use-voice";
 import {
@@ -116,6 +117,36 @@ export function VoiceUploadForm({
 
   const uploadMutation = useUploadVoice();
   const { fetchProtectedAudioBlob } = useNormalizeAudio();
+  const [isNormalizingAudio, setIsNormalizingAudio] = useState(false);
+
+  const normalizeAndSetAudioFile = async (file: File | null) => {
+    onFileChange?.();
+
+    if (!file) {
+      form.setValue("audioFile", null, { shouldValidate: true });
+      return;
+    }
+
+    setIsNormalizingAudio(true);
+    const toastId = toast.loading("Đang chuẩn hóa audio về WAV 16kHz mono...");
+
+    try {
+      const normalizedFile = await voiceApi.normalizeAudio(file);
+      form.setValue("audioFile", normalizedFile, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      toast.success("Đã chuẩn hóa audio.", { id: toastId });
+    } catch {
+      form.setValue("audioFile", null, { shouldValidate: true });
+      toast.error("Không thể chuẩn hóa audio. Vui lòng kiểm tra file gốc.", {
+        id: toastId,
+      });
+    } finally {
+      setIsNormalizingAudio(false);
+    }
+  };
 
   const onSubmit: SubmitHandler<UploadVoiceSchemaOutput> = async (values) => {
     try {
@@ -132,6 +163,8 @@ export function VoiceUploadForm({
           type: inferredType,
           lastModified: values.audioFile?.lastModified ?? 0,
         });
+
+        fileToUpload = await voiceApi.normalizeAudio(fileToUpload);
       }
 
       if (!fileToUpload) {
@@ -179,10 +212,9 @@ export function VoiceUploadForm({
                 <VoiceAudioDropzone
                   value={field.value ?? null}
                   onChange={(file) => {
-                    field.onChange(file);
-                    onFileChange?.();
+                    void normalizeAndSetAudioFile(file);
                   }}
-                  disabled={uploadMutation.isPending}
+                  disabled={uploadMutation.isPending || isNormalizingAudio}
                   error={fieldState.error?.message}
                 />
               </FormControl>
@@ -195,7 +227,11 @@ export function VoiceUploadForm({
           key={playerKey}
           file={previewAudioUrl ? null : (watchedAudioFile ?? null)}
           audioUrl={previewAudioUrl}
-          title="Audio đăng ký"
+          title={
+            isNormalizingAudio
+              ? "Đang chuẩn hóa audio đăng ký..."
+              : "Audio đăng ký"
+          }
         />
 
         {watchedAudioFile ? (
@@ -423,13 +459,15 @@ export function VoiceUploadForm({
 
             <Button
               type="submit"
-              disabled={uploadMutation.isPending}
+              disabled={uploadMutation.isPending || isNormalizingAudio}
               className="w-full animate-in fade-in-0 slide-in-from-bottom-4 delay-100 duration-300 sm:w-auto"
             >
-              {uploadMutation.isPending ? (
+              {uploadMutation.isPending || isNormalizingAudio ? (
                 <>
                   <LoaderCircle className="mr-2 size-4 animate-spin" />
-                  Đang xử lý đăng ký...
+                  {isNormalizingAudio
+                    ? "Đang chuẩn hóa audio..."
+                    : "Đang xử lý đăng ký..."}
                 </>
               ) : (
                 "Hoàn Thành Đăng Ký Giọng Nói"

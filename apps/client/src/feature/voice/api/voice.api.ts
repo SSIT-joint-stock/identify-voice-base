@@ -283,6 +283,26 @@ function buildIdentifyFormData(file: File, type: IdentifyMode): FormData {
 }
 
 export const voiceApi = {
+  async normalizeAudio(file: File): Promise<File> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axiosInstance.post<Blob>(
+      "/ai-core/audio/normalize",
+      formData,
+      {
+        responseType: "blob",
+      },
+    );
+
+    const sourceName = file.name.replace(/\.[^.]+$/, "").trim() || "audio";
+
+    return new File([response.data], `${sourceName}-normalized.wav`, {
+      type: "audio/wav",
+      lastModified: Date.now(),
+    });
+  },
+
   async uploadVoice(payload: UploadVoiceRequest): Promise<UploadVoiceResponse> {
     const formData = buildUploadVoiceFormData(payload);
 

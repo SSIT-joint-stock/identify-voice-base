@@ -7,7 +7,7 @@ import {
 import { ACCEPTED_AUDIO_EXTENSIONS, ACCEPTED_AUDIO_TYPES } from "@/constants";
 import { cn } from "@/lib/utils";
 import { truncText } from "@/utils/trunc-text";
-import { FileAudio, Mic, Square, Upload, X } from "lucide-react";
+import { Download, FileAudio, Mic, Square, Upload, X } from "lucide-react";
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { useAudioRecorder } from "../hooks/use-audio-recorder";
 
@@ -117,6 +117,20 @@ export function VoiceAudioDropzone({
     setDropError(null);
     onChange(null);
     resetInputValue();
+  };
+
+  const handleDownloadFile = () => {
+    if (!value) return;
+
+    const url = window.URL.createObjectURL(value);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = value.name || "normalized-audio.wav";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   };
 
   const handleToggleRecording = async () => {
@@ -347,6 +361,15 @@ export function VoiceAudioDropzone({
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDownloadFile}
+              disabled={disabled}
+            >
+              <Download className="mr-2 size-4" />
+              Tải xuống
+            </Button>
             <Button
               type="button"
               variant="outline"

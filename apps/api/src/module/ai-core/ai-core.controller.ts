@@ -39,7 +39,9 @@ import {
 import { AiCoreService } from './service/ai-core.service';
 import { AiExtractionJobService } from './service/ai-extraction-job.service';
 import { AiTranslateJobService } from './service/ai-translate-job.service';
+import { AudioNormalizeService } from './service/audio-normalize.service';
 import { TranslateExportService } from './service/translate-export.service';
+import { createReadStream } from 'fs';
 
 @ApiTags('ai-core')
 @ApiBearerAuth()
@@ -51,7 +53,54 @@ export class AiCoreController {
     private readonly extractionJobService: AiExtractionJobService,
     private readonly translateJobService: AiTranslateJobService,
     private readonly translateExportService: TranslateExportService,
+    private readonly audioNormalizeService: AudioNormalizeService,
   ) {}
+
+  @Post('audio/normalize')
+  @ApiOperation({
+    summary: 'Chuẩn hóa audio về WAV PCM 16-bit 16kHz mono',
+    description:
+      'Nhận audio đầu vào, decode và trả về file WAV chuẩn để FE dùng trước khi enroll hoặc identify.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File audio cần chuẩn hóa',
+        },
+      },
+    },
+  })
+  @RawResponse()
+  @UseInterceptors(FileInterceptor('file'))
+  async normalizeAudio(
+    @UploadedFile() file: Express.Multer.File,
+    @Res() res: Response,
+  ) {
+    const normalizedAudio =
+      await this.audioNormalizeService.normalizeUploadedFileForAi(file);
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      void this.audioNormalizeService.cleanup(normalizedAudio.path);
+    };
+
+    res.setHeader('Content-Type', normalizedAudio.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="normalized-audio.wav"',
+    );
+    res.once('finish', cleanup);
+    res.once('close', cleanup);
+
+    createReadStream(normalizedAudio.path).pipe(res);
+  }
 
   @Post('ocr')
   @ApiOperation({

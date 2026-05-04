@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { LoaderCircle, UsersRound } from "lucide-react";
@@ -19,6 +19,8 @@ import {
 } from "../schemas/voice.schema";
 import { useIdentifyTwoVoice } from "../hooks/use-voice";
 import { VoiceAudioDropzone } from "./voice-audio-dropzone";
+import { voiceApi } from "../api/voice.api";
+import { toast } from "sonner";
 
 interface VoiceMultiSearchFormProps {
   formId?: string;
@@ -42,6 +44,7 @@ export function VoiceMultiSearchForm({
 }: VoiceMultiSearchFormProps) {
   const identifyMutation = useIdentifyTwoVoice();
   const lastAutoSubmittedFileKeyRef = useRef<string | null>(null);
+  const [isNormalizingAudio, setIsNormalizingAudio] = useState(false);
 
   const form = useForm<
     IdentifyTwoVoiceSchemaInput,
@@ -56,12 +59,43 @@ export function VoiceMultiSearchForm({
   const audioFile = form.watch("audioFile");
 
   useEffect(() => {
-    onPendingChange?.(identifyMutation.isPending);
+    onPendingChange?.(identifyMutation.isPending || isNormalizingAudio);
 
     return () => {
       onPendingChange?.(false);
     };
-  }, [identifyMutation.isPending, onPendingChange]);
+  }, [identifyMutation.isPending, isNormalizingAudio, onPendingChange]);
+
+  const normalizeAndSetAudioFile = async (file: File | null) => {
+    if (!file) {
+      form.setValue("audioFile", null, { shouldValidate: true });
+      onFileSelected?.(null);
+      return;
+    }
+
+    setIsNormalizingAudio(true);
+    onFileSelected?.(null);
+    const toastId = toast.loading("Đang chuẩn hóa audio về WAV 16kHz mono...");
+
+    try {
+      const normalizedFile = await voiceApi.normalizeAudio(file);
+      form.setValue("audioFile", normalizedFile, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      onFileSelected?.(normalizedFile);
+      toast.success("Đã chuẩn hóa audio.", { id: toastId });
+    } catch {
+      form.setValue("audioFile", null, { shouldValidate: true });
+      onFileSelected?.(null);
+      toast.error("Không thể chuẩn hóa audio. Vui lòng kiểm tra file gốc.", {
+        id: toastId,
+      });
+    } finally {
+      setIsNormalizingAudio(false);
+    }
+  };
 
   const onSubmit = useCallback<SubmitHandler<IdentifyTwoVoiceSchemaOutput>>(
     async (values) => {
@@ -82,6 +116,7 @@ export function VoiceMultiSearchForm({
     if (
       !autoSubmitOnAudioChange ||
       identifyMutation.isPending ||
+      isNormalizingAudio ||
       lastAutoSubmittedFileKeyRef.current === fileKey
     ) {
       return;
@@ -94,6 +129,7 @@ export function VoiceMultiSearchForm({
     autoSubmitOnAudioChange,
     form,
     identifyMutation.isPending,
+    isNormalizingAudio,
     onSubmit,
   ]);
 
@@ -120,10 +156,11 @@ export function VoiceMultiSearchForm({
                     <VoiceAudioDropzone
                       value={field.value ?? null}
                       onChange={(file) => {
-                        field.onChange(file);
-                        onFileSelected?.(file);
+                        void normalizeAndSetAudioFile(file);
                       }}
-                      disabled={identifyMutation.isPending}
+                      disabled={
+                        identifyMutation.isPending || isNormalizingAudio
+                      }
                       error={fieldState.error?.message}
                     />
                   </FormControl>
@@ -133,11 +170,16 @@ export function VoiceMultiSearchForm({
             />
 
             {showSubmitButton && audioFile ? (
-              <Button type="submit" disabled={identifyMutation.isPending}>
-                {identifyMutation.isPending ? (
+              <Button
+                type="submit"
+                disabled={identifyMutation.isPending || isNormalizingAudio}
+              >
+                {identifyMutation.isPending || isNormalizingAudio ? (
                   <>
                     <LoaderCircle className="mr-2 size-4 animate-spin" />
-                    Đang tra cứu...
+                    {isNormalizingAudio
+                      ? "Đang chuẩn hóa..."
+                      : "Đang tra cứu..."}
                   </>
                 ) : (
                   <>

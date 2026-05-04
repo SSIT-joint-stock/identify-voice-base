@@ -113,6 +113,7 @@ export default function AdminTranslationHistory() {
     setToDate("");
     setSourceLang(ALL_LANGUAGES);
     setTargetLang(ALL_LANGUAGES);
+    setPageSize(10);
     setPage(1);
   };
 

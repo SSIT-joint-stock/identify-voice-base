@@ -21,6 +21,14 @@ export class AudioNormalizeTimeoutError extends Error {
   }
 }
 
+interface FfprobeAudioStream {
+  codec_type?: string;
+  codec_name?: string;
+  sample_rate?: string | number;
+  channels?: string | number;
+  bit_rate?: string;
+}
+
 @Injectable()
 export class AudioNormalizeService {
   private readonly logger = new Logger(AudioNormalizeService.name);
@@ -47,12 +55,14 @@ export class AudioNormalizeService {
       };
 
       const command = ffmpeg(inputPath)
-        .noVideo()
-        .audioChannels(1)
-        .audioFrequency(16000)
-        .audioCodec('pcm_s16le')
-        .format('wav')
-        .outputOptions(['-y'])
+        .outputOptions([
+          '-y',
+          '-vn',
+          '-acodec pcm_s16le',
+          '-ac 1',
+          '-ar 16000',
+          '-f wav',
+        ])
         .on('start', (cmdLine) => {
           this.logger.debug(`Bắt đầu chuẩn hóa audio: ${cmdLine}`);
         })
@@ -87,10 +97,40 @@ export class AudioNormalizeService {
       command.save(outputPath);
     });
 
+    await this.assertNormalizedAudio(outputPath);
+
     return {
       path: outputPath,
       mimeType: 'audio/wav',
     };
+  }
+
+  async normalizeUploadedFileForAi(
+    file: Express.Multer.File,
+  ): Promise<NormalizedAudioFile> {
+    if (!file) {
+      throw new UnprocessableEntityException('Vui lòng đính kèm file audio.');
+    }
+
+    const outputDir = path.join(os.tmpdir(), 'identify-voice-api');
+    await fs.mkdir(outputDir, { recursive: true });
+
+    const extFromName = path.extname(file.originalname).toLowerCase();
+    const inputPath =
+      file.path ??
+      path.join(outputDir, `raw_audio_${uuidv4()}${extFromName || '.bin'}`);
+
+    if (!file.path) {
+      await fs.writeFile(inputPath, file.buffer);
+    }
+
+    try {
+      return await this.normalizeForAi(inputPath);
+    } finally {
+      if (!file.path) {
+        await this.cleanup(inputPath);
+      }
+    }
   }
 
   async cleanup(filePath?: string | null): Promise<void> {
@@ -108,5 +148,45 @@ export class AudioNormalizeService {
     const raw = process.env.AUDIO_NORMALIZE_TIMEOUT_MS;
     const parsed = Number.parseInt(raw ?? '15000', 10);
     return Number.isFinite(parsed) ? parsed : 15000;
+  }
+
+  private async assertNormalizedAudio(filePath: string): Promise<void> {
+    const audioStream = await new Promise<FfprobeAudioStream | undefined>(
+      (resolve, reject) => {
+        ffmpeg.ffprobe(filePath, (error, metadata) => {
+          if (error) {
+            reject(error instanceof Error ? error : new Error(String(error)));
+            return;
+          }
+
+          resolve(
+            metadata.streams.find((stream) => stream.codec_type === 'audio') as
+              | FfprobeAudioStream
+              | undefined,
+          );
+        });
+      },
+    );
+
+    const codecName = audioStream?.codec_name;
+    const sampleRate = Number(audioStream?.sample_rate);
+    const channels = Number(audioStream?.channels);
+    const isPcm16Wav = codecName === 'pcm_s16le';
+    const is16Khz = sampleRate === 16000;
+    const isMono = channels === 1;
+
+    if (!isPcm16Wav || !is16Khz || !isMono) {
+      this.logger.error(
+        `Audio sau chuẩn hóa không đúng định dạng yêu cầu: codec=${codecName ?? 'N/A'} sample_rate=${audioStream?.sample_rate ?? 'N/A'} channels=${audioStream?.channels ?? 'N/A'} bit_rate=${audioStream?.bit_rate ?? 'N/A'}`,
+      );
+
+      throw new UnprocessableEntityException(
+        'File audio không thể chuẩn hóa về WAV PCM 16-bit, 16kHz, mono.',
+      );
+    }
+
+    this.logger.debug(
+      `Audio sau chuẩn hóa: codec=${codecName} sample_rate=${sampleRate} channels=${channels} bit_rate=${audioStream?.bit_rate ?? 'N/A'}`,
+    );
   }
 }

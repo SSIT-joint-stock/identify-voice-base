@@ -503,7 +503,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {state === "expanded" ? (
               <>
                 <ChevronLeft className="size-4" />
-                <span className="text-sm font-medium">Thu gọn thanh menu</span>
+                <span className="text-sm font-medium overflow-hidden">
+                  Thu gọn thanh menu
+                </span>
               </>
             ) : (
               <div className="flex w-full justify-center">

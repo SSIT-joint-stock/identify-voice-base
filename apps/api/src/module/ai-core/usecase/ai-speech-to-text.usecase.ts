@@ -94,15 +94,13 @@ export class AiSpeechToTextUseCase {
     const forceSimpleOptions = this.shouldForceSimpleOptions(file);
     const params = {
       ...(dto.language ? { language: dto.language } : {}),
-      return_timestamp: forceSimpleOptions
-        ? false
-        : (dto.return_timestamp ?? false),
+      return_timestamp: dto.return_timestamp ?? false,
       denoise_audio: forceSimpleOptions ? false : (dto.denoise_audio ?? false),
     };
 
     if (forceSimpleOptions) {
       this.logger.warn(
-        `S2T file lớn hơn 50MB, ép return_timestamp=false và denoise_audio=false: file=${file.originalname} size=${file.size}`,
+        `S2T file lớn hơn 50MB, ép denoise_audio=false: file=${file.originalname} size=${file.size}`,
       );
     }
 
