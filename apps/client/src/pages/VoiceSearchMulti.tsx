@@ -8,9 +8,10 @@ import { VoiceMultiSearchForm } from "@/feature/voice/components/voice-multi-sea
 import { VoiceSpeakerResultCard } from "@/feature/voice/components/voice-speaker-result-card";
 import type { VoiceIdentifyTwoItem } from "@/feature/voice/types/voice.types";
 import { LoaderCircle, UsersRound } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const MULTI_SEARCH_FORM_ID = "voice-multi-search-form";
+const RESULT_SCROLL_OFFSET_Y = 96;
 
 export default function VoiceSearchMulti() {
   const {
@@ -32,6 +33,7 @@ export default function VoiceSearchMulti() {
     end?: number;
   }>({});
   const [isSearching, setIsSearching] = useState(false);
+  const resultSectionRef = useRef<HTMLDivElement | null>(null);
 
   const updateIdentifyTwoSpeaker = useVoiceStore(
     (state) => state.updateIdentifyTwoSpeaker,
@@ -46,7 +48,27 @@ export default function VoiceSearchMulti() {
 
   const items = identifyTwoResult?.items ?? [];
   const hasSearched = identifyTwoResult !== null;
-  console.log(items);
+
+  useEffect(() => {
+    if (!identifyTwoResult) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      const resultSection = resultSectionRef.current;
+      if (!resultSection) return;
+
+      const targetTop =
+        resultSection.getBoundingClientRect().top +
+        window.scrollY -
+        RESULT_SCROLL_OFFSET_Y;
+
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: "smooth",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [identifyTwoResult]);
 
   return (
     <>
@@ -98,7 +120,7 @@ export default function VoiceSearchMulti() {
         />
 
         {hasSearched ? (
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div ref={resultSectionRef} className="grid gap-6 xl:grid-cols-2">
             {items.length > 0 ? (
               <>
                 {items.map((item, index) => (

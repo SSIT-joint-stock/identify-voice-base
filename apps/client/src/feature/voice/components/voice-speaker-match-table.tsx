@@ -27,7 +27,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Pencil, Play, Trash2, UserPlus } from "lucide-react";
+import {
+  BrainCircuit,
+  Database,
+  Pencil,
+  Play,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
 import { useState } from "react";
 
 import { VoiceDirectoryDetailSheet } from "@/feature/voice-directory/components/VoiceDirectoryDetailSheet";
@@ -107,6 +114,36 @@ function AgePill({ age }: { age?: number }) {
   );
 }
 
+function SourcePill({
+  source,
+}: {
+  source?: VoiceIdentifyItem["truth_source"];
+}) {
+  if (source === "BUSINESS") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+        <Database className="size-3 text-emerald-500" />
+        Đã đăng ký
+      </span>
+    );
+  }
+
+  if (source === "AI") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
+        <BrainCircuit className="size-3 text-violet-500" />
+        AI Core
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">
+      Không rõ
+    </span>
+  );
+}
+
 function TextCellTooltip({
   value,
   fallback = "-",
@@ -181,23 +218,26 @@ export function VoiceSpeakerMatchTable({
               {emptyText}
             </div>
           ) : (
-            <div className="no-scrollbar overflow-x-auto">
-              <Table className="w-full table-fixed">
+            <div className="overflow-x-auto">
+              <Table className="w-full min-w-[780px] table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[11%] pr-3 pl-0 text-center whitespace-nowrap">
                       Audio
                     </TableHead>
-                    <TableHead className="w-[24%] pl-2 whitespace-nowrap">
+                    <TableHead className="w-[22%] pl-2 whitespace-nowrap">
                       Họ và tên
                     </TableHead>
-                    <TableHead className="w-[14%] px-1 text-center whitespace-nowrap">
+                    <TableHead className="w-[12%] px-1 text-center whitespace-nowrap">
                       Giới tính
                     </TableHead>
-                    <TableHead className="w-[12%] px-1 text-center whitespace-nowrap">
+                    <TableHead className="w-[10%] px-1 text-center whitespace-nowrap">
                       Độ tuổi
                     </TableHead>
-                    <TableHead className="w-[13%] px-1 text-center whitespace-nowrap">
+                    <TableHead className="w-[16%] px-1 text-center whitespace-nowrap">
+                      Nguồn
+                    </TableHead>
+                    <TableHead className="w-[12%] px-1 text-center whitespace-nowrap">
                       Điểm số
                     </TableHead>
                     {shouldShowActionColumn ? (
@@ -252,19 +292,22 @@ export function VoiceSpeakerMatchTable({
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="w-[24%] min-w-0 pl-2 align-middle font-medium">
+                        <TableCell className="w-[22%] min-w-0 pl-2 align-middle font-medium">
                           <TextCellTooltip
                             value={displayItem.name}
                             className="truncate"
                           />
                         </TableCell>
-                        <TableCell className="w-[14%] px-1 text-center align-middle">
+                        <TableCell className="w-[12%] px-1 text-center align-middle">
                           <GenderPill gender={displayItem.gender} />
                         </TableCell>
-                        <TableCell className="w-[12%] px-1 text-center align-middle">
+                        <TableCell className="w-[10%] px-1 text-center align-middle">
                           <AgePill age={displayItem.age} />
                         </TableCell>
-                        <TableCell className="w-[13%] px-1 text-center align-middle">
+                        <TableCell className="w-[16%] px-1 text-center align-middle">
+                          <SourcePill source={displayItem.truth_source} />
+                        </TableCell>
+                        <TableCell className="w-[12%] px-1 text-center align-middle">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Badge
