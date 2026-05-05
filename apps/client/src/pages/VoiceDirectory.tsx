@@ -201,18 +201,16 @@ export default function VoiceDirectory() {
 
       <div className="relative min-h-0 flex-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm no-scrollbar">
         {isLoading ? (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60">
+          <div className="flex h-full min-h-48 items-center justify-center p-8">
             <Loader2 className="size-8 animate-spin text-slate-400" />
           </div>
-        ) : null}
-
-        {!isLoading && isError ? (
+        ) : isError ? (
           <div className="flex h-full min-h-48 items-center justify-center p-8">
             <p className="text-center text-sm text-destructive">
               Không tải được danh sách. Kiểm tra kết nối hoặc đăng nhập lại.
             </p>
           </div>
-        ) : !isLoading && items.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 text-center">
             <UserRound className="size-10 text-slate-300" />
             <p className="text-sm text-muted-foreground">
