@@ -1,4 +1,5 @@
 import { AiDeleteVoiceUseCase } from '@/module/ai-core/usecase/ai-delete-voice.usecase';
+import { AiFilterNoiseUseCase } from '@/module/ai-core/usecase/ai-filter-noise.usecase';
 import { AiIdentifyMultiUseCase } from '@/module/ai-core/usecase/ai-identify-multi.usecase';
 import { AiIdentifySingleUseCase } from '@/module/ai-core/usecase/ai-identify-single.usecase';
 import { AiOcrUseCase } from '@/module/ai-core/usecase/ai-ocr.usecase';
@@ -23,6 +24,7 @@ export class AiCoreService {
     private readonly deleteVoiceUseCase: AiDeleteVoiceUseCase,
     private readonly ocrUseCase: AiOcrUseCase,
     private readonly speechToTextUseCase: AiSpeechToTextUseCase,
+    private readonly filterNoiseUseCase: AiFilterNoiseUseCase,
     private readonly translateUseCase: AiTranslateUseCase,
     private readonly translationHistoryService: TranslationHistoryService,
   ) {}
@@ -49,6 +51,10 @@ export class AiCoreService {
 
   async speechToText(file: Express.Multer.File, dto: SpeechToTextRequestDto) {
     return this.speechToTextUseCase.execute(file, dto);
+  }
+
+  async filterNoise(file: Express.Multer.File) {
+    return this.filterNoiseUseCase.execute(file);
   }
 
   async translate(dto: TranslateRequestDto, userId?: string) {

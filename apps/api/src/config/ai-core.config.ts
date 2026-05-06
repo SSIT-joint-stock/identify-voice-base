@@ -26,6 +26,12 @@ export default registerAs('ai', () => ({
       process.env.AI_CORE_SPEECH_TO_TEXT_URL || 'http://localhost:8996',
     ),
   },
+  filterNoise: {
+    url: normalizeUrl(
+      process.env.AI_CORE_FILTER_NOISE_URL ||
+        'http://localhost:1113/filter_noise/filter_noise_segment',
+    ),
+  },
   translation: {
     url: normalizeUrl(
       process.env.AI_CORE_TRANSLATION_URL || 'http://localhost:8505',

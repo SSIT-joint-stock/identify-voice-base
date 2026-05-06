@@ -102,6 +102,54 @@ export class AiCoreController {
     createReadStream(normalizedAudio.path).pipe(res);
   }
 
+  @Post('filter-noise')
+  @ApiOperation({
+    summary: 'Lọc ồn audio/video qua AI CORE',
+    description:
+      'Proxy file audio hoặc video sang AI CORE /filter_noise/ và trả về WAV binary đã lọc ồn. FE có thể gửi file gốc hoặc file đã normalize trước đó.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description:
+            'File audio hoặc video cần lọc ồn. Chấp nhận content-type audio/* hoặc video/*.',
+        },
+      },
+    },
+  })
+  @RawResponse()
+  @UseInterceptors(FileInterceptor('file'))
+  async filterNoise(
+    @UploadedFile() file: Express.Multer.File,
+    @Res() res: Response,
+  ) {
+    const filteredAudio = await this.aiCoreService.filterNoise(file);
+    const encodedFilename = encodeURIComponent(filteredAudio.filename);
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      void this.audioNormalizeService.cleanup(filteredAudio.path);
+    };
+
+    res.status(200);
+    res.setHeader('Content-Type', filteredAudio.mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filteredAudio.filename}"; filename*=UTF-8''${encodedFilename}`,
+    );
+    res.once('finish', cleanup);
+    res.once('close', cleanup);
+
+    createReadStream(filteredAudio.path).pipe(res);
+  }
+
   @Post('ocr')
   @ApiOperation({
     summary: 'OCR file ảnh/PDF/DOCX/TXT qua AI CORE',

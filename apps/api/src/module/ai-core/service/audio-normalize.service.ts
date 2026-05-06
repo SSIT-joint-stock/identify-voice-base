@@ -33,6 +33,10 @@ interface FfprobeAudioStream {
 export class AudioNormalizeService {
   private readonly logger = new Logger(AudioNormalizeService.name);
 
+  /**
+   * Decode một audio/video container bất kỳ và xuất ra WAV PCM 16-bit, 16kHz, mono.
+   * Đây là format chuẩn dùng cho các luồng AI voice phía sau.
+   */
   async normalizeForAi(inputPath: string): Promise<NormalizedAudioFile> {
     const outputDir = path.join(os.tmpdir(), 'identify-voice-api');
     await fs.mkdir(outputDir, { recursive: true });
@@ -105,6 +109,62 @@ export class AudioNormalizeService {
     };
   }
 
+  /**
+   * Đóng gói raw PCM s16le 16kHz mono thành WAV chuẩn.
+   * Dùng cho output filter-noise từ Core AI khi upstream trả audio samples thô
+   * thay vì WAV có header RIFF.
+   */
+  async normalizeRawPcm16ForAi(
+    inputPath: string,
+  ): Promise<NormalizedAudioFile> {
+    const outputDir = path.join(os.tmpdir(), 'identify-voice-api');
+    await fs.mkdir(outputDir, { recursive: true });
+
+    const outputPath = path.join(outputDir, `ai_audio_${uuidv4()}.wav`);
+
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(inputPath)
+        .inputOptions(['-f s16le', '-ar 16000', '-ac 1'])
+        .outputOptions([
+          '-y',
+          '-vn',
+          '-acodec pcm_s16le',
+          '-ac 1',
+          '-ar 16000',
+          '-f wav',
+        ])
+        .on('start', (cmdLine) => {
+          this.logger.debug(`Bắt đầu đóng gói raw PCM thành WAV: ${cmdLine}`);
+        })
+        .on('error', (err: Error) => {
+          this.logger.error(`Lỗi đóng gói raw PCM thành WAV: ${err.message}`);
+          reject(
+            new UnprocessableEntityException(
+              'File audio sau lọc ồn không phải WAV hợp lệ và cũng không thể đọc như raw PCM 16kHz mono.',
+            ),
+          );
+        })
+        .on('end', () => {
+          this.logger.debug(
+            `Hoàn thành đóng gói raw PCM thành WAV: ${outputPath}`,
+          );
+          resolve();
+        })
+        .save(outputPath);
+    });
+
+    await this.assertNormalizedAudio(outputPath);
+
+    return {
+      path: outputPath,
+      mimeType: 'audio/wav',
+    };
+  }
+
+  /**
+   * Chuẩn hóa file upload từ Multer.
+   * Nếu file đang nằm trong memory storage, ghi tạm ra disk để ffmpeg xử lý.
+   */
   async normalizeUploadedFileForAi(
     file: Express.Multer.File,
   ): Promise<NormalizedAudioFile> {
@@ -133,6 +193,10 @@ export class AudioNormalizeService {
     }
   }
 
+  /**
+   * Xóa file tạm sau khi stream hoặc xử lý xong.
+   * Cleanup không throw để không làm hỏng response chính.
+   */
   async cleanup(filePath?: string | null): Promise<void> {
     if (!filePath) return;
 
@@ -144,12 +208,19 @@ export class AudioNormalizeService {
     }
   }
 
+  /**
+   * Lấy timeout normalize từ env để tránh ffmpeg treo quá lâu với file lỗi.
+   */
   private getNormalizeTimeoutMs(): number {
     const raw = process.env.AUDIO_NORMALIZE_TIMEOUT_MS;
     const parsed = Number.parseInt(raw ?? '15000', 10);
     return Number.isFinite(parsed) ? parsed : 15000;
   }
 
+  /**
+   * Kiểm tra file output thật sự là WAV PCM 16-bit, 16kHz, mono.
+   * Guard này giúp phát hiện sớm nếu ffmpeg xuất sai codec/sample rate/channel.
+   */
   private async assertNormalizedAudio(filePath: string): Promise<void> {
     const audioStream = await new Promise<FfprobeAudioStream | undefined>(
       (resolve, reject) => {

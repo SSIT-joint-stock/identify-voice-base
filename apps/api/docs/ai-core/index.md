@@ -34,6 +34,7 @@ Các endpoint hiện có:
 | :----- | :--------------------- | :---------------------- | :-------------- |
 | `POST` | `/ocr`                 | OCR ảnh/PDF/DOCX/TXT    | `ocr.run`       |
 | `POST` | `/speech-to-text`      | Chuyển audio thành text | `s2t.run`       |
+| `POST` | `/filter-noise`        | Lọc ồn audio/video      | Đăng nhập       |
 | `POST` | `/translate`           | Dịch văn bản            | `translate.run` |
 | `POST` | `/detect-language`     | Phát hiện ngôn ngữ      | `translate.run` |
 | `POST` | `/translate-summarize` | Dịch và tóm tắt         | `translate.run` |
@@ -48,6 +49,7 @@ Backend đọc base URL AI Core từ environment:
 AI_CORE_IDENTIFY_URL=http://localhost:1122
 AI_CORE_OCR_URL=http://localhost:8003
 AI_CORE_SPEECH_TO_TEXT_URL=http://localhost:8996
+AI_CORE_FILTER_NOISE_URL=http://localhost:1113/filter_noise/filter_noise_segment
 AI_CORE_TRANSLATION_URL=http://localhost:8505
 AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT=1000
 AUDIO_NORMALIZE_TIMEOUT_MS=15000
@@ -58,6 +60,7 @@ Lưu ý:
 - `AI_CORE_IDENTIFY_URL` dùng cho voice identify/enroll hiện có.
 - `AI_CORE_OCR_URL` dùng cho OCR.
 - `AI_CORE_SPEECH_TO_TEXT_URL` dùng cho Speech-to-Text.
+- `AI_CORE_FILTER_NOISE_URL` là full endpoint URL dùng cho filter-noise audio/video. Backend chỉ tự thêm dấu `/` cuối URL nếu thiếu, không tự nối thêm path.
 - `AI_CORE_TRANSLATION_URL` dùng cho translate, detect language, translate summarize.
 - `AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT` là số từ tối đa mỗi request backend gửi sang Translation AI Core. Nếu `source_text` dài hơn giới hạn này, backend tự chia thành nhiều đoạn và ghép kết quả trả về cho FE.
 - `AUDIO_NORMALIZE_TIMEOUT_MS` dùng cho bước normalize audio trước các luồng voice identify/enroll.
@@ -101,6 +104,7 @@ FE nên:
 - Ẩn hoặc disable tab OCR nếu thiếu `ocr.run`.
 - Ẩn hoặc disable tab Speech-to-Text nếu thiếu `s2t.run`.
 - Ẩn hoặc disable các chức năng translate nếu thiếu `translate.run`.
+- Endpoint filter-noise chỉ yêu cầu đăng nhập vì audio đã lọc có thể dùng tiếp cho nhiều luồng như enroll hoặc identify.
 - Không chỉ dựa vào ẩn UI, backend vẫn kiểm tra permission.
 
 ---
@@ -217,7 +221,107 @@ Nếu FE cần render dropdown, có thể copy danh sách từ API docs hoặc y
 
 ---
 
-## 6. Endpoint OCR
+## 6. Endpoint Filter Noise
+
+```http
+POST /api/v1/ai-core/filter-noise
+```
+
+Chức năng:
+
+- Nhận file audio hoặc video từ FE.
+- Proxy file sang AI Core `/filter_noise/`.
+- Trả về WAV binary đã lọc ồn để FE có thể cho user nghe thử.
+- Backend không tự normalize input trong endpoint này. Với luồng voice identify/enroll, FE luôn gửi file đã normalize trước đó.
+
+Permission:
+
+```txt
+Yêu cầu đăng nhập JWT, không yêu cầu permission riêng.
+```
+
+Content-Type request:
+
+```txt
+multipart/form-data
+```
+
+Request fields FE gửi vào backend:
+
+| Field  | Vị trí    | Kiểu | Bắt buộc | Ghi chú                                     |
+| :----- | :-------- | :--- | :------- | :------------------------------------------ |
+| `file` | form-data | File | Có       | Chấp nhận content-type audio/_ hoặc video/_ |
+
+Response thành công:
+
+| Thuộc tính          | Giá trị              |
+| :------------------ | :------------------- |
+| Status              | `200 OK`             |
+| Content-Type        | `audio/wav`          |
+| Content-Disposition | `attachment`         |
+| Body                | WAV binary đã lọc ồn |
+
+Backend gọi sang AI Core:
+
+```http
+POST {AI_CORE_FILTER_NOISE_URL}/
+```
+
+Body gửi sang AI Core:
+
+- `file`: multipart form-data.
+
+Ví dụ FE dùng Axios:
+
+```ts
+async function filterNoise(file: File): Promise<File> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await axios.post<Blob>('/api/v1/ai-core/filter-noise', formData, {
+    responseType: 'blob',
+  });
+
+  const sourceName = file.name.replace(/\.[^.]+$/, '').trim() || 'audio';
+
+  return new File([res.data], `${sourceName}-filtered.wav`, {
+    type: 'audio/wav',
+    lastModified: Date.now(),
+  });
+}
+```
+
+Luồng FE đề xuất cho voice identify/enroll:
+
+1. User chọn hoặc ghi âm file.
+2. FE gọi `/ai-core/audio/normalize` để lấy `normalizedFile`.
+3. FE hiển thị player cho `normalizedFile`.
+4. Nếu user bấm "Lọc ồn", FE gửi thẳng `normalizedFile` vào `/ai-core/filter-noise`.
+5. FE nhận `filteredFile` dạng `audio/wav` và render audio player để user nghe thử.
+6. User chọn file dùng tiếp:
+   - File đã normalize.
+   - File đã lọc ồn.
+7. FE truyền file user chọn vào enroll hoặc identify như flow hiện tại.
+
+Gợi ý UI:
+
+- Có nút hoặc toggle "Lọc ồn".
+- Khi đã có bản lọc ồn, hiển thị player cho bản lọc và nút "Dùng bản lọc ồn".
+- Có nút "Dùng bản đã chuẩn hóa" để quay lại `normalizedFile` nếu bản lọc ồn làm mất đặc trưng giọng nói.
+- Không tự thay thế file submit nếu user chưa xác nhận.
+- Không cần UI chọn input cho filter-noise. Input của filter-noise trong voice flow luôn là `normalizedFile`.
+
+Lỗi thường gặp:
+
+| Status | Nguyên nhân                     | FE xử lý                              |
+| :----- | :------------------------------ | :------------------------------------ |
+| `400`  | File không phải audio/_/video/_ | Báo user chọn file audio/video khác   |
+| `401`  | Thiếu token                     | Refresh token hoặc redirect login     |
+| `500`  | Core AI lỗi khi lọc ồn          | Cho retry hoặc dùng file đã normalize |
+
+---
+
+## 7. Endpoint OCR
 
 ```http
 POST /api/v1/ai-core/ocr
@@ -328,7 +432,7 @@ Lỗi thường gặp:
 
 ---
 
-## 7. Endpoint Speech-to-Text
+## 8. Endpoint Speech-to-Text
 
 ```http
 POST /api/v1/ai-core/speech-to-text
@@ -782,6 +886,7 @@ Endpoint constants:
 ```ts
 export const AI_CORE_ENDPOINTS = {
   OCR: '/ai-core/ocr',
+  FILTER_NOISE: '/ai-core/filter-noise',
   SPEECH_TO_TEXT: '/ai-core/speech-to-text',
   TRANSLATE: '/ai-core/translate',
   DETECT_LANGUAGE: '/ai-core/detect-language',

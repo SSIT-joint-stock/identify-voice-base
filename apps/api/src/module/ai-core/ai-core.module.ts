@@ -12,6 +12,7 @@ import { AudioNormalizeService } from './service/audio-normalize.service';
 import { AudioSegmentService } from './service/audio-segment.service';
 import { TranslateExportService } from './service/translate-export.service';
 import { AiDeleteVoiceUseCase } from './usecase/ai-delete-voice.usecase';
+import { AiFilterNoiseUseCase } from './usecase/ai-filter-noise.usecase';
 import { AiIdentifyMultiUseCase } from './usecase/ai-identify-multi.usecase';
 import { AiIdentifySingleUseCase } from './usecase/ai-identify-single.usecase';
 import { AiOcrUseCase } from './usecase/ai-ocr.usecase';
@@ -33,6 +34,7 @@ import { UploadVoiceUseCase } from './usecase/ai-upload-voice.usecase';
     AiIdentifySingleUseCase,
     AiIdentifyMultiUseCase,
     AiDeleteVoiceUseCase,
+    AiFilterNoiseUseCase,
     AiOcrUseCase,
     AiSpeechToTextUseCase,
     AiTranslateUseCase,
