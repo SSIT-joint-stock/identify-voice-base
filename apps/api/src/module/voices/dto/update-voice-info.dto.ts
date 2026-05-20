@@ -38,47 +38,47 @@ export class UpdateVoiceInfoDto {
   @IsOptional()
   @IsString()
   @MaxLength(20)
-  citizen_identification?: string;
+  citizen_identification?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @Matches(/^[0-9]{10,11}$/)
-  phone_number?: string;
+  phone_number?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  hometown?: string;
+  hometown?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  job?: string;
+  job?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  passport?: string;
+  passport?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(1, { message: 'Tuổi phải lớn hơn 0' })
-  age?: number;
+  age?: number | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsEnum(UserGender, {
     message: 'Vui lòng chọn đúng giới tính: Nam, Nữ, Khác',
   })
-  gender?: UserGender;
+  gender?: UserGender | null;
 
   @ApiPropertyOptional({ type: [CriminalRecordItemDto] })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CriminalRecordItemDto)
-  criminal_record?: CriminalRecordItemDto[];
+  criminal_record?: CriminalRecordItemDto[] | null;
 }
