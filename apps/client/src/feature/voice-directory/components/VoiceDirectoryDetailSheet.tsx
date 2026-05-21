@@ -74,16 +74,23 @@ function normalizeCriminalForForm(
     }));
 }
 
+function toNullableTrimmedValue(value?: string) {
+  const trimmed = value?.trim() ?? "";
+  return trimmed === "" ? null : trimmed;
+}
+
 function toUpdatePayload(values: UpdateVoiceDirectoryFormValues) {
   return {
     name: values.name.trim(),
-    citizen_identification: values.citizen_identification?.trim() || undefined,
-    phone_number: values.phone_number?.trim() || undefined,
-    hometown: values.hometown?.trim() || undefined,
-    job: values.job?.trim() || undefined,
-    passport: values.passport?.trim() || undefined,
-    age: values.age && Number(values.age) > 0 ? Number(values.age) : undefined,
-    gender: values.gender || undefined,
+    citizen_identification: toNullableTrimmedValue(
+      values.citizen_identification,
+    ),
+    phone_number: toNullableTrimmedValue(values.phone_number),
+    hometown: toNullableTrimmedValue(values.hometown),
+    job: toNullableTrimmedValue(values.job),
+    passport: toNullableTrimmedValue(values.passport),
+    age: values.age ? Number(values.age) : null,
+    gender: values.gender || null,
     criminal_record: values.criminal_record.map((row) => ({
       case: row.case.trim(),
       year: Number.parseInt(row.year, 10),

@@ -70,13 +70,13 @@ export interface VoiceDirectoryDetail {
 
 export interface UpdateVoiceInfoPayload {
   name?: string;
-  citizen_identification?: string;
-  phone_number?: string;
-  hometown?: string;
-  job?: string;
-  passport?: string;
-  age?: number;
-  gender?: "MALE" | "FEMALE" | "OTHER";
+  citizen_identification?: string | null;
+  phone_number?: string | null;
+  hometown?: string | null;
+  job?: string | null;
+  passport?: string | null;
+  age?: number | null;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
   criminal_record?: Array<{ case: string; year: number }>;
 }
 
