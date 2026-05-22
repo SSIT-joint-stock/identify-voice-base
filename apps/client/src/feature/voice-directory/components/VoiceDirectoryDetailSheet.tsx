@@ -597,9 +597,10 @@ export function VoiceDirectoryDetailSheet({
                   </div>
 
                   <Button
+                    size={"lg"}
                     type="submit"
                     disabled={updateMutation.isPending}
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto px-6"
                   >
                     {updateMutation.isPending ? (
                       <>
