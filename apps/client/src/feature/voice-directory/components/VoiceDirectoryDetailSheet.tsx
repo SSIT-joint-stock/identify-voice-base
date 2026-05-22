@@ -200,6 +200,7 @@ export function VoiceDirectoryDetailSheet({
     onSuccess: (payload) => {
       onUpdated?.(payload);
       toast.success("Cập nhật thông tin cá nhân thành công.");
+      onOpenChange(false);
       void queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.voice.directory.detail(voiceId!),
       });
