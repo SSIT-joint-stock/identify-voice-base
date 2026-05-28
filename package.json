@@ -14,6 +14,8 @@
     "dev:worker": "pnpm --filter api run start:worker",
     "build:api": "pnpm --filter api run build",
     "lint:api": "pnpm --filter api run lint",
+    "test:api": "pnpm --filter api exec jest --runInBand",
+    "test:api:spec": "pnpm --filter api exec jest --runInBand",
     "start:api": "pnpm --filter api run start:prod",
     "start:worker": "pnpm --filter api run start:worker:prod",
     "------ FE Client (Clone) ------": "---",

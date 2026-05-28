@@ -40,5 +40,9 @@ export default registerAs('ai', () => ({
       process.env.AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT,
       1000,
     ),
+    chunkCharacterLimit: getNumber(
+      process.env.AI_CORE_TRANSLATION_CHUNK_CHARACTER_LIMIT,
+      1200,
+    ),
   },
 }));

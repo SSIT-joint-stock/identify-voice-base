@@ -466,6 +466,11 @@ export default function TranslateFile() {
           break;
         }
 
+        const partialTranslatedText = jobStatus.result?.translated_text ?? "";
+        if (partialTranslatedText) {
+          setTranslatedText(partialTranslatedText);
+        }
+
         await animateProgressTo(
           translateProgressRef.current,
           jobStatus.progress,
@@ -686,7 +691,7 @@ export default function TranslateFile() {
   };
 
   const renderTranslateOptions = () => (
-    <Card className="rounded-md border border-slate-200 py-5 shadow-none ring-0">
+    <Card className="translation-surface py-5">
       <CardContent
         className={`flex flex-col gap-4 ${
           isAudio
@@ -832,12 +837,12 @@ export default function TranslateFile() {
     <PageLayout
       title="Dịch tệp tin"
       description="Tải audio, PDF, DOCX, TXT hoặc ảnh để trích xuất và dịch nội dung."
-      titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
+      titleClassName="translation-page-title"
       onRefresh={resetPage}
     >
       {!hasFile ? renderTranslateOptions() : null}
 
-      <Card className="rounded-md border border-slate-200 shadow-none ring-0">
+      <Card className="translation-surface">
         <CardHeader>
           <CardTitle>Dịch từ tệp</CardTitle>
         </CardHeader>
@@ -873,7 +878,7 @@ export default function TranslateFile() {
           <div ref={translateOptionsRef}>{renderTranslateOptions()}</div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="rounded-md border border-slate-200 shadow-none ring-0">
+            <Card className="translation-surface">
               <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="flex items-center gap-2">
                   Văn bản nguồn
@@ -910,7 +915,7 @@ export default function TranslateFile() {
                     }}
                     disabled={isBusy}
                     placeholder="Nội dung trích xuất sẽ hiển thị tại đây."
-                    className="multilingual-content h-94 min-h-94 max-h-94 resize-none overflow-y-auto p-4 pb-14 text-sm leading-6"
+                    className="translation-textarea"
                   />
                   <CopyFeedbackButton
                     className="absolute right-4 bottom-4"
@@ -977,7 +982,7 @@ export default function TranslateFile() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-md border border-slate-200 shadow-none ring-0">
+            <Card className="translation-surface">
               <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle>{outputTitle}</CardTitle>
 
@@ -1001,6 +1006,7 @@ export default function TranslateFile() {
                   <TranslateDownloadDropdown
                     disabled={
                       !hasTranslatedText ||
+                      isBusy ||
                       Boolean(exportingFormat) ||
                       hasPendingTranslationEdit ||
                       isSavingEditedTranslation
@@ -1011,8 +1017,8 @@ export default function TranslateFile() {
                 </div>
               </CardHeader>
               <CardContent>
-                {processingStep === "translating" ? (
-                  <div className="flex h-94 min-h-94 max-h-94 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                {processingStep === "translating" && !translatedText ? (
+                  <div className="translation-empty-state flex-col gap-3">
                     <LoaderCircle className="size-8 animate-spin text-primary-500" />
                     <div className="flex w-full max-w-xs flex-col items-center gap-2">
                       <span>Đang dịch nội dung...</span>
@@ -1047,12 +1053,13 @@ export default function TranslateFile() {
                       onChange={(event) =>
                         setTranslatedText(event.target.value)
                       }
-                      className="multilingual-content h-94 min-h-94 max-h-94 resize-none overflow-y-auto rounded-md border bg-muted/30 p-4 pb-14 text-sm leading-6"
+                      className="translation-textarea rounded-md border bg-muted/30"
                     />
                     <CopyFeedbackButton
                       className="absolute right-4 bottom-4"
                       disabled={
                         !hasTranslatedText ||
+                        isBusy ||
                         hasPendingTranslationEdit ||
                         isSavingEditedTranslation
                       }
@@ -1061,9 +1068,15 @@ export default function TranslateFile() {
                         copyText(translatedText, "Đã sao chép bản dịch.")
                       }
                     />
+                    {processingStep === "translating" ? (
+                      <div className="translation-progress-chip">
+                        <LoaderCircle className="size-3.5 animate-spin text-primary-500" />
+                        <span>Đang dịch tiếp... {translateProgress}%</span>
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
-                  <div className="relative flex h-94 min-h-94 max-h-94 items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                  <div className="translation-empty-state relative">
                     Bản dịch sẽ hiển thị ở đây.
                     <CopyFeedbackButton
                       className="absolute right-4 bottom-4"

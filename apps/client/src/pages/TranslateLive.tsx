@@ -234,6 +234,11 @@ export default function TranslateLive() {
             break;
           }
 
+          const partialTranslatedText = jobStatus.result?.translated_text ?? "";
+          if (partialTranslatedText) {
+            setTranslatedText(partialTranslatedText);
+          }
+
           await animateProgressTo(
             translateProgressRef.current,
             jobStatus.progress,
@@ -375,11 +380,11 @@ export default function TranslateLive() {
     <PageLayout
       title="Dịch trực tiếp"
       description="Nhập văn bản nguồn để dịch hoặc tóm tắt nội dung."
-      titleClassName="font-playfair text-[34px] leading-[1.1] font-bold tracking-tight text-[#4b1d18] md:text-[42px]"
+      titleClassName="translation-page-title"
       className="h-[calc(100vh-var(--app-header-height)-3rem)] overflow-y-hidden"
       onRefresh={resetPage}
     >
-      <Card className="shrink-0 gap-0 rounded-md border border-slate-200 py-5 shadow-none ring-0">
+      <Card className="translation-surface shrink-0 gap-0 py-5">
         <CardContent className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl">
             <div className="space-y-2">
@@ -427,7 +432,7 @@ export default function TranslateLive() {
       </Card>
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-2">
-        <Card className="flex min-h-0 flex-col rounded-md border border-slate-200 shadow-none ring-0">
+        <Card className="translation-surface flex min-h-0 flex-col">
           <CardHeader className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 ">
               Văn bản nguồn
@@ -508,7 +513,7 @@ export default function TranslateLive() {
           </CardContent>
         </Card>
 
-        <Card className="flex min-h-0 flex-col rounded-md border border-slate-200 shadow-none ring-0">
+        <Card className="translation-surface flex min-h-0 flex-col">
           <CardHeader className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>{outputTitle}</CardTitle>
 
@@ -532,6 +537,7 @@ export default function TranslateLive() {
               <TranslateDownloadDropdown
                 disabled={
                   !hasTranslatedText ||
+                  isTranslating ||
                   Boolean(exportingFormat) ||
                   hasPendingTranslationEdit ||
                   isSavingEditedTranslation
@@ -542,7 +548,7 @@ export default function TranslateLive() {
             </div>
           </CardHeader>
           <CardContent className="min-h-0 flex-1">
-            {isTranslating ? (
+            {isTranslating && !translatedText ? (
               <div className="flex h-full min-h-0 flex-col items-center justify-center gap-3 rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                 <LoaderCircle className="size-8 animate-spin text-primary-500" />
                 <div className="flex w-full max-w-xs flex-col items-center gap-2">
@@ -584,6 +590,7 @@ export default function TranslateLive() {
                   className="absolute right-4 bottom-4"
                   disabled={
                     !hasTranslatedText ||
+                    isTranslating ||
                     hasPendingTranslationEdit ||
                     isSavingEditedTranslation
                   }
@@ -592,6 +599,12 @@ export default function TranslateLive() {
                     copyText(translatedText, "Đã sao chép bản dịch.")
                   }
                 />
+                {isTranslating ? (
+                  <div className="translation-progress-chip">
+                    <LoaderCircle className="size-3.5 animate-spin text-primary-500" />
+                    <span>Đang dịch tiếp... {translateProgress}%</span>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <div className="relative flex h-full min-h-0 items-center justify-center rounded-md border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
