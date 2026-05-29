@@ -2,15 +2,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
+  Download,
   Loader2,
   Play,
   Plus,
   Sparkles,
   Trash2,
   Users,
-  X,
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -39,6 +39,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { QUERY_KEYS } from "@/constants";
 import type { ApiError } from "@/types";
 
@@ -96,6 +101,18 @@ function toUpdatePayload(values: UpdateVoiceDirectoryFormValues) {
       year: Number.parseInt(row.year, 10),
     })),
   };
+}
+
+function downloadAudioBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 export interface VoiceDirectoryDetailSheetProps {
@@ -338,6 +355,8 @@ export function VoiceDirectoryDetailSheet({
 
   const enrollAudioUrl = detail?.audio_url?.trim() || null;
   const hasEnrollStreamUrl = Boolean(enrollAudioUrl);
+  const previewSessionRow =
+    historyRows.find((row) => row.session_id === previewSessionId) ?? null;
 
   const sheetTitle = useMemo(() => {
     if (!detail) return "Chi tiết hồ sơ";
@@ -358,6 +377,29 @@ export function VoiceDirectoryDetailSheet({
     setDenoisePreviewOpen(true);
     setFilteredEnrollAudioFile(null);
     denoisePreviewMutation.mutate();
+  };
+
+  const downloadEnrollAudio = async () => {
+    if (!enrollAudioUrl) return;
+
+    try {
+      const blob = await fetchProtectedAudioBlob(enrollAudioUrl);
+      downloadAudioBlob(blob, `${detail?.name || "voice-sample"}.wav`);
+      toast.success("Đã tải audio nguồn.");
+    } catch {
+      toast.error("Không thể tải audio nguồn.");
+    }
+  };
+
+  const downloadFilteredAudio = () => {
+    if (!filteredEnrollAudioFile) return;
+
+    downloadAudioBlob(
+      filteredEnrollAudioFile,
+      filteredEnrollAudioFile.name ||
+        `${detail?.name || "voice-sample"}-filtered.wav`,
+    );
+    toast.success("Đã tải audio đã lọc.");
   };
 
   return (
@@ -393,6 +435,7 @@ export function VoiceDirectoryDetailSheet({
                         audioUrl={enrollAudioUrl}
                         fileName={`${detail.name || "voice-sample"}.wav`}
                         compact
+                        showDownload
                       />
                       {/* {!detail.audio_available ? (
                         <p className="text-xs text-amber-800">
@@ -659,106 +702,50 @@ export function VoiceDirectoryDetailSheet({
                         historyRows.map((row) => {
                           const aid = row.audio_file_id;
                           const selectable = Boolean(aid);
-                          const isPreviewing =
-                            previewSessionId === row.session_id;
                           return (
-                            <Fragment key={row.session_id}>
-                              <TableRow>
-                                <TableCell>
-                                  {selectable ? (
-                                    <input
-                                      type="checkbox"
-                                      className="size-4 accent-primary"
-                                      checked={
-                                        aid ? selectedAudioIds.has(aid) : false
-                                      }
-                                      onChange={() =>
-                                        aid && toggleAudioSelection(aid)
-                                      }
-                                      aria-label="Chọn mẫu để cập nhật embedding"
-                                    />
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">
-                                      —
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap text-xs">
-                                  {new Date(row.identified_at).toLocaleString(
-                                    "vi-VN",
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {row.score != null
-                                    ? row.score.toFixed(4)
-                                    : "—"}
-                                </TableCell>
-                                <TableCell>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-1"
-                                    onClick={() =>
-                                      setPreviewSessionId((current) =>
-                                        current === row.session_id
-                                          ? null
-                                          : row.session_id,
-                                      )
+                            <TableRow key={row.session_id}>
+                              <TableCell>
+                                {selectable ? (
+                                  <input
+                                    type="checkbox"
+                                    className="size-4 accent-primary"
+                                    checked={
+                                      aid ? selectedAudioIds.has(aid) : false
                                     }
-                                  >
-                                    <Play className="size-3" />
-                                    Nghe
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-
-                              {isPreviewing ? (
-                                <TableRow>
-                                  <TableCell colSpan={4} className="py-3">
-                                    <div className="relative rounded-lg border bg-background p-3 pr-12">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute top-2 right-2 size-8 text-muted-foreground hover:bg-red-50 hover:text-red-500"
-                                        onClick={() =>
-                                          setPreviewSessionId(null)
-                                        }
-                                        aria-label="Đóng audio"
-                                      >
-                                        <X className="size-4" />
-                                      </Button>
-
-                                      <p className="mb-2 text-xs font-medium text-muted-foreground">
-                                        Audio đầu vào phiên{" "}
-                                        {row.session_id.slice(0, 8)}…
-                                      </p>
-                                      {sessionPreviewQuery.isLoading ? (
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                          <Loader2 className="size-4 animate-spin" />
-                                          Đang tải…
-                                        </div>
-                                      ) : sessionPreviewQuery.data
-                                          ?.audio_url ? (
-                                        <VoiceAudioPlayer
-                                          file={null}
-                                          audioUrl={
-                                            sessionPreviewQuery.data.audio_url
-                                          }
-                                          fileName={`session-${row.session_id.slice(0, 8)}.wav`}
-                                          compact
-                                        />
-                                      ) : (
-                                        <p className="text-sm text-destructive">
-                                          Không lấy được URL phát phiên này.
-                                        </p>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ) : null}
-                            </Fragment>
+                                    onChange={() =>
+                                      aid && toggleAudioSelection(aid)
+                                    }
+                                    aria-label="Chọn mẫu để cập nhật embedding"
+                                  />
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">
+                                    —
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap text-xs">
+                                {new Date(row.identified_at).toLocaleString(
+                                  "vi-VN",
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {row.score != null ? row.score.toFixed(4) : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1"
+                                  onClick={() =>
+                                    setPreviewSessionId(row.session_id)
+                                  }
+                                >
+                                  <Play className="size-3" />
+                                  Nghe
+                                </Button>
+                              </TableCell>
+                            </TableRow>
                           );
                         })
                       )}
@@ -792,6 +779,47 @@ export function VoiceDirectoryDetailSheet({
           currentName={detail?.name}
         />
       ) : null}
+
+      <Dialog
+        open={Boolean(previewSessionId)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setPreviewSessionId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Audio đầu vào phiên nhận dạng</DialogTitle>
+            <DialogDescription>
+              {previewSessionRow
+                ? `Phiên ${previewSessionRow.session_id.slice(0, 8)} • ${new Date(
+                    previewSessionRow.identified_at,
+                  ).toLocaleString("vi-VN")}`
+                : "Nghe lại audio đầu vào của phiên nhận dạng."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {sessionPreviewQuery.isLoading ? (
+            <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              Đang tải audio…
+            </div>
+          ) : sessionPreviewQuery.data?.audio_url && previewSessionId ? (
+            <VoiceAudioPlayer
+              file={null}
+              audioUrl={sessionPreviewQuery.data.audio_url}
+              fileName={`session-${previewSessionId.slice(0, 8)}.wav`}
+              compact
+              showDownload
+            />
+          ) : (
+            <p className="text-sm text-destructive">
+              Không lấy được URL phát phiên này.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={confirmDeactivateOpen}
@@ -853,7 +881,24 @@ export function VoiceDirectoryDetailSheet({
 
             <div className="space-y-4">
               <div className="space-y-4 rounded-2xl border p-4">
-                <p className="font-medium">Audio nguồn</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium">Audio nguồn</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={!enrollAudioUrl}
+                        aria-label="Tải audio nguồn"
+                        onClick={() => void downloadEnrollAudio()}
+                      >
+                        <Download className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Tải audio nguồn</TooltipContent>
+                  </Tooltip>
+                </div>
                 <VoiceAudioPlayer
                   file={null}
                   audioUrl={enrollAudioUrl}
@@ -879,7 +924,27 @@ export function VoiceDirectoryDetailSheet({
 
             <div className="space-y-4">
               <div className="space-y-4 rounded-2xl border p-4">
-                <p className="font-medium">Audio đã lọc ồn</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium">Audio đã lọc ồn</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={
+                          !filteredEnrollAudioFile ||
+                          denoisePreviewMutation.isPending
+                        }
+                        aria-label="Tải audio đã lọc"
+                        onClick={downloadFilteredAudio}
+                      >
+                        <Download className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Tải audio đã lọc</TooltipContent>
+                  </Tooltip>
+                </div>
                 {denoisePreviewMutation.isPending ? (
                   <div className="flex min-h-64 items-center justify-center rounded-2xl border border-dashed text-sm text-muted-foreground">
                     <Loader2 className="mr-2 size-4 animate-spin" />

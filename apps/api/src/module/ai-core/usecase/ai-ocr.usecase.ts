@@ -11,6 +11,7 @@ import {
 import { type ConfigType } from '@nestjs/config';
 import { AxiosError, AxiosResponse } from 'axios';
 import FormData from 'form-data';
+import { createReadStream } from 'fs';
 import { catchError, firstValueFrom } from 'rxjs';
 import { OcrRequestDto } from '../dto/ocr-request.dto';
 import type { OcrLanguage } from '../constants/languages';
@@ -33,7 +34,13 @@ export class AiOcrUseCase {
     }
 
     const formData = new FormData();
-    formData.append('file', file.buffer, {
+    const filePayload =
+      file.buffer ?? (file.path && createReadStream(file.path));
+    if (!filePayload) {
+      throw new UnprocessableEntityException('Không đọc được file OCR');
+    }
+
+    formData.append('file', filePayload, {
       filename: file.originalname,
       contentType: file.mimetype,
     });

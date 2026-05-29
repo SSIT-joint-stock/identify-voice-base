@@ -200,7 +200,6 @@
   }
 
   .translation-progress-chip {
-    pointer-events: none;
     position: absolute;
     right: 1rem;
     bottom: 1rem;

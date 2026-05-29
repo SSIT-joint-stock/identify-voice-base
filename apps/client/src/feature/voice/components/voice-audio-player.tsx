@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNormalizeAudio } from "@/feature/voice/hooks/use-normalize-audio";
 import { formatTime } from "@/feature/voice/utils/format";
 import { cn } from "@/lib/utils";
-import { Loader, Pause, Play } from "lucide-react";
+import { Download, Loader, Pause, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import WaveSurfer from "wavesurfer.js";
 
@@ -21,6 +21,7 @@ export interface VoiceAudioPlayerProps {
   isLoading?: boolean;
   loadingText?: string;
   compact?: boolean;
+  showDownload?: boolean;
 }
 
 export function VoiceAudioPlayer({
@@ -37,6 +38,7 @@ export function VoiceAudioPlayer({
   isLoading = false,
   loadingText,
   compact = false,
+  showDownload = false,
 }: VoiceAudioPlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
@@ -282,6 +284,17 @@ export function VoiceAudioPlayer({
     }
   };
 
+  const downloadAudio = () => {
+    if (!resolvedAudioUrl) return;
+
+    const link = document.createElement("a");
+    link.href = resolvedAudioUrl;
+    link.download = resolvedFileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   if (!resolvedAudioUrl && !visibleIsLoading) return null;
 
   const content = (
@@ -355,6 +368,19 @@ export function VoiceAudioPlayer({
           <div className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
             {resolvedFileName}
           </div>
+
+          {showDownload ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={downloadAudio}
+              disabled={!resolvedAudioUrl}
+              size={compact ? "sm" : "default"}
+            >
+              <Download className="mr-2 size-4" />
+              Tải audio
+            </Button>
+          ) : null}
 
           {footerAction && inlineFooterAction ? (
             <div

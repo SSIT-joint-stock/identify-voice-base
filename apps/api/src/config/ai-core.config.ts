@@ -20,6 +20,7 @@ export default registerAs('ai', () => ({
   },
   ocr: {
     url: normalizeUrl(ocrUrl),
+    pdfBatchSize: getNumber(process.env.AI_CORE_OCR_PDF_BATCH_SIZE, 3),
   },
   speechToText: {
     url: normalizeUrl(

@@ -78,6 +78,8 @@ export interface OcrPageResult {
 
 export interface OcrResponse {
   results: string | OcrPageResult[];
+  completed_pages?: number;
+  total_pages?: number;
 }
 
 export interface SelectedTranslateFile {

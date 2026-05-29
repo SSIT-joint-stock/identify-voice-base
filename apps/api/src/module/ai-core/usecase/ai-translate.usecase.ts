@@ -289,15 +289,11 @@ export class AiTranslateUseCase {
 
   private findCharacterChunkSplitIndex(text: string, characterLimit: number) {
     const searchWindow = text.slice(0, characterLimit);
-    const punctuationMatch = searchWindow.match(
-      /[。．.!！?？\n]\s*[^。．.!！?？\n]*$/u,
-    );
+    // Sử dụng greedy .* để tìm điểm ngắt câu (dấu chấm, chấm hỏi, chấm than, xuống dòng) cuối cùng trong cửa sổ tìm kiếm
+    const match = searchWindow.match(/.*[。．.!！?？\n]\s*/su);
 
-    if (
-      punctuationMatch?.index &&
-      punctuationMatch.index > characterLimit / 2
-    ) {
-      return punctuationMatch.index + punctuationMatch[0].length;
+    if (match && match[0].length > characterLimit / 2) {
+      return match[0].length;
     }
 
     return characterLimit;
