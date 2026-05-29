@@ -20,6 +20,7 @@ export default registerAs('ai', () => ({
   },
   ocr: {
     url: normalizeUrl(ocrUrl),
+    pdfBatchSize: getNumber(process.env.AI_CORE_OCR_PDF_BATCH_SIZE, 3),
   },
   speechToText: {
     url: normalizeUrl(
@@ -39,6 +40,10 @@ export default registerAs('ai', () => ({
     chunkWordLimit: getNumber(
       process.env.AI_CORE_TRANSLATION_CHUNK_WORD_LIMIT,
       1000,
+    ),
+    chunkCharacterLimit: getNumber(
+      process.env.AI_CORE_TRANSLATION_CHUNK_CHARACTER_LIMIT,
+      1200,
     ),
   },
 }));

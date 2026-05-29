@@ -78,11 +78,27 @@ export class AiTranslateJobService {
       });
 
       let progressUpdate = Promise.resolve();
-      const updateProgress = (progress: number) => {
+      const updateProgress = (
+        progress: number,
+        translatedText?: string,
+        processedChunks?: number,
+        totalChunks?: number,
+      ) => {
         progressUpdate = progressUpdate.then(() =>
           this.patchJob(jobId, {
             status: 'processing',
             progress: Math.min(progress, 99),
+            ...(translatedText
+              ? {
+                  result: {
+                    original_text: dto.source_text,
+                    translated_text: translatedText,
+                    target_lang: dto.target_lang ?? 'en',
+                    processed_chunks: processedChunks,
+                    total_chunks: totalChunks,
+                  },
+                }
+              : {}),
           }),
         );
       };

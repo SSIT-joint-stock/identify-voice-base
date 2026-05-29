@@ -28,7 +28,7 @@ ENV NODE_ENV=production
 
 WORKDIR /app/apps/api
 
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache ffmpeg poppler-utils
 
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/apps/api/node_modules ./node_modules

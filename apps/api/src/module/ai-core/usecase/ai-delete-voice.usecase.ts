@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { type ConfigType } from '@nestjs/config';
 import { AxiosError } from 'axios';
-import { catchError, firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, of } from 'rxjs';
 
 @Injectable()
 export class AiDeleteVoiceUseCase {
@@ -51,7 +51,7 @@ export class AiDeleteVoiceUseCase {
                 this.logger.warn(
                   `voice_id ${voiceId} không tồn tại trong Qdrant.`,
                 );
-                return [];
+                return of({ data: null });
               }
 
               throw new InternalServerErrorException(

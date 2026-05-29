@@ -19,6 +19,8 @@ export interface TranslateResponse {
   translated_text: string;
   history_record_id?: string;
   target_lang: string;
+  processed_chunks?: number;
+  total_chunks?: number;
 }
 
 export type TranslateJobStatus =
@@ -76,6 +78,8 @@ export interface OcrPageResult {
 
 export interface OcrResponse {
   results: string | OcrPageResult[];
+  completed_pages?: number;
+  total_pages?: number;
 }
 
 export interface SelectedTranslateFile {

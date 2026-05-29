@@ -17,7 +17,12 @@ import {
 
 type TranslationCoreRequest = Record<string, string>;
 type TranslationCoreResponse = Record<string, unknown>;
-export type TranslationProgressCallback = (progress: number) => void;
+export type TranslationPartialCallback = (
+  progress: number,
+  translatedText?: string,
+  processedChunks?: number,
+  totalChunks?: number,
+) => void;
 
 const MIN_CHARACTER_CHUNK_LIMIT = 1200;
 
@@ -37,7 +42,7 @@ export class AiTranslateUseCase {
 
   async executeWithProgress(
     dto: TranslateRequestDto,
-    onProgress: TranslationProgressCallback,
+    onProgress: TranslationPartialCallback,
   ) {
     return this.translateInChunks('/translate', dto, onProgress);
   }
@@ -54,7 +59,7 @@ export class AiTranslateUseCase {
 
   async translateSummarizeWithProgress(
     dto: TranslateRequestDto,
-    onProgress: TranslationProgressCallback,
+    onProgress: TranslationPartialCallback,
   ) {
     return this.translateInChunks('/translate_summarize', dto, onProgress);
   }
@@ -62,7 +67,7 @@ export class AiTranslateUseCase {
   private async translateInChunks(
     path: string,
     dto: TranslateRequestDto,
-    onProgress?: TranslationProgressCallback,
+    onProgress?: TranslationPartialCallback,
   ) {
     const targetLang = dto.target_lang ?? 'en';
     const chunkWordLimit = this.config.translation.chunkWordLimit;
@@ -78,7 +83,7 @@ export class AiTranslateUseCase {
         ...baseRequest,
         source_text: dto.source_text,
       });
-      onProgress?.(100);
+      onProgress?.(100, this.getTranslatedText(response), 1, 1);
 
       return response;
     }
@@ -92,14 +97,23 @@ export class AiTranslateUseCase {
     for (let index = 0; index < chunks.length; index += 1) {
       const chunk = chunks[index];
 
-      responses.push(
-        await this.postToTranslationCore(path, {
-          ...baseRequest,
-          source_text: chunk,
-        }),
-      );
+      const response = await this.postToTranslationCore(path, {
+        ...baseRequest,
+        source_text: chunk,
+      });
+      responses.push(response);
 
-      onProgress?.(Math.round(((index + 1) / chunks.length) * 100));
+      const translatedText = responses
+        .map((item) => this.getTranslatedText(item))
+        .filter((text) => text.length > 0)
+        .join('\n\n');
+
+      onProgress?.(
+        Math.round(((index + 1) / chunks.length) * 100),
+        translatedText,
+        index + 1,
+        chunks.length,
+      );
     }
 
     const translatedText = responses
@@ -192,22 +206,22 @@ export class AiTranslateUseCase {
   }
 
   private splitTextForTranslation(text: string, wordLimit: number): string[] {
+    const characterLimit = Math.max(
+      this.config.translation.chunkCharacterLimit,
+      MIN_CHARACTER_CHUNK_LIMIT,
+    );
+
+    if (text.trim().length > characterLimit) {
+      return this.splitTextByCharacterLimit(text, characterLimit);
+    }
+
     const wordChunks = this.splitTextByWordLimit(text, wordLimit);
 
     if (wordChunks.length > 1) {
       return wordChunks;
     }
 
-    const characterLimit = Math.max(
-      Math.floor(wordLimit * 2),
-      MIN_CHARACTER_CHUNK_LIMIT,
-    );
-
-    if (text.trim().length <= characterLimit) {
-      return wordChunks;
-    }
-
-    return this.splitTextByCharacterLimit(text, characterLimit);
+    return wordChunks;
   }
 
   private splitTextByWordLimit(text: string, wordLimit: number): string[] {
@@ -275,15 +289,11 @@ export class AiTranslateUseCase {
 
   private findCharacterChunkSplitIndex(text: string, characterLimit: number) {
     const searchWindow = text.slice(0, characterLimit);
-    const punctuationMatch = searchWindow.match(
-      /[。．.!！?？\n]\s*[^。．.!！?？\n]*$/u,
-    );
+    // Sử dụng greedy .* để tìm điểm ngắt câu (dấu chấm, chấm hỏi, chấm than, xuống dòng) cuối cùng trong cửa sổ tìm kiếm
+    const match = searchWindow.match(/.*[。．.!！?？\n]\s*/su);
 
-    if (
-      punctuationMatch?.index &&
-      punctuationMatch.index > characterLimit / 2
-    ) {
-      return punctuationMatch.index + punctuationMatch[0].length;
+    if (match && match[0].length > characterLimit / 2) {
+      return match[0].length;
     }
 
     return characterLimit;

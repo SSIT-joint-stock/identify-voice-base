@@ -138,6 +138,11 @@
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1",
+      "^music-metadata$": "<rootDir>/test/__mocks__/music-metadata.ts",
+      "^uuid$": "<rootDir>/test/__mocks__/uuid.ts"
+    },
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },

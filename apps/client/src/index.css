@@ -15,14 +15,15 @@
 
 :root {
   --app-font-sans: "Be Vietnam Pro", sans-serif;
-  --multilingual-font-sans: "Be Vietnam Pro", "Noto Sans JP", "Noto Sans KR",
-    "Noto Sans SC", "Noto Sans TC", "Noto Sans Thai", "Noto Sans Lao",
-    "Noto Sans Khmer", "Noto Sans Myanmar", "Noto Serif Tibetan",
-    "Noto Naskh Arabic", "Noto Sans Devanagari", "Noto Sans Bengali",
-    "Noto Sans Gujarati", "Noto Sans Telugu", "Noto Sans Tamil",
-    "Noto Sans Hebrew", "Apple SD Gothic Neo", "Hiragino Sans", "Yu Gothic",
-    "Meiryo", "Malgun Gothic", "Microsoft YaHei", "Microsoft JhengHei",
-    "Leelawadee UI", sans-serif;
+  --multilingual-font-sans:
+    "Be Vietnam Pro", "Noto Sans JP", "Noto Sans KR", "Noto Sans SC",
+    "Noto Sans TC", "Noto Sans Thai", "Noto Sans Lao", "Noto Sans Khmer",
+    "Noto Sans Myanmar", "Noto Serif Tibetan", "Noto Naskh Arabic",
+    "Noto Sans Devanagari", "Noto Sans Bengali", "Noto Sans Gujarati",
+    "Noto Sans Telugu", "Noto Sans Tamil", "Noto Sans Hebrew",
+    "Apple SD Gothic Neo", "Hiragino Sans", "Yu Gothic", "Meiryo",
+    "Malgun Gothic", "Microsoft YaHei", "Microsoft JhengHei", "Leelawadee UI",
+    sans-serif;
 }
 
 /* =====================
@@ -147,6 +148,72 @@
 
   .scrollbar-thin::-webkit-scrollbar-corner {
     background: transparent;
+  }
+
+  .translation-page-title {
+    font-family: var(--font-playfair);
+    font-size: 34px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #1f2937;
+    letter-spacing: 0;
+  }
+
+  @media (min-width: 768px) {
+    .translation-page-title {
+      font-size: 42px;
+    }
+  }
+
+  .translation-surface {
+    border: 1px solid rgb(226 232 240);
+    border-radius: 8px;
+    box-shadow: none;
+    --tw-ring-shadow: 0 0 #0000;
+  }
+
+  .translation-textarea {
+    min-height: 23.5rem;
+    max-height: 23.5rem;
+    resize: none;
+    overflow-y: auto;
+    padding: 1rem;
+    padding-bottom: 3.5rem;
+    font-family: var(--multilingual-font-sans);
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+  }
+
+  .translation-empty-state {
+    display: flex;
+    min-height: 23.5rem;
+    max-height: 23.5rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--muted) 20%, transparent);
+    padding: 1.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+
+  .translation-progress-chip {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--background) 95%, transparent);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
   }
 }
 
