@@ -6,6 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -74,9 +81,10 @@ function getTotalSegmentDuration(segments?: SessionSegment[] | null) {
 
 function SpeakerAudioPlayer({ speaker }: { speaker: SessionSpeaker }) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  console.log(speaker);
+
   useEffect(() => {
     return () => {
       if (blobUrl) {
@@ -87,6 +95,7 @@ function SpeakerAudioPlayer({ speaker }: { speaker: SessionSpeaker }) {
 
   const handleLoadAudio = async () => {
     if (!speaker.audio_url) return;
+    setDialogOpen(true);
 
     if (blobUrl) {
       setError(null);
@@ -122,7 +131,7 @@ function SpeakerAudioPlayer({ speaker }: { speaker: SessionSpeaker }) {
   }
 
   return (
-    <div className="space-y-3">
+    <>
       <Button
         type="button"
         variant="outline"
@@ -134,18 +143,46 @@ function SpeakerAudioPlayer({ speaker }: { speaker: SessionSpeaker }) {
         ) : (
           <Play className="size-4" />
         )}
-        {blobUrl ? "Tải lại audio của người nói" : "Nghe audio của người nói"}
+        Nghe audio của người nói
       </Button>
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
-      {blobUrl ? (
-        <VoiceAudioPlayer
-          file={null}
-          audioUrl={blobUrl}
-          fileName={`${speaker.speaker_label}.wav`}
-          compact
-        />
-      ) : null}
-    </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              Audio của {speaker.name || speaker.speaker_label}
+            </DialogTitle>
+            <DialogDescription>
+              {speaker.speaker_label}
+              {speaker.score !== null
+                ? ` • Score ${formatScore(speaker.score)}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoading ? (
+            <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              Đang tải audio của người nói…
+            </div>
+          ) : error ? (
+            <p className="text-sm text-destructive">{error}</p>
+          ) : blobUrl ? (
+            <VoiceAudioPlayer
+              file={null}
+              audioUrl={blobUrl}
+              fileName={`${speaker.speaker_label}.wav`}
+              compact
+              showDownload
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Chưa có audio để phát.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

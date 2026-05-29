@@ -59,12 +59,17 @@ export function VoiceAudioPlayer({
     return URL.createObjectURL(file);
   }, [file]);
 
+  const hasAudioSource = Boolean(file || audioUrl);
   const resolvedAudioUrl = file ? objectUrl : audioUrl ? remoteAudioUrl : null;
   const resolvedFileName = file?.name ?? fileName ?? "audio";
   const visibleAudioError = file || audioUrl ? audioError : null;
-  const visibleIsLoadingAudio = !file && !!audioUrl && isLoadingAudio;
+  const visibleIsLoadingAudio =
+    !file && !!audioUrl && (isLoadingAudio || (!remoteAudioUrl && !audioError));
   const visibleIsPreparingWaveform =
-    Boolean(resolvedAudioUrl) && !visibleAudioError && !isReady;
+    hasAudioSource &&
+    Boolean(resolvedAudioUrl) &&
+    !visibleAudioError &&
+    !isReady;
   const visibleIsLoading =
     isLoading || visibleIsLoadingAudio || visibleIsPreparingWaveform;
 
@@ -121,7 +126,7 @@ export function VoiceAudioPlayer({
         URL.revokeObjectURL(nextObjectUrl);
       }
     };
-  }, [audioUrl, file, WAVEFORM_FALLBACK_MESSAGE]);
+  }, [audioUrl, file, WAVEFORM_FALLBACK_MESSAGE, fetchProtectedAudioBlob]);
 
   useEffect(() => {
     if (!containerRef.current || !resolvedAudioUrl) {
@@ -295,21 +300,21 @@ export function VoiceAudioPlayer({
     link.remove();
   };
 
-  if (!resolvedAudioUrl && !visibleIsLoading) return null;
+  if (!hasAudioSource && !visibleIsLoading) return null;
 
   const content = (
     <CardContent className={cn("space-y-4", compact && "px-4 py-4")}>
       <div
         className={cn(
-          "relative rounded-xl border bg-background p-3",
+          "relative min-h-[122px] rounded-xl border bg-background p-3",
           compact && "overflow-hidden rounded-2xl py-2",
         )}
       >
         <div
           ref={containerRef}
           className={cn(
-            "min-h-24 w-full",
-            compact && "min-h-24",
+            "h-24 min-h-24 w-full",
+            compact && "h-24 min-h-24",
             visibleAudioError && "hidden",
           )}
         />
@@ -339,13 +344,13 @@ export function VoiceAudioPlayer({
         ) : null}
       </div>
 
-      {!visibleAudioError && !visibleIsLoading ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
+      {!visibleAudioError ? (
+        <div className="flex min-h-10 min-w-0 flex-wrap items-center gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={togglePlay}
-            disabled={!isReady}
+            disabled={!isReady || visibleIsLoading}
             size={compact ? "sm" : "default"}
           >
             {isPlaying ? (
@@ -362,7 +367,9 @@ export function VoiceAudioPlayer({
           </Button>
 
           <div className="text-sm text-muted-foreground">
-            {formatTime(currentTime)} / {formatTime(duration)}
+            {visibleIsLoading
+              ? "00:00 / 00:00"
+              : `${formatTime(currentTime)} / ${formatTime(duration)}`}
           </div>
 
           <div className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
@@ -374,7 +381,7 @@ export function VoiceAudioPlayer({
               type="button"
               variant="outline"
               onClick={downloadAudio}
-              disabled={!resolvedAudioUrl}
+              disabled={!resolvedAudioUrl || visibleIsLoading}
               size={compact ? "sm" : "default"}
             >
               <Download className="mr-2 size-4" />
@@ -390,11 +397,11 @@ export function VoiceAudioPlayer({
             </div>
           ) : null}
         </div>
-      ) : !visibleIsLoading ? (
+      ) : (
         <div className="min-w-0 truncate text-sm text-muted-foreground">
           {resolvedFileName}
         </div>
-      ) : null}
+      )}
 
       {footerAction && !inlineFooterAction ? (
         <div className={cn("flex justify-end", footerActionWrapperClassName)}>
