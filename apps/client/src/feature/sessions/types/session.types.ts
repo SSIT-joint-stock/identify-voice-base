@@ -52,4 +52,6 @@ export interface SessionDetail {
   identified_at: string;
   operator: SessionOperator;
   speakers: SessionSpeaker[];
+  transcript?: string | null;
+  detected_language?: string | null;
 }

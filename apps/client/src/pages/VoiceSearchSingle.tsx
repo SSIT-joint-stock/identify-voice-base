@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { LoaderCircle, Search } from "lucide-react";
+import { LoaderCircle, MessageSquareText, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PageLayout } from "@/components/PageLayout";
@@ -21,6 +21,7 @@ import {
   type VoiceSingleSearchFormHandle,
 } from "@/feature/voice/components/voice-single-search-form";
 import { VoiceTop5MatchTable } from "@/feature/voice/components/voice-top5-match-table";
+import { VoiceTranscriptDialog } from "@/feature/voice/components/voice-transcript-dialog";
 import { useVoiceStore } from "@/feature/voice";
 import type {
   VoiceIdentifyItem,
@@ -65,6 +66,7 @@ export default function VoiceSearchSingle() {
   const [deleteTarget, setDeleteTarget] = useState<VoiceIdentifyItem | null>(
     null,
   );
+  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
   const { targetRef: resultSectionRef } = useScrollOffset<HTMLDivElement>({
     offsetY: RESULT_SCROLL_OFFSET_Y,
     scrollKey: identifyResult,
@@ -80,6 +82,9 @@ export default function VoiceSearchSingle() {
   const items = identifyResult?.items ?? [];
   const hasAudioFile = Boolean(audioFile);
   const hasSearchResult = identifyResult !== null;
+  const hasTranscriptData =
+    Boolean(identifyResult?.transcript) ||
+    Boolean(identifyResult?.detected_language);
   const refreshIdentify = () => {
     searchFormRef.current?.submitCurrent();
   };
@@ -220,7 +225,7 @@ export default function VoiceSearchSingle() {
         />
 
         {hasSearchResult ? (
-          <div ref={resultSectionRef}>
+          <div ref={resultSectionRef} className="space-y-3">
             <VoiceTop5MatchTable
               title="Kết quả phù hợp"
               description="Sắp xếp theo điểm số giảm dần."
@@ -236,6 +241,21 @@ export default function VoiceSearchSingle() {
                   : null
               }
             />
+
+            {hasTranscriptData ? (
+              <div className="flex items-center justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full border-violet-200 bg-violet-50 text-violet-700 shadow-sm hover:bg-violet-100 hover:text-violet-800"
+                  onClick={() => setTranscriptDialogOpen(true)}
+                >
+                  <MessageSquareText className="size-4" />
+                  Xem nội dung ghi âm (S2T)
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -329,6 +349,13 @@ export default function VoiceSearchSingle() {
         title={errorDialog.title}
         description={errorDialog.description}
         onClose={closeErrorDialog}
+      />
+
+      <VoiceTranscriptDialog
+        open={transcriptDialogOpen}
+        onOpenChange={setTranscriptDialogOpen}
+        transcript={identifyResult?.transcript}
+        detectedLanguage={identifyResult?.detected_language}
       />
     </>
   );

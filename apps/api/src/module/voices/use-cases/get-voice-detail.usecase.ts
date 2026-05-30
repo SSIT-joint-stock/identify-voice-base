@@ -35,7 +35,11 @@ export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
     );
 
     const identifyHistory = rawSessions.map((s) => {
-      const results = (s.results as any[]) || [];
+      // Support cả format cũ (array) và mới (object { speakers })
+      const rawResults = s.results as any;
+      const results: any[] = Array.isArray(rawResults)
+        ? rawResults
+        : (rawResults?.speakers ?? []);
       // Tìm score của user này trong results
       // Cả Single và Multi đều có matched_voice_id ở cấp độ kết quả match
       const myResult = results.find(

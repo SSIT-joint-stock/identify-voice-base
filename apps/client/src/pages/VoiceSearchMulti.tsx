@@ -10,9 +10,10 @@ import {
   type VoiceMultiSearchFormHandle,
 } from "@/feature/voice/components/voice-multi-search-form";
 import { VoiceSpeakerResultCard } from "@/feature/voice/components/voice-speaker-result-card";
+import { VoiceTranscriptDialog } from "@/feature/voice/components/voice-transcript-dialog";
 import type { VoiceIdentifyTwoItem } from "@/feature/voice/types/voice.types";
 import { useScrollOffset } from "@/hooks/use-scroll-offset";
-import { LoaderCircle, UsersRound } from "lucide-react";
+import { LoaderCircle, MessageSquareText, UsersRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const MULTI_SEARCH_FORM_ID = "voice-multi-search-form";
@@ -42,6 +43,7 @@ export default function VoiceSearchMulti() {
     end?: number;
   }>({});
   const [isSearching, setIsSearching] = useState(false);
+  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
   const { targetRef: resultSectionRef } = useScrollOffset<HTMLDivElement>({
     offsetY: RESULT_SCROLL_OFFSET_Y,
     scrollKey: identifyTwoResult,
@@ -60,6 +62,9 @@ export default function VoiceSearchMulti() {
 
   const items = identifyTwoResult?.items ?? [];
   const hasSearched = identifyTwoResult !== null;
+  const hasTranscriptData =
+    Boolean(identifyTwoResult?.transcript) ||
+    Boolean(identifyTwoResult?.detected_language);
   const refreshIdentify = () => {
     searchFormRef.current?.submitCurrent();
   };
@@ -134,38 +139,55 @@ export default function VoiceSearchMulti() {
         />
 
         {hasSearched ? (
-          <div ref={resultSectionRef} className="grid gap-6 xl:grid-cols-2">
-            {items.length > 0 ? (
-              <>
-                {items.map((item, index) => (
-                  <div
-                    key={`${item.matched_voice_id || item.name || item.message}-${index}`}
-                    className={items.length === 1 ? "xl:col-span-2" : ""}
-                  >
-                    <VoiceSpeakerResultCard
-                      title={`Người nói ${index + 1}`}
-                      item={item}
-                      speakerIndex={index}
-                      onRefreshIdentify={refreshIdentify}
-                      onSelectSegment={(start, end) =>
-                        setSelectedSegment({ start, end })
-                      }
-                      onRegisterUnknown={(selectedItem) => {
-                        setSelectedUnknownItem(
-                          (selectedItem as VoiceIdentifyTwoItem) ?? item,
-                        );
-                        setSelectedSpeakerIndex(index);
-                        setOpenEnrollDialog(true);
-                      }}
-                    />
-                  </div>
-                ))}
-              </>
-            ) : (
-              <div className="rounded-2xl border p-5 text-sm text-muted-foreground xl:col-span-2">
-                Chưa có kết quả nhận diện.
+          <div ref={resultSectionRef} className="space-y-3">
+            <div className="grid gap-6 xl:grid-cols-2">
+              {items.length > 0 ? (
+                <>
+                  {items.map((item, index) => (
+                    <div
+                      key={`${item.matched_voice_id || item.name || item.message}-${index}`}
+                      className={items.length === 1 ? "xl:col-span-2" : ""}
+                    >
+                      <VoiceSpeakerResultCard
+                        title={`Người nói ${index + 1}`}
+                        item={item}
+                        speakerIndex={index}
+                        onRefreshIdentify={refreshIdentify}
+                        onSelectSegment={(start, end) =>
+                          setSelectedSegment({ start, end })
+                        }
+                        onRegisterUnknown={(selectedItem) => {
+                          setSelectedUnknownItem(
+                            (selectedItem as VoiceIdentifyTwoItem) ?? item,
+                          );
+                          setSelectedSpeakerIndex(index);
+                          setOpenEnrollDialog(true);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="rounded-2xl border p-5 text-sm text-muted-foreground xl:col-span-2">
+                  Chưa có kết quả nhận diện.
+                </div>
+              )}
+            </div>
+
+            {hasTranscriptData ? (
+              <div className="flex items-center justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 rounded-full border-violet-200 bg-violet-50 text-violet-700 shadow-sm hover:bg-violet-100 hover:text-violet-800"
+                  onClick={() => setTranscriptDialogOpen(true)}
+                >
+                  <MessageSquareText className="size-4" />
+                  Xem nội dung ghi âm (S2T)
+                </Button>
               </div>
-            )}
+            ) : null}
           </div>
         ) : null}
       </PageLayout>
@@ -193,6 +215,13 @@ export default function VoiceSearchMulti() {
         title={errorDialog.title}
         description={errorDialog.description}
         onClose={closeErrorDialog}
+      />
+
+      <VoiceTranscriptDialog
+        open={transcriptDialogOpen}
+        onOpenChange={setTranscriptDialogOpen}
+        transcript={identifyTwoResult?.transcript}
+        detectedLanguage={identifyTwoResult?.detected_language}
       />
     </>
   );

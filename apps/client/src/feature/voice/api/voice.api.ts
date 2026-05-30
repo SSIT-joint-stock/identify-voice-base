@@ -98,6 +98,21 @@ function extractIdentifyMetadata(payload: unknown): {
   };
 }
 
+function extractTranscriptAndLanguage(payload: unknown): {
+  transcript?: string | null;
+  detected_language?: string | null;
+} {
+  if (!isRecord(payload)) return {};
+  return {
+    transcript:
+      typeof payload.transcript === "string" ? payload.transcript : null,
+    detected_language:
+      typeof payload.detected_language === "string"
+        ? payload.detected_language
+        : null,
+  };
+}
+
 function appendIfPresent(formData: FormData, key: string, value: string) {
   const trimmedValue = value.trim();
   if (trimmedValue) {
@@ -376,6 +391,7 @@ export const voiceApi = {
       audio_url: audioUrl,
       identified_at: metadata.identified_at,
       type: metadata.type,
+      ...extractTranscriptAndLanguage(data),
       raw: response.data,
     };
   },
@@ -403,6 +419,7 @@ export const voiceApi = {
       audio_url: audioUrl,
       identified_at: metadata.identified_at,
       type: metadata.type,
+      ...extractTranscriptAndLanguage(data),
       raw: response.data,
     };
   },

@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Play, UserRound, Waves } from "lucide-react";
+import {
+  Loader2,
+  MessageSquareText,
+  Play,
+  UserRound,
+  Waves,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +32,7 @@ import type {
   SessionSpeaker,
 } from "@/feature/sessions/types/session.types";
 import { VoiceAudioPlayer } from "@/feature/voice/components/voice-audio-player";
+import { VoiceTranscriptDialog } from "@/feature/voice/components/voice-transcript-dialog";
 
 export interface SessionDetailSheetProps {
   sessionId: string | null;
@@ -200,193 +207,227 @@ export function SessionDetailSheet({
   });
 
   const detail = detailQuery.data;
+  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
+
+  const hasTranscriptData =
+    Boolean(detail?.transcript) || Boolean(detail?.detected_language);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-4xl">
-        <SheetHeader className="shrink-0 border-b pb-4">
-          <SheetTitle>Chi tiết phiên nhận dạng</SheetTitle>
-          <SheetDescription>
-            {sessionId
-              ? `Phiên ${sessionId.slice(0, 8)}...`
-              : "Đang chọn phiên"}
-          </SheetDescription>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-4xl">
+          <SheetHeader className="shrink-0 border-b pb-4">
+            <SheetTitle>Chi tiết phiên nhận dạng</SheetTitle>
+            <SheetDescription>
+              {sessionId
+                ? `Phiên ${sessionId.slice(0, 8)}...`
+                : "Đang chọn phiên"}
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-          {detailQuery.isLoading ? (
-            <div className="flex min-h-48 items-center justify-center">
-              <Loader2 className="size-6 animate-spin text-slate-400" />
-            </div>
-          ) : detailQuery.isError || !detail ? (
-            <div className="flex min-h-48 items-center justify-center">
-              <p className="text-sm text-destructive">
-                Không tải được chi tiết phiên.
-              </p>
-            </div>
-          ) : (
-            <>
-              <Card size="sm">
-                <CardHeader className="border-b">
-                  <CardTitle>Thông tin phiên</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-lg border bg-muted/20 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        Thời gian nhận dạng
-                      </p>
-                      <p className="mt-1 text-sm font-medium">
-                        {formatDateTime(detail.identified_at)}
-                      </p>
-                    </div>
-
-                    <div className="rounded-lg border bg-muted/20 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        Số speaker
-                      </p>
-                      <p className="mt-1 text-sm font-medium">
-                        {detail.speakers.length}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Audio gốc</p>
-                    <VoiceAudioPlayer
-                      file={null}
-                      audioUrl={detail.audio_url}
-                      fileName={`session-${detail.id.slice(0, 8)}.wav`}
-                      compact
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="space-y-3">
-                {detail.speakers.length === 0 ? (
-                  <Card size="sm">
-                    <CardContent className="flex min-h-32 items-center justify-center">
-                      <div className="text-center">
-                        <UserRound className="mx-auto size-8 text-slate-300" />
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          Phiên này chưa có dữ liệu speaker.
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+            {detailQuery.isLoading ? (
+              <div className="flex min-h-48 items-center justify-center">
+                <Loader2 className="size-6 animate-spin text-slate-400" />
+              </div>
+            ) : detailQuery.isError || !detail ? (
+              <div className="flex min-h-48 items-center justify-center">
+                <p className="text-sm text-destructive">
+                  Không tải được chi tiết phiên.
+                </p>
+              </div>
+            ) : (
+              <>
+                <Card size="sm">
+                  <CardHeader className="border-b">
+                    <CardTitle>Thông tin phiên</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="rounded-lg border bg-muted/20 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Thời gian nhận dạng
+                        </p>
+                        <p className="mt-1 text-sm font-medium">
+                          {formatDateTime(detail.identified_at)}
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  detail.speakers.map((speaker) => {
-                    const segmentCount = Array.isArray(speaker.segments)
-                      ? speaker.segments.length
-                      : 0;
-                    const totalDuration = getTotalSegmentDuration(
-                      speaker.segments,
-                    );
 
-                    return (
-                      <Card key={speaker.speaker_label} size="sm">
-                        <CardHeader className="border-b">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <CardTitle>
-                              {speaker.name || speaker.speaker_label}
-                            </CardTitle>
-                            <Badge
-                              variant={getTruthSourceVariant(
-                                speaker.truth_source,
-                              )}
-                            >
-                              {getTruthSourceLabel(speaker.truth_source)}
-                            </Badge>
-                            <span
-                              className={`inline-flex h-5 items-center rounded-full border px-2 text-xs font-medium ${getScoreTone(speaker.score)}`}
-                            >
-                              Score {formatScore(speaker.score)}
-                            </span>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div className="rounded-lg border bg-muted/20 p-3">
-                              <p className="text-xs text-muted-foreground">
-                                Speaker label
-                              </p>
-                              <p className="mt-1 text-sm font-medium">
-                                {speaker.speaker_label}
-                              </p>
-                            </div>
-                            <div className="rounded-lg border bg-muted/20 p-3">
-                              <p className="text-xs text-muted-foreground">
-                                Matched voice ID
-                              </p>
-                              <p className="mt-1 break-all text-sm font-medium">
-                                {speaker.matched_voice_id ?? "Không có"}
-                              </p>
-                            </div>
-                            <div className="rounded-lg border bg-muted/20 p-3">
-                              <p className="text-xs text-muted-foreground">
-                                Số segment
-                              </p>
-                              <p className="mt-1 text-sm font-medium">
-                                {segmentCount}
-                              </p>
-                            </div>
-                            <div className="rounded-lg border bg-muted/20 p-3">
-                              <p className="text-xs text-muted-foreground">
-                                Tổng thời lượng nói
-                              </p>
-                              <p className="mt-1 text-sm font-medium">
-                                {totalDuration.toFixed(1)} giây
-                              </p>
-                            </div>
-                          </div>
+                      <div className="rounded-lg border bg-muted/20 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Số speaker
+                        </p>
+                        <p className="mt-1 text-sm font-medium">
+                          {detail.speakers.length}
+                        </p>
+                      </div>
+                    </div>
 
-                          <div className="grid gap-2 md:grid-cols-2">
-                            <p className="text-sm text-muted-foreground">
-                              CCCD:{" "}
-                              <span className="font-medium text-foreground">
-                                {speaker.citizen_identification || "—"}
-                              </span>
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              SĐT:{" "}
-                              <span className="font-medium text-foreground">
-                                {speaker.phone_number || "—"}
-                              </span>
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Quê quán:{" "}
-                              <span className="font-medium text-foreground">
-                                {speaker.hometown || "—"}
-                              </span>
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Nghề nghiệp:{" "}
-                              <span className="font-medium text-foreground">
-                                {speaker.job || "—"}
-                              </span>
-                            </p>
-                          </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Audio gốc</p>
+                      <VoiceAudioPlayer
+                        file={null}
+                        audioUrl={detail.audio_url}
+                        fileName={`session-${detail.id.slice(0, 8)}.wav`}
+                        compact
+                      />
+                    </div>
 
-                          <div className="rounded-lg border bg-slate-50/70 p-3">
-                            <div className="mb-2 flex items-center gap-2">
-                              <Waves className="size-4 text-slate-500" />
-                              <p className="text-sm font-medium">
-                                Audio của người nói
+                    {hasTranscriptData ? (
+                      <div className="flex items-center justify-end pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 rounded-full border-violet-200 bg-violet-50 text-violet-700 shadow-sm hover:bg-violet-100 hover:text-violet-800"
+                          onClick={() => setTranscriptDialogOpen(true)}
+                        >
+                          <MessageSquareText className="size-4" />
+                          Xem nội dung ghi âm (S2T)
+                        </Button>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-3">
+                  {detail.speakers.length === 0 ? (
+                    <Card size="sm">
+                      <CardContent className="flex min-h-32 items-center justify-center">
+                        <div className="text-center">
+                          <UserRound className="mx-auto size-8 text-slate-300" />
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            Phiên này chưa có dữ liệu speaker.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    detail.speakers.map((speaker) => {
+                      const segmentCount = Array.isArray(speaker.segments)
+                        ? speaker.segments.length
+                        : 0;
+                      const totalDuration = getTotalSegmentDuration(
+                        speaker.segments,
+                      );
+
+                      return (
+                        <Card key={speaker.speaker_label} size="sm">
+                          <CardHeader className="border-b">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <CardTitle>
+                                {speaker.name || speaker.speaker_label}
+                              </CardTitle>
+                              <Badge
+                                variant={getTruthSourceVariant(
+                                  speaker.truth_source,
+                                )}
+                              >
+                                {getTruthSourceLabel(speaker.truth_source)}
+                              </Badge>
+                              <span
+                                className={`inline-flex h-5 items-center rounded-full border px-2 text-xs font-medium ${getScoreTone(speaker.score)}`}
+                              >
+                                Score {formatScore(speaker.score)}
+                              </span>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="grid gap-3 md:grid-cols-2">
+                              <div className="rounded-lg border bg-muted/20 p-3">
+                                <p className="text-xs text-muted-foreground">
+                                  Speaker label
+                                </p>
+                                <p className="mt-1 text-sm font-medium">
+                                  {speaker.speaker_label}
+                                </p>
+                              </div>
+                              <div className="rounded-lg border bg-muted/20 p-3">
+                                <p className="text-xs text-muted-foreground">
+                                  Matched voice ID
+                                </p>
+                                <p className="mt-1 break-all text-sm font-medium">
+                                  {speaker.matched_voice_id ?? "Không có"}
+                                </p>
+                              </div>
+                              <div className="rounded-lg border bg-muted/20 p-3">
+                                <p className="text-xs text-muted-foreground">
+                                  Số segment
+                                </p>
+                                <p className="mt-1 text-sm font-medium">
+                                  {segmentCount}
+                                </p>
+                              </div>
+                              <div className="rounded-lg border bg-muted/20 p-3">
+                                <p className="text-xs text-muted-foreground">
+                                  Tổng thời lượng nói
+                                </p>
+                                <p className="mt-1 text-sm font-medium">
+                                  {totalDuration.toFixed(1)} giây
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="grid gap-2 md:grid-cols-2">
+                              <p className="text-sm text-muted-foreground">
+                                CCCD:{" "}
+                                <span className="font-medium text-foreground">
+                                  {speaker.citizen_identification || "—"}
+                                </span>
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                SĐT:{" "}
+                                <span className="font-medium text-foreground">
+                                  {speaker.phone_number || "—"}
+                                </span>
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Quê quán:{" "}
+                                <span className="font-medium text-foreground">
+                                  {speaker.hometown || "—"}
+                                </span>
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Nghề nghiệp:{" "}
+                                <span className="font-medium text-foreground">
+                                  {speaker.job || "—"}
+                                </span>
                               </p>
                             </div>
-                            <SpeakerAudioPlayer speaker={speaker} />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+
+                            <div className="rounded-lg border bg-slate-50/70 p-3">
+                              <div className="mb-2 flex items-center gap-2">
+                                <Waves className="size-4 text-slate-500" />
+                                <p className="text-sm font-medium">
+                                  Audio của người nói
+                                </p>
+                              </div>
+                              <SpeakerAudioPlayer speaker={speaker} />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <VoiceTranscriptDialog
+        open={transcriptDialogOpen}
+        onOpenChange={setTranscriptDialogOpen}
+        transcript={detail?.transcript}
+        detectedLanguage={detail?.detected_language}
+        title="Nội dung ghi âm phiên này (S2T)"
+        description={
+          detail
+            ? `Phiên ${detail.id.slice(0, 8)}... — ${formatDateTime(detail.identified_at)}`
+            : undefined
+        }
+      />
+    </>
   );
 }

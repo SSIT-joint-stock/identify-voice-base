@@ -54,7 +54,9 @@ export class SessionsRepository {
     ]);
 
     const enrichedItems = items.map((session) => {
-      const results = (session.results as any[]) || [];
+      // Support cả format cũ (array speakers) và mới (object { speakers, transcript })
+      const raw = session.results as any;
+      const results: any[] = Array.isArray(raw) ? raw : (raw?.speakers ?? []);
       let topScore: number | null = null;
 
       const scores = results
@@ -109,6 +111,8 @@ export class SessionsRepository {
       identified_at: session.identified_at,
       operator: session.operator,
       results: session.results,
+      transcript: session.transcript,
+      detected_language: session.detected_language,
     };
   }
 }

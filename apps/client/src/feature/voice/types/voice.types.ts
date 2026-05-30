@@ -100,6 +100,8 @@ export interface IdentifyVoiceResponse {
   audio_url?: string;
   identified_at?: string;
   type?: "SINGLE" | "MULTI";
+  transcript?: string | null;
+  detected_language?: string | null;
   raw: unknown;
 }
 
@@ -109,6 +111,8 @@ export interface IdentifyTwoVoiceResponse {
   audio_url?: string;
   identified_at?: string;
   type?: "SINGLE" | "MULTI";
+  transcript?: string | null;
+  detected_language?: string | null;
   raw: unknown;
 }
 

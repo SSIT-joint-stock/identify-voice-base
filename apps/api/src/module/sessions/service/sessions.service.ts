@@ -37,7 +37,11 @@ export class SessionsService {
       throw new NotFoundException(`Không tìm thấy phiên nhận dạng: ${id}`);
     }
 
-    const speakers = (session.results as any[]) || [];
+    // Support cả format cũ (array) và mới (object { speakers, transcript })
+    const rawResults = session.results as any;
+    const speakers = Array.isArray(rawResults)
+      ? rawResults
+      : (rawResults?.speakers ?? []);
 
     // 2. Làm giàu thông tin từng speaker
     const enrichedSpeakers = await Promise.all(
@@ -121,12 +125,24 @@ export class SessionsService {
       }),
     );
 
+    // Ưu tiên đọc từ cột DB, fallback sang JSON results cho session cũ
+    const transcript =
+      session.transcript ??
+      (!Array.isArray(rawResults) ? (rawResults?.transcript ?? null) : null);
+    const detectedLanguage =
+      session.detected_language ??
+      (!Array.isArray(rawResults)
+        ? (rawResults?.detected_language ?? null)
+        : null);
+
     return {
       id: session.id,
       audio_url: `${this.storageCfg.cdnUrl}/${session.audio_file.file_path}`,
       identified_at: session.identified_at,
       operator: session.operator,
       speakers: enrichedSpeakers,
+      transcript,
+      detected_language: detectedLanguage,
     };
   }
 
@@ -147,7 +163,11 @@ export class SessionsService {
       throw new NotFoundException('Session không tồn tại');
     }
 
-    const results = (session.results as any[]) || [];
+    // Support cả format cũ (array) và mới (object { speakers })
+    const rawResults = session.results as any;
+    const results: any[] = Array.isArray(rawResults)
+      ? rawResults
+      : (rawResults?.speakers ?? []);
     const speakerData = results.find((s) => s.speaker_label === speakerLabel);
     const segments = this.segmentUtil.extractSegments(speakerData);
 

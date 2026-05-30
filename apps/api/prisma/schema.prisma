@@ -238,7 +238,11 @@ model identify_sessions {
   audio_file_id String   @db.Uuid
   /// Kết quả AI dạng JSON: [{voice_id, score, name, ...}]
   results       Json     @db.JsonB
-  /// Thời điểm thực hiện
+  /// Nội dung chuyển đổi giọng nói thành văn bản (S2T)
+  transcript         String? @default("")
+  /// Ngôn ngữ phát hiện được từ transcript
+  detected_language  String? @default("")
+  /// Thời điểm thực hiện 
   identified_at DateTime @default(now())
 
   operator   auth_accounts @relation(fields: [user_id], references: [id], onDelete: Restrict)
