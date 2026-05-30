@@ -1,8 +1,9 @@
 import { SegmentUtil } from '@/common/helpers/segment.util';
+import { NotFoundError } from '@/common/response';
 import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { AudioSegmentService } from '@/module/ai-core/service/audio-segment.service';
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import type { Response } from 'express';
 import * as fs from 'fs';
@@ -34,7 +35,7 @@ export class SessionsService {
     });
 
     if (!session) {
-      throw new NotFoundException(`Không tìm thấy phiên nhận dạng: ${id}`);
+      throw new NotFoundError(`Không tìm thấy phiên nhận dạng: ${id}`);
     }
 
     // Support cả format cũ (array) và mới (object { speakers, transcript })
@@ -160,7 +161,7 @@ export class SessionsService {
     });
 
     if (!session) {
-      throw new NotFoundException('Session không tồn tại');
+      throw new NotFoundError('Session không tồn tại');
     }
 
     // Support cả format cũ (array) và mới (object { speakers })
@@ -172,7 +173,7 @@ export class SessionsService {
     const segments = this.segmentUtil.extractSegments(speakerData);
 
     if (!speakerData || segments.length === 0) {
-      throw new NotFoundException(
+      throw new NotFoundError(
         `Không tìm thấy dữ liệu âm thanh cho speaker: ${speakerLabel}`,
       );
     }
@@ -184,7 +185,7 @@ export class SessionsService {
     );
 
     if (!fs.existsSync(originalFilePath)) {
-      throw new NotFoundException('File audio gốc không tồn tại trên hệ thống');
+      throw new NotFoundError('File audio gốc không tồn tại trên hệ thống');
     }
 
     try {
