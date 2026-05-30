@@ -24,6 +24,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
+import { createReadStream } from 'fs';
 import {
   OCR_LANGUAGES,
   SPEECH_TO_TEXT_LANGUAGES,
@@ -33,8 +34,8 @@ import { OcrRequestDto } from './dto/ocr-request.dto';
 import { SpeechToTextRequestDto } from './dto/speech-to-text-request.dto';
 import {
   DetectLanguageRequestDto,
-  TranslateExportRequestDto,
   TRANSLATE_EXPORT_FORMATS,
+  TranslateExportRequestDto,
   TranslateRequestDto,
 } from './dto/translate-request.dto';
 import { AiCoreService } from './service/ai-core.service';
@@ -42,7 +43,6 @@ import { AiExtractionJobService } from './service/ai-extraction-job.service';
 import { AiTranslateJobService } from './service/ai-translate-job.service';
 import { AudioNormalizeService } from './service/audio-normalize.service';
 import { TranslateExportService } from './service/translate-export.service';
-import { createReadStream } from 'fs';
 
 @ApiTags('ai-core')
 @ApiBearerAuth()

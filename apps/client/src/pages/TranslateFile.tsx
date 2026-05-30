@@ -9,6 +9,7 @@ import { TranslateOutputPanel } from "@/feature/translate/components/translate-o
 import { TranslateSourceTextPanel } from "@/feature/translate/components/translate-source-text-panel";
 import { TRANSLATION_LANGUAGES } from "@/feature/translate/constants/translate.constants";
 import { useTranslateFileController } from "@/feature/translate/hooks/use-translate-file-controller";
+import { useBeforeUnloadGuard } from "@/hooks/use-before-unload-guard";
 
 export default function TranslateFile() {
   const {
@@ -59,6 +60,8 @@ export default function TranslateFile() {
     translatedText,
     visibleIsLoadingAudio,
   } = useTranslateFileController();
+
+  useBeforeUnloadGuard({ enabled: isBusy || isSavingEditedTranslation });
 
   const renderTranslateOptions = () => (
     <TranslateFileOptionsCard

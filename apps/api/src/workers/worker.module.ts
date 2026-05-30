@@ -1,5 +1,6 @@
 import {
   aiCoreConfig,
+  batchFileConfig,
   bullConfig,
   bullConfigFactory,
   databaseConfig,
@@ -10,11 +11,13 @@ import {
 } from '@/config';
 import { PrismaModule } from '@/database/prisma/prisma.module';
 import { AiCoreModule } from '@/module/ai-core/ai-core.module';
+import { BatchFileModule } from '@/module/batch-file/batch-file.module';
 import { StorageModule } from '@/module/storage/storage.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { resolve } from 'path';
+import { BatchFileProcessor } from './batch-file/batch-file.processor';
 import { VoiceProcessor } from './voice/voice.processor';
 
 const nodeEnv = process.env.NODE_ENV || 'development';
@@ -38,6 +41,7 @@ const workerEnvFiles = [
       validate: validateEnv,
       load: [
         aiCoreConfig,
+        batchFileConfig,
         databaseConfig,
         jwtConfig,
         bullConfig,
@@ -55,9 +59,10 @@ const workerEnvFiles = [
       name: 'update-voice',
     }),
     AiCoreModule,
+    BatchFileModule,
     PrismaModule,
     StorageModule,
   ],
-  providers: [VoiceProcessor],
+  providers: [VoiceProcessor, BatchFileProcessor],
 })
 export class WorkerModule {}

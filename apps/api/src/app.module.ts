@@ -11,6 +11,7 @@ import { resolve } from 'path';
 import {
   aiCoreConfig,
   appConfig,
+  batchFileConfig,
   bullConfigFactory,
   clientConfig,
   cookieConfig,
@@ -30,6 +31,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 // modules
 import { AiVoicesModule } from '@/module/ai-voices/ai-voices.module';
 import { AiCoreModule } from '@/module/ai-core/ai-core.module';
+import { BatchFileModule } from '@/module/batch-file/batch-file.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { PrismaModule } from './database/prisma/prisma.module';
 import { AuthModule } from './module/auth/auth.module';
@@ -67,6 +69,7 @@ import { VoicesModule } from './module/voices/voices.module';
         redisConfig,
         storageConfig,
         aiCoreConfig,
+        batchFileConfig,
       ],
     }),
     ServeStaticModule.forRootAsync({
@@ -108,6 +111,7 @@ import { VoicesModule } from './module/voices/voices.module';
     IdentifyModule,
     SessionsModule,
     AiCoreModule,
+    BatchFileModule,
     TranslationHistoryModule,
     EnrollModule,
     AiVoicesModule,

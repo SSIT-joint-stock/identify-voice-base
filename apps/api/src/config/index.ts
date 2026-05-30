@@ -1,5 +1,6 @@
 export { default as aiCoreConfig } from './ai-core.config';
 export { default as appConfig } from './app.config';
+export { default as batchFileConfig } from './batch-file.config';
 export {
   default as bullConfig,
   bullConfig as bullConfigFactory,

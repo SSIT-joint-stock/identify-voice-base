@@ -40,6 +40,15 @@ import { UploadVoiceUseCase } from './usecase/ai-upload-voice.usecase';
     AiTranslateUseCase,
     AuthTokenService,
   ],
-  exports: [AiCoreService, AudioNormalizeService, AudioSegmentService],
+  exports: [
+    AiCoreService,
+    AiExtractionJobService,
+    AudioNormalizeService,
+    AudioSegmentService,
+    AiOcrUseCase,
+    AiSpeechToTextUseCase,
+    AiTranslateUseCase,
+    TranslateExportService,
+  ],
 })
 export class AiCoreModule {}

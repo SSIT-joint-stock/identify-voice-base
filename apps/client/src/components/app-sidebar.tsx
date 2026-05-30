@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ChevronUp,
   FileText,
+  FolderOpen,
   History,
   Home,
   KeyRound,
@@ -116,6 +117,11 @@ const navigation: NavItem[] = [
         title: "Dịch tệp tin",
         url: ROUTES.TRANSLATE_FILE,
         icon: FileText,
+      },
+      {
+        title: "Dịch lô audio",
+        url: ROUTES.TRANSLATE_AUDIO_BATCH,
+        icon: FolderOpen,
       },
       {
         title: "Thống kê bản dịch",

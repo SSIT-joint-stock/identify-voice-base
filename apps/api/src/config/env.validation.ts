@@ -126,6 +126,33 @@ export const envSchema = z.object({
     .int()
     .positive()
     .default(1000),
+
+  // Batch File Configuration
+  BATCH_FILE_STORAGE_DIR: z.string().default('batch-file'),
+  BATCH_FILE_TTL_SECONDS: z.coerce.number().int().positive().optional(),
+  BATCH_FILE_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
+  BATCH_FILE_EXTRACTION_CONCURRENCY: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(2),
+  BATCH_FILE_OCR_CONCURRENCY: z.coerce.number().int().positive().default(1),
+  BATCH_FILE_TRANSLATE_CONCURRENCY: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(3),
+  BATCH_FILE_STORAGE_CLEANUP_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(21600000),
+  AUDIO_BATCH_S2T_CONCURRENCY: z.coerce.number().int().positive().optional(),
+  AUDIO_BATCH_TRANSLATE_CONCURRENCY: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
 });
 
 // define the environment variables type

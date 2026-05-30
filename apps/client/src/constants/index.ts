@@ -54,6 +54,10 @@ export const QUERY_KEYS = {
       ["voice", "directory", "session", sessionId] as const,
   },
   translate: {
+    audioBatch: {
+      detail: (batchId: string) =>
+        ["translate", "audio-batch", batchId] as const,
+    },
     history: {
       list: (params: {
         page: number;
@@ -78,6 +82,7 @@ export const ROUTES = {
   TRANSLATE: "/translate",
   TRANSLATE_LIVE: "/translate/live",
   TRANSLATE_FILE: "/translate/file",
+  TRANSLATE_AUDIO_BATCH: "/translate/audio-batch",
   VOICE_ENROLL: "/voice/enroll",
   VOICE_SEARCH_SINGLE: "/voice/search-single",
   VOICE_SEARCH_MULTI: "/voice/search-multi",
@@ -120,6 +125,25 @@ export const ACCEPTED_AUDIO_EXTENSIONS = [
   ".webm",
   ".ogg",
   ".flac",
+] as const;
+
+export const ACCEPTED_TRANSLATE_DOCUMENT_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+  "image/png",
+  "image/jpeg",
+] as const;
+
+export const ACCEPTED_TRANSLATE_DOCUMENT_EXTENSIONS = [
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".txt",
+  ".png",
+  ".jpg",
+  ".jpeg",
 ] as const;
 
 export const MAX_AUDIO_FILE_SIZE_MB = 25;

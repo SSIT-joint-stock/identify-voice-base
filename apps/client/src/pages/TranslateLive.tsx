@@ -27,6 +27,7 @@ import {
 } from "@/feature/translate/constants/translate.constants";
 import { useDownloadTranslatedFile } from "@/feature/translate/hooks/use-download-translated-file";
 import type { TranslateMode } from "@/feature/translate/types/translate.types";
+import { useBeforeUnloadGuard } from "@/hooks/use-before-unload-guard";
 import { useAuthStore } from "@/store/auth.store";
 import {
   animateProgressTo,
@@ -93,6 +94,10 @@ export default function TranslateLive() {
       title: outputTitle,
     },
   );
+
+  useBeforeUnloadGuard({
+    enabled: isTranslating || isSavingEditedTranslation,
+  });
 
   const updateTranslateProgress = useCallback((progress: number) => {
     translateProgressRef.current = progress;

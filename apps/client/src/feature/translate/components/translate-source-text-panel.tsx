@@ -17,8 +17,11 @@ interface TranslateSourceTextPanelProps {
   isJumpVisible: boolean;
   pauseAutoScroll: () => void;
   processingStep: ProcessingStep;
+  readOnly?: boolean;
   resumeAutoScroll: () => void;
+  showTranslateActions?: boolean;
   sourceText: string;
+  title?: string;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   translateProgress: number;
   visibleIsLoadingAudio: boolean;
@@ -38,8 +41,11 @@ export function TranslateSourceTextPanel({
   isJumpVisible,
   pauseAutoScroll,
   processingStep,
+  readOnly,
   resumeAutoScroll,
+  showTranslateActions = true,
   sourceText,
+  title = "Văn bản nguồn",
   textareaRef,
   translateProgress,
   visibleIsLoadingAudio,
@@ -53,7 +59,7 @@ export function TranslateSourceTextPanel({
     <Card ref={containerRef} className="translation-surface">
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2">
-          Văn bản nguồn
+          {title}
           <div className="shrink-0 border-l border-l-gray-200 pl-2 text-right text-sm text-muted-foreground">
             {sourceText.length} ký tự
           </div>
@@ -80,7 +86,7 @@ export function TranslateSourceTextPanel({
             onFocus={pauseAutoScroll}
             onMouseEnter={pauseAutoScroll}
             onScroll={handleTextareaScroll}
-            readOnly={isBusy}
+            readOnly={readOnly ?? isBusy}
             placeholder="Nội dung trích xuất sẽ hiển thị tại đây."
             className="translation-textarea"
           />
@@ -109,34 +115,36 @@ export function TranslateSourceTextPanel({
             />
           ) : null}
         </div>
-        <div className="flex justify-end gap-2">
-          {processingStep === "translating" ? (
+        {showTranslateActions ? (
+          <div className="flex justify-end gap-2">
+            {processingStep === "translating" ? (
+              <Button
+                className="w-fit"
+                type="button"
+                variant="outline"
+                onClick={onCancelTranslate}
+              >
+                <XCircle className="mr-2 size-4" />
+                Hủy dịch
+              </Button>
+            ) : null}
             <Button
               className="w-fit"
               type="button"
-              variant="outline"
-              onClick={onCancelTranslate}
+              disabled={!hasSourceText || isBusy}
+              onClick={onTranslate}
             >
-              <XCircle className="mr-2 size-4" />
-              Hủy dịch
+              {processingStep === "translating" ? (
+                <LoaderCircle className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Languages className="mr-2 size-4" />
+              )}
+              {processingStep === "translating"
+                ? `Đang dịch... ${translateProgress}%`
+                : "Dịch văn bản"}
             </Button>
-          ) : null}
-          <Button
-            className="w-fit"
-            type="button"
-            disabled={!hasSourceText || isBusy}
-            onClick={onTranslate}
-          >
-            {processingStep === "translating" ? (
-              <LoaderCircle className="mr-2 size-4 animate-spin" />
-            ) : (
-              <Languages className="mr-2 size-4" />
-            )}
-            {processingStep === "translating"
-              ? `Đang dịch... ${translateProgress}%`
-              : "Dịch văn bản"}
-          </Button>
-        </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -1,6 +1,8 @@
 import axiosInstance from "@/api/axios.instance";
 import type { ApiResponse } from "@/types";
 import type {
+  AudioTranslateBatchCreateResponse,
+  AudioTranslateBatchResponse,
   DetectLanguageResponse,
   ExtractionJobCreateResponse,
   ExtractionJobResponse,
@@ -22,6 +24,24 @@ export interface OcrRequest {
 export interface SpeechToTextRequest {
   file: File;
   language?: string;
+  returnTimestamp?: boolean;
+  denoiseAudio?: boolean;
+}
+
+export interface AudioTranslateBatchRequest {
+  files: File[];
+  targetLang?: string;
+  fileOptions?: Array<{
+    sourceLang?: string;
+    targetLang?: string;
+    returnTimestamp?: boolean;
+    denoiseAudio?: boolean;
+  }>;
+}
+
+export interface AudioTranslateBatchRetryItemRequest {
+  sourceLang?: string;
+  targetLang?: string;
   returnTimestamp?: boolean;
   denoiseAudio?: boolean;
 }
@@ -181,6 +201,94 @@ export const translateApi = {
     >(`/ai-core/speech-to-text/jobs/${jobId}`);
 
     return unwrapApiResponse(response.data);
+  },
+
+  async createAudioTranslateBatch(
+    payload: AudioTranslateBatchRequest,
+  ): Promise<AudioTranslateBatchCreateResponse> {
+    const formData = new FormData();
+    payload.files.forEach((file) => formData.append("files", file));
+    if (payload.targetLang) {
+      formData.append("target_lang", payload.targetLang);
+    }
+    if (payload.fileOptions?.length) {
+      formData.append(
+        "file_options",
+        JSON.stringify(
+          payload.fileOptions.map((option) => ({
+            source_lang: option.sourceLang,
+            target_lang: option.targetLang,
+            return_timestamp: option.returnTimestamp ?? false,
+            denoise_audio: option.denoiseAudio ?? false,
+          })),
+        ),
+      );
+    }
+
+    const response = await axiosInstance.post<
+      ApiResponse<AudioTranslateBatchCreateResponse>
+    >("/ai-core/audio-translate-batches", formData);
+
+    return unwrapApiResponse(response.data);
+  },
+
+  async getAudioTranslateBatch(
+    batchId: string,
+  ): Promise<AudioTranslateBatchResponse> {
+    const response = await axiosInstance.get<
+      ApiResponse<AudioTranslateBatchResponse>
+    >(`/ai-core/audio-translate-batches/${batchId}`);
+
+    return unwrapApiResponse(response.data);
+  },
+
+  async retryAudioTranslateBatchItem(
+    batchId: string,
+    itemId: string,
+    payload?: AudioTranslateBatchRetryItemRequest,
+  ): Promise<void> {
+    await axiosInstance.post(
+      `/ai-core/audio-translate-batches/${batchId}/items/${itemId}/retry`,
+      payload
+        ? {
+            source_lang: payload.sourceLang,
+            target_lang: payload.targetLang,
+            return_timestamp: payload.returnTimestamp ?? false,
+            denoise_audio: payload.denoiseAudio ?? false,
+          }
+        : undefined,
+    );
+  },
+
+  async exportAudioTranslateBatchItem(
+    batchId: string,
+    itemId: string,
+    format: TranslateExportFormat,
+  ): Promise<Blob> {
+    const response = await axiosInstance.get<Blob>(
+      `/ai-core/audio-translate-batches/${batchId}/items/${itemId}/export`,
+      {
+        params: { format },
+        responseType: "blob",
+      },
+    );
+
+    return response.data;
+  },
+
+  async exportAudioTranslateBatch(
+    batchId: string,
+    format: TranslateExportFormat,
+  ): Promise<Blob> {
+    const response = await axiosInstance.get<Blob>(
+      `/ai-core/audio-translate-batches/${batchId}/export`,
+      {
+        params: { format },
+        responseType: "blob",
+      },
+    );
+
+    return response.data;
   },
 
   async detectLanguage(

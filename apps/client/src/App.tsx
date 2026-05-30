@@ -16,6 +16,7 @@ import VoiceSearchMulti from "@/pages/VoiceSearchMulti";
 import VoiceSearchSingle from "@/pages/VoiceSearchSingle";
 import VoiceSessionHistory from "@/pages/VoiceSessionHistory";
 import TranslateFile from "@/pages/TranslateFile";
+import TranslateAudioBatch from "@/pages/TranslateAudioBatch";
 import TranslateLive from "@/pages/TranslateLive";
 
 function App() {
@@ -56,6 +57,10 @@ function App() {
             />
             <Route path={ROUTES.TRANSLATE_LIVE} element={<TranslateLive />} />
             <Route path={ROUTES.TRANSLATE_FILE} element={<TranslateFile />} />
+            <Route
+              path={ROUTES.TRANSLATE_AUDIO_BATCH}
+              element={<TranslateAudioBatch />}
+            />
             <Route element={<AdminOnlyRoute />}>
               <Route
                 path={ROUTES.ADMIN_ACCOUNTS}

@@ -12,6 +12,7 @@ interface PageLayoutProps {
   showRefreshButton?: boolean;
   titleClassName?: string;
   className?: string;
+  moreButtons?: ReactNode;
 }
 
 export function PageLayout({
@@ -22,6 +23,7 @@ export function PageLayout({
   showRefreshButton = true,
   titleClassName,
   className,
+  moreButtons,
 }: PageLayoutProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -49,18 +51,21 @@ export function PageLayout({
             {title}
           </h1>
           {showRefreshButton ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void handleRefresh()}
-              disabled={!onRefresh || isRefreshing}
-            >
-              <RefreshCw
-                className={`size-4 ${isRefreshing ? "animate-spin" : ""}`}
-              />
-              Làm mới
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void handleRefresh()}
+                disabled={!onRefresh || isRefreshing}
+              >
+                <RefreshCw
+                  className={`size-4 ${isRefreshing ? "animate-spin" : ""}`}
+                />
+                Làm mới
+              </Button>
+              {moreButtons}
+            </div>
           ) : null}
         </div>
         <p className="text-sm text-muted-foreground">{description}</p>

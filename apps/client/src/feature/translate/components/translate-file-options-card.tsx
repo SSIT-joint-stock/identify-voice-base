@@ -1,4 +1,5 @@
 import { FileText, Languages, LoaderCircle, Sparkles } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +30,9 @@ interface TranslateFileOptionsCardProps {
   targetLanguage: string;
   targetLanguageOptions: readonly ComboboxOption[];
   canExtract: boolean;
+  actionSlot?: ReactNode;
+  showExtractButton?: boolean;
+  showModeTabs?: boolean;
   onDenoiseAudioChange: (value: string) => void;
   onExtractText: () => void;
   onModeChange: (value: string) => void;
@@ -51,6 +55,9 @@ export function TranslateFileOptionsCard({
   targetLanguage,
   targetLanguageOptions,
   canExtract,
+  actionSlot,
+  showExtractButton = true,
+  showModeTabs = true,
   onDenoiseAudioChange,
   onExtractText,
   onModeChange,
@@ -158,20 +165,22 @@ export function TranslateFileOptionsCard({
             isAudio ? "xl:justify-end" : "lg:justify-end"
           }`}
         >
-          <Tabs value={mode} onValueChange={onModeChange}>
-            <TabsList>
-              <TabsTrigger value="translate" disabled={disabled}>
-                <Languages className="size-4" />
-                Dịch
-              </TabsTrigger>
-              <TabsTrigger value="summarize" disabled={disabled}>
-                <Sparkles className="size-4" />
-                Tóm tắt
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {showModeTabs ? (
+            <Tabs value={mode} onValueChange={onModeChange}>
+              <TabsList>
+                <TabsTrigger value="translate" disabled={disabled}>
+                  <Languages className="size-4" />
+                  Dịch
+                </TabsTrigger>
+                <TabsTrigger value="summarize" disabled={disabled}>
+                  <Sparkles className="size-4" />
+                  Tóm tắt
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          ) : null}
 
-          {!isAudio ? (
+          {showExtractButton && !isAudio ? (
             <Button
               type="button"
               variant="outline"
@@ -189,6 +198,8 @@ export function TranslateFileOptionsCard({
                 : "Trích xuất văn bản"}
             </Button>
           ) : null}
+
+          {actionSlot}
         </div>
       </CardContent>
     </Card>

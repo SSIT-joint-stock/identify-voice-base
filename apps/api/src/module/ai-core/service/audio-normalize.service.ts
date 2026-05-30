@@ -176,18 +176,19 @@ export class AudioNormalizeService {
     await fs.mkdir(outputDir, { recursive: true });
 
     const extFromName = path.extname(file.originalname).toLowerCase();
+    const uploadedFilePath = file.path?.trim() || undefined;
     const inputPath =
-      file.path ??
+      uploadedFilePath ??
       path.join(outputDir, `raw_audio_${uuidv4()}${extFromName || '.bin'}`);
 
-    if (!file.path) {
+    if (!uploadedFilePath) {
       await fs.writeFile(inputPath, file.buffer);
     }
 
     try {
       return await this.normalizeForAi(inputPath);
     } finally {
-      if (!file.path) {
+      if (!uploadedFilePath) {
         await this.cleanup(inputPath);
       }
     }

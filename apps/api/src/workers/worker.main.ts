@@ -8,7 +8,9 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(WorkerModule);
 
   app.enableShutdownHooks();
-  logger.log('⚙️ Update-voice worker started and listening for jobs');
+  logger.log(
+    '⚙️ Worker started and listening for update-voice/batch-file jobs',
+  );
 
   const shutdownPromise = new Promise<void>((resolve) => {
     const shutdown = async (signal: string) => {
@@ -54,10 +56,16 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const aiUrl = configService.get<string>('ai.url');
-  logger.log(`⚙️ AI config resolved: url=${aiUrl ?? 'undefined'}`);
+  const ocrUrl = configService.get<string>('ai.ocr.url');
+  const speechToTextUrl = configService.get<string>('ai.speechToText.url');
+  const translationUrl = configService.get<string>('ai.translation.url');
+  logger.log(
+    `⚙️ AI config resolved: url=${aiUrl ?? 'undefined'} ocr=${ocrUrl ?? 'undefined'} s2t=${speechToTextUrl ?? 'undefined'} translate=${translationUrl ?? 'undefined'}`,
+  );
 
   try {
     app.get('BullQueue_update-voice');
+    app.get('BullQueue_batch-file');
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     logger.error(`⚙️ Worker queue registration failed: ${errorMessage}`);

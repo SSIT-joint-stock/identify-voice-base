@@ -61,6 +61,55 @@ export interface TranslateJobResponse {
   updated_at: string;
 }
 
+export type AudioTranslateBatchStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "partial";
+
+export type AudioTranslateBatchItemStatus =
+  | "pending"
+  | "extracting"
+  | "transcribing"
+  | "translating"
+  | "completed"
+  | "failed";
+
+export interface AudioTranslateBatchCreateResponse {
+  batch_id: string;
+}
+
+export interface AudioTranslateBatchItem {
+  item_id: string;
+  filename: string;
+  status: AudioTranslateBatchItemStatus;
+  progress: number;
+  target_lang: string;
+  source_lang?: string;
+  source_file_type?: string;
+  return_timestamp?: boolean;
+  denoise_audio?: boolean;
+  transcript?: string;
+  translated_text?: string;
+  history_record_id?: string;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AudioTranslateBatchResponse {
+  batch_id: string;
+  status: AudioTranslateBatchStatus;
+  progress: number;
+  total_items: number;
+  completed_items: number;
+  failed_items: number;
+  items: AudioTranslateBatchItem[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DetectLanguageResponse {
   success?: boolean;
   detected_languages?: string | string[];
