@@ -26,7 +26,7 @@ describe(DeleteVoiceUseCase.name, () => {
     );
 
     expect(aiCore.deleteVoice).toHaveBeenCalledWith('voice-1');
-    expect(repository.deactivate).toHaveBeenCalledWith('user-1');
+    expect(repository.deactivate).toHaveBeenCalledWith('user-1', undefined);
   });
 
   it('throws when voice profile or voice id is missing', async () => {

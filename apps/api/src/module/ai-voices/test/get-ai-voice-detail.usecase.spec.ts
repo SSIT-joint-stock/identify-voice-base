@@ -8,6 +8,6 @@ describe(GetAiVoiceDetailUseCase.name, () => {
     await expect(
       new GetAiVoiceDetailUseCase(repo as never).execute(cacheRecord.voice_id),
     ).resolves.toBe(cacheRecord);
-    expect(repo.findById).toHaveBeenCalledWith(cacheRecord.voice_id);
+    expect(repo.findById).toHaveBeenCalledWith(cacheRecord.voice_id, undefined);
   });
 });

@@ -7,6 +7,6 @@ describe(FindAllAiVoicesUseCase.name, () => {
     await expect(
       new FindAllAiVoicesUseCase(repo as never).execute({ page: 1 }),
     ).resolves.toBe('result');
-    expect(repo.findNonEnrolled).toHaveBeenCalledWith({ page: 1 });
+    expect(repo.findNonEnrolled).toHaveBeenCalledWith({ page: 1 }, undefined);
   });
 });
