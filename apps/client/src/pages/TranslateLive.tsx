@@ -3,7 +3,6 @@ import {
   Languages,
   LoaderCircle,
   RotateCcw,
-  Sparkles,
   XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -12,12 +11,10 @@ import { toast } from "sonner";
 import { PageLayout } from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Combobox } from "@/components/ui/combobox";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { translateApi } from "@/feature/translate/api/translate.api";
 import { CopyFeedbackButton } from "@/feature/translate/components/copy-feedback-button";
+import { TranslateFileOptionsCard } from "@/feature/translate/components/translate-file-options-card";
 import { TranslateDownloadDropdown } from "@/feature/translate/components/translate-download-dropdown";
 import {
   AUTO_LANGUAGE,
@@ -26,7 +23,11 @@ import {
   TRANSLATION_LANGUAGES,
 } from "@/feature/translate/constants/translate.constants";
 import { useDownloadTranslatedFile } from "@/feature/translate/hooks/use-download-translated-file";
-import type { TranslateMode } from "@/feature/translate/types/translate.types";
+import type {
+  DetectLanguageResponse,
+  TranslateMode,
+} from "@/feature/translate/types/translate.types";
+import { getLanguageLabel } from "@/feature/translate/utils/translate-file.utils";
 import { useAuthStore } from "@/store/auth.store";
 import {
   animateProgressTo,
@@ -58,12 +59,33 @@ function normalizeLiveDetectedLanguage(language: string) {
   );
 }
 
+function getDetectedLanguageScore(
+  value: DetectLanguageResponse["scores"],
+): number | null {
+  if (Array.isArray(value)) {
+    return value.find((item) => Number.isFinite(item)) ?? null;
+  }
+
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function formatDetectedLanguageConfidence(score: number | null) {
+  if (score === null) return null;
+
+  return `${(score * 100).toFixed(2)}%`;
+}
+
 export default function TranslateLive() {
   const currentUser = useAuthStore((state) => state.user);
   const translateRequestIdRef = useRef(0);
   const translateProgressRef = useRef(0);
   const sourceLanguageRef = useRef(AUTO_LANGUAGE);
   const [sourceLanguage, setSourceLanguage] = useState(AUTO_LANGUAGE);
+  const [detectedSourceLanguage, setDetectedSourceLanguage] = useState<
+    string | null
+  >(null);
+  const [detectedSourceLanguageScore, setDetectedSourceLanguageScore] =
+    useState<number | null>(null);
   const [targetLanguage, setTargetLanguage] = useState(DEFAULT_TARGET_LANGUAGE);
   const [mode, setMode] = useState<TranslateMode>("translate");
   const [sourceText, setSourceText] = useState("");
@@ -86,6 +108,12 @@ export default function TranslateLive() {
     canUpdateTranslationHistory && Boolean(historyRecordId);
   const hasPendingTranslationEdit =
     canSaveTranslationEdit && translatedText !== savedTranslatedText;
+  const detectedSourceLanguageLabel = detectedSourceLanguage
+    ? getLanguageLabel(detectedSourceLanguage)
+    : null;
+  const detectedSourceLanguageConfidence = formatDetectedLanguageConfidence(
+    detectedSourceLanguageScore,
+  );
   const { downloadTranslatedFile, exportingFormat } = useDownloadTranslatedFile(
     {
       filename: exportFilename,
@@ -104,6 +132,19 @@ export default function TranslateLive() {
     setSourceLanguage(language);
   }, []);
 
+  const resetDetectedSourceLanguage = useCallback(() => {
+    setDetectedSourceLanguage(null);
+    setDetectedSourceLanguageScore(null);
+  }, []);
+
+  const handleSourceLanguageChange = useCallback(
+    (language: string) => {
+      resetDetectedSourceLanguage();
+      updateSourceLanguage(language);
+    },
+    [resetDetectedSourceLanguage, updateSourceLanguage],
+  );
+
   const resetTranslatedResult = useCallback(() => {
     setTranslatedText("");
     setSavedTranslatedText("");
@@ -113,6 +154,7 @@ export default function TranslateLive() {
   const resetPage = () => {
     translateRequestIdRef.current += 1;
     updateSourceLanguage(AUTO_LANGUAGE);
+    resetDetectedSourceLanguage();
     setTargetLanguage(DEFAULT_TARGET_LANGUAGE);
     setMode("translate");
     setSourceText("");
@@ -183,6 +225,10 @@ export default function TranslateLive() {
 
           if (normalizedDetectedLanguage) {
             updateSourceLanguage(normalizedDetectedLanguage);
+            setDetectedSourceLanguage(normalizedDetectedLanguage);
+            setDetectedSourceLanguageScore(
+              getDetectedLanguageScore(detectedResult.scores),
+            );
           }
         }
 
@@ -279,6 +325,7 @@ export default function TranslateLive() {
     if (!normalizedText) {
       translateRequestIdRef.current += 1;
       resetTranslatedResult();
+      resetDetectedSourceLanguage();
       setIsTranslating(false);
       updateTranslateProgress(0);
       return;
@@ -299,6 +346,7 @@ export default function TranslateLive() {
   }, [
     mode,
     resetTranslatedResult,
+    resetDetectedSourceLanguage,
     runTranslate,
     sourceText,
     targetLanguage,
@@ -384,52 +432,26 @@ export default function TranslateLive() {
       className="h-[calc(100vh-var(--app-header-height)-3rem)] overflow-y-hidden"
       onRefresh={resetPage}
     >
-      <Card className="translation-surface shrink-0 gap-0 py-5">
-        <CardContent className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:max-w-2xl">
-            <div className="space-y-2">
-              <Label htmlFor="translate-live-source-language">
-                Ngôn ngữ nguồn
-              </Label>
-              <Combobox
-                id="translate-live-source-language"
-                value={sourceLanguage}
-                onValueChange={updateSourceLanguage}
-                options={LIVE_TRANSLATE_SOURCE_LANGUAGE_OPTIONS}
-                disabled={isTranslating}
-                searchPlaceholder="Tìm ngôn ngữ nguồn..."
-                emptyMessage="Không tìm thấy ngôn ngữ nguồn"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="translate-live-target-language">Dịch sang</Label>
-              <Combobox
-                id="translate-live-target-language"
-                value={targetLanguage}
-                onValueChange={handleTargetLanguageChange}
-                options={TRANSLATION_LANGUAGES}
-                disabled={isTranslating}
-                searchPlaceholder="Tìm ngôn ngữ dịch..."
-                emptyMessage="Không tìm thấy ngôn ngữ dịch"
-              />
-            </div>
-          </div>
-
-          <Tabs value={mode} onValueChange={handleModeChange}>
-            <TabsList>
-              <TabsTrigger value="translate" disabled={isTranslating}>
-                <Languages className="size-4" />
-                Dịch
-              </TabsTrigger>
-              <TabsTrigger value="summarize" disabled={isTranslating}>
-                <Sparkles className="size-4" />
-                Tóm tắt
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </CardContent>
-      </Card>
+      <TranslateFileOptionsCard
+        className="shrink-0 gap-0"
+        detectedSourceLanguageConfidence={detectedSourceLanguageConfidence}
+        detectedSourceLanguageLabel={detectedSourceLanguageLabel}
+        disabled={isTranslating}
+        idPrefix="translate-live"
+        isAudio={false}
+        mode={mode}
+        processingStep={isTranslating ? "translating" : "idle"}
+        showAudioOptions={false}
+        showExtractButton={false}
+        sourceLanguage={sourceLanguage}
+        sourceLanguageLabel="Ngôn ngữ nguồn"
+        sourceLanguageOptions={LIVE_TRANSLATE_SOURCE_LANGUAGE_OPTIONS}
+        targetLanguage={targetLanguage}
+        targetLanguageOptions={TRANSLATION_LANGUAGES}
+        onModeChange={handleModeChange}
+        onSourceLanguageChange={handleSourceLanguageChange}
+        onTargetLanguageChange={handleTargetLanguageChange}
+      />
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-2">
         <Card className="translation-surface flex min-h-0 flex-col">
@@ -449,6 +471,7 @@ export default function TranslateLive() {
                 onClick={() => {
                   translateRequestIdRef.current += 1;
                   updateSourceLanguage(AUTO_LANGUAGE);
+                  resetDetectedSourceLanguage();
                   setSourceText("");
                   resetTranslatedResult();
                   setIsTranslating(false);
@@ -456,7 +479,7 @@ export default function TranslateLive() {
                 }}
               >
                 <RotateCcw className="mr-2 size-4" />
-                Xóa
+                Đặt lại
               </Button>
             </div>
           </CardHeader>
@@ -466,6 +489,7 @@ export default function TranslateLive() {
                 value={sourceText}
                 onChange={(event) => {
                   updateSourceLanguage(AUTO_LANGUAGE);
+                  resetDetectedSourceLanguage();
                   setSourceText(event.target.value);
                   resetTranslatedResult();
                   updateTranslateProgress(0);

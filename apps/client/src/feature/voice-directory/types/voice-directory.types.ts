@@ -63,6 +63,8 @@ export interface VoiceDirectoryDetail {
   criminal_record: Array<{ case: string; year: number }> | null;
   audio_url: string | null;
   audio_available: boolean;
+  can_modify?: boolean;
+  access_source?: "ADMIN" | "OWNER" | "MATCHED_SESSION";
   enrolled_at: string | null;
   voice_history: VoiceHistoryItem[];
   identify_history: VoiceIdentifyHistoryItem[];

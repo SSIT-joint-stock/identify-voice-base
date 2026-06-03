@@ -11,7 +11,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { AudioPurpose } from '@prisma/client';
+import { auth_accounts, AudioPurpose, Role } from '@prisma/client';
 import { readFile, stat, unlink } from 'fs/promises';
 import * as path from 'path';
 import { Readable } from 'stream';
@@ -31,13 +31,18 @@ export class DenoiseEnrollAudioUseCase {
 
   async execute(
     userId: string,
-    adminId: string,
+    requester: auth_accounts,
     filteredEnrollAudio?: Express.Multer.File,
   ) {
     const activeVoice = await this.prisma.voice_records.findFirst({
       where: {
         user_id: userId,
         is_active: true,
+        ...(requester.role !== Role.ADMIN && {
+          audio_file: {
+            uploaded_by: requester.id,
+          },
+        }),
       },
       include: {
         audio_file: true,
@@ -62,7 +67,7 @@ export class DenoiseEnrollAudioUseCase {
       const nextAudioFile = await this.uploadService.uploadOne(
         filteredFile,
         AudioPurpose.UPDATE_VOICE,
-        adminId,
+        requester.id,
       );
       nextAudioFileId = nextAudioFile.id;
 
@@ -109,7 +114,7 @@ export class DenoiseEnrollAudioUseCase {
             voice_record_id: createdVoiceRecord.id,
             voice_id: activeVoice.voice_id,
             audio_file_id: nextAudioFile.id,
-            updated_by: adminId,
+            updated_by: requester.id,
           },
         });
 

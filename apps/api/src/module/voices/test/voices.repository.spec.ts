@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { VoicesRepository } from '../repository/voices.repository';
 import {
   createVoicesPrismaMock,
@@ -39,8 +40,26 @@ describe(VoicesRepository.name, () => {
     });
   });
 
+  it('filters active voices by owner for operators', async () => {
+    prisma.voice_records.findMany.mockResolvedValue([voiceRecord]);
+    prisma.voice_records.count.mockResolvedValue(1);
+
+    await repository.findActiveVoices(
+      { page: 1 },
+      { id: 'operator-1', role: Role.OPERATOR },
+    );
+
+    expect(prisma.voice_records.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          audio_file: { uploaded_by: 'operator-1' },
+        }),
+      }),
+    );
+  });
+
   it('finds detail or throws when missing', async () => {
-    prisma.users.findUnique.mockResolvedValueOnce({
+    prisma.users.findFirst.mockResolvedValueOnce({
       ...voiceRecord.user,
       voice_records: [voiceRecord],
     });
@@ -48,17 +67,75 @@ describe(VoicesRepository.name, () => {
       id: 'user-1',
     });
 
-    prisma.users.findUnique.mockResolvedValueOnce(null);
+    prisma.users.findFirst.mockResolvedValueOnce(null);
     await expect(repository.findDetail('missing')).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
 
-  it('updates user info after detail check', async () => {
-    prisma.users.findUnique.mockResolvedValue({
+  it('allows operators to view matched voices without modify access', async () => {
+    prisma.users.findFirst.mockResolvedValueOnce({
       ...voiceRecord.user,
-      voice_records: [voiceRecord],
+      voice_records: [
+        {
+          ...voiceRecord,
+          audio_file: {
+            ...voiceRecord.audio_file,
+            uploaded_by: 'operator-2',
+          },
+        },
+      ],
     });
+    prisma.identify_sessions.findFirst.mockResolvedValueOnce({
+      id: 'session-1',
+    });
+
+    const result = await repository.findDetail('user-1', {
+      id: 'operator-1',
+      role: Role.OPERATOR,
+    });
+
+    expect(result).toMatchObject({
+      id: 'user-1',
+      can_modify: false,
+      access_source: 'MATCHED_SESSION',
+    });
+    expect(prisma.identify_sessions.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          user_id: 'operator-1',
+        }),
+      }),
+    );
+  });
+
+  it('blocks unrelated operators from viewing voice detail', async () => {
+    prisma.users.findFirst.mockResolvedValueOnce({
+      ...voiceRecord.user,
+      voice_records: [
+        {
+          ...voiceRecord,
+          audio_file: {
+            ...voiceRecord.audio_file,
+            uploaded_by: 'operator-2',
+          },
+        },
+      ],
+    });
+    prisma.identify_sessions.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      repository.findDetail('user-1', {
+        id: 'operator-1',
+        role: Role.OPERATOR,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('updates user info after detail check', async () => {
+    prisma.users.findFirst
+      .mockResolvedValueOnce({ id: 'user-1' })
+      .mockResolvedValueOnce({ id: 'user-1' });
     prisma.users.update.mockResolvedValue({ ...voiceRecord.user, name: 'New' });
 
     await expect(
@@ -73,7 +150,7 @@ describe(VoicesRepository.name, () => {
     ]);
     await expect(repository.findIdentifyHistory('')).resolves.toEqual([]);
 
-    prisma.users.findUnique.mockResolvedValue({
+    prisma.users.findFirst.mockResolvedValue({
       ...voiceRecord.user,
       voice_records: [voiceRecord],
     });
@@ -86,25 +163,37 @@ describe(VoicesRepository.name, () => {
   });
 
   it('deactivates active voice record or throws when none active', async () => {
-    prisma.users.findUnique.mockResolvedValueOnce({
-      ...voiceRecord.user,
-      voice_records: [voiceRecord],
-    });
+    prisma.users.findFirst
+      .mockResolvedValueOnce({ id: 'user-1' })
+      .mockResolvedValueOnce({
+        ...voiceRecord.user,
+        voice_records: [voiceRecord],
+      });
     prisma.voice_records.update.mockResolvedValue({
       ...voiceRecord,
       is_active: false,
     });
 
-    await expect(repository.deactivate('user-1')).resolves.toMatchObject({
+    await expect(
+      repository.deactivate('user-1', {
+        id: 'operator-1',
+        role: Role.OPERATOR,
+      }),
+    ).resolves.toMatchObject({
       is_active: false,
     });
 
-    prisma.users.findUnique.mockResolvedValueOnce({
-      ...voiceRecord.user,
-      voice_records: [{ ...voiceRecord, is_active: false }],
-    });
-    await expect(repository.deactivate('user-1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    prisma.users.findFirst
+      .mockResolvedValueOnce({ id: 'user-1' })
+      .mockResolvedValueOnce({
+        ...voiceRecord.user,
+        voice_records: [{ ...voiceRecord, is_active: false }],
+      });
+    await expect(
+      repository.deactivate('user-1', {
+        id: 'operator-1',
+        role: Role.OPERATOR,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

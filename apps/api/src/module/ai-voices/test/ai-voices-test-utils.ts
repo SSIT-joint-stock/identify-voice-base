@@ -24,6 +24,7 @@ export function createAiVoicesPrismaMock() {
       findUnique: jest.fn(),
     },
     identify_sessions: {
+      findMany: jest.fn(),
       findFirst: jest.fn(),
     },
     users: {

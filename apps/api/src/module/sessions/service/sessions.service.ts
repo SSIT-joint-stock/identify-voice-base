@@ -5,6 +5,7 @@ import { PrismaService } from '@/database/prisma/prisma.service';
 import { AudioSegmentService } from '@/module/ai-core/service/audio-segment.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
+import { auth_accounts, Role } from '@prisma/client';
 import type { Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -24,10 +25,14 @@ export class SessionsService {
   /**
    * Lấy chi tiết phiên nhận dạng và làm giàu thông tin (Enrichment).
    */
-  async getSessionDetail(id: string) {
+  async getSessionDetail(id: string, requester?: auth_accounts) {
     // 1. Lấy session raw từ repo (chứa results JSON và audio_file metadata)
-    const session = await this.prisma.identify_sessions.findUnique({
-      where: { id },
+    const session = await this.prisma.identify_sessions.findFirst({
+      where: {
+        id,
+        ...(requester &&
+          requester.role !== Role.ADMIN && { user_id: requester.id }),
+      },
       include: {
         operator: { select: { id: true, username: true } },
         audio_file: { select: { file_path: true } },
@@ -77,11 +82,16 @@ export class SessionsService {
             voice_id: voiceId,
             is_active: true,
           },
-          include: { user: true },
+          include: { audio_file: true, user: true },
           orderBy: { created_at: 'desc' },
         });
 
         if (voiceRecord && voiceRecord.user) {
+          const canModify =
+            !requester ||
+            requester.role === Role.ADMIN ||
+            voiceRecord.audio_file.uploaded_by === requester.id;
+
           return {
             ...baseResult,
             name: voiceRecord.user.name,
@@ -96,6 +106,12 @@ export class SessionsService {
             // Single-voice: Trả về audio mẫu để so sánh
             enroll_audio_url: voiceRecord.user.audio_url,
             truth_source: 'BUSINESS',
+            can_modify: canModify,
+            access_source: canModify
+              ? !requester || requester.role === Role.ADMIN
+                ? 'ADMIN'
+                : 'OWNER'
+              : 'MATCHED_SESSION',
           };
         }
 
@@ -154,9 +170,14 @@ export class SessionsService {
     sessionId: string,
     speakerLabel: string,
     res: Response,
+    requester?: auth_accounts,
   ) {
-    const session = await this.prisma.identify_sessions.findUnique({
-      where: { id: sessionId },
+    const session = await this.prisma.identify_sessions.findFirst({
+      where: {
+        id: sessionId,
+        ...(requester &&
+          requester.role !== Role.ADMIN && { user_id: requester.id }),
+      },
       include: { audio_file: true },
     });
 

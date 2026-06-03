@@ -18,6 +18,7 @@ import {
   type ProcessingStep,
 } from "@/utils";
 import type {
+  DetectLanguageResponse,
   SelectedTranslateFile,
   SpeechToTextResponse,
   TranslateMode,
@@ -73,6 +74,22 @@ function getSourceLanguageOptionsByKind(kind?: SelectedTranslateFile["kind"]) {
   return kind === "audio" ? SPEECH_LANGUAGES : OCR_LANGUAGES;
 }
 
+function getDetectedLanguageScore(
+  value: DetectLanguageResponse["scores"],
+): number | null {
+  if (Array.isArray(value)) {
+    return value.find((item) => Number.isFinite(item)) ?? null;
+  }
+
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function formatDetectedLanguageConfidence(score: number | null) {
+  if (score === null) return null;
+
+  return `${(score * 100).toFixed(2)}%`;
+}
+
 export function useTranslateFileController() {
   const currentUser = useAuthStore((state) => state.user);
   const translateOptionsRef = useRef<HTMLDivElement | null>(null);
@@ -86,6 +103,8 @@ export function useTranslateFileController() {
   const [detectedSourceLanguage, setDetectedSourceLanguage] = useState<
     string | null
   >(null);
+  const [detectedSourceLanguageScore, setDetectedSourceLanguageScore] =
+    useState<number | null>(null);
   const [targetLanguage, setTargetLanguage] = useState(DEFAULT_TARGET_LANGUAGE);
   const [returnTimestamp, setReturnTimestamp] = useState(false);
   const [denoiseAudio, setDenoiseAudio] = useState(false);
@@ -159,11 +178,15 @@ export function useTranslateFileController() {
     sourceLanguage === AUTO_LANGUAGE && detectedSourceLanguage
       ? getLanguageLabel(detectedSourceLanguage)
       : null;
+  const detectedSourceLanguageConfidence =
+    sourceLanguage === AUTO_LANGUAGE
+      ? formatDetectedLanguageConfidence(detectedSourceLanguageScore)
+      : null;
 
   const detectSourceLanguage = useCallback(
     async (text: string, isAudioFile: boolean) => {
       const normalizedText = text.trim();
-      if (!normalizedText) return null;
+      if (!normalizedText) return { language: null, score: null };
 
       try {
         const result = await translateApi.detectLanguage({
@@ -173,10 +196,20 @@ export function useTranslateFileController() {
           result.detected_languages,
         );
 
-        return getSupportedSourceLanguage(detectedLanguage, isAudioFile);
+        const supportedLanguage = getSupportedSourceLanguage(
+          detectedLanguage,
+          isAudioFile,
+        );
+
+        return {
+          language: supportedLanguage,
+          score: supportedLanguage
+            ? getDetectedLanguageScore(result.scores)
+            : null,
+        };
       } catch {
         toast.warning("Không thể tự nhận diện ngôn ngữ nguồn.");
-        return null;
+        return { language: null, score: null };
       }
     },
     [],
@@ -199,6 +232,7 @@ export function useTranslateFileController() {
     setSourceText("");
     resetTranslatedResult();
     setDetectedSourceLanguage(null);
+    setDetectedSourceLanguageScore(null);
     setErrorMessage(null);
     updateTranslateProgress(0);
   }, [resetTranslatedResult, updateTranslateProgress]);
@@ -297,12 +331,20 @@ export function useTranslateFileController() {
                 true,
               )
             : null;
-          const resolvedDetectedLanguage =
-            sourceIsAuto && !detectedLanguage
-              ? await detectSourceLanguage(text, true)
-              : detectedLanguage;
+          const detectedLanguageWithScore = sourceIsAuto
+            ? await detectSourceLanguage(text, true)
+            : { language: null, score: null };
+          const resolvedDetectedLanguage = sourceIsAuto
+            ? {
+                language:
+                  detectedLanguageWithScore.language ?? detectedLanguage,
+                score: detectedLanguageWithScore.score,
+              }
+            : { language: null, score: null };
           if (!isCurrentRequest()) return "";
-          setDetectedSourceLanguage(resolvedDetectedLanguage);
+
+          setDetectedSourceLanguage(resolvedDetectedLanguage.language);
+          setDetectedSourceLanguageScore(resolvedDetectedLanguage.score);
           setSourceText(text);
           toast.success("Đã nhận dạng audio.", {
             id: loadingToastId,
@@ -361,9 +403,10 @@ export function useTranslateFileController() {
         const text = getOcrText(result.results);
         const detectedLanguage = sourceIsAuto
           ? await detectSourceLanguage(text, false)
-          : null;
+          : { language: null, score: null };
         if (!isCurrentRequest()) return "";
-        setDetectedSourceLanguage(detectedLanguage);
+        setDetectedSourceLanguage(detectedLanguage.language);
+        setDetectedSourceLanguageScore(detectedLanguage.score);
 
         setSourceText(text);
         toast.success("Đã trích xuất văn bản.", {
@@ -585,6 +628,7 @@ export function useTranslateFileController() {
       setSelectedFile(nextFile);
       setSourceLanguage(nextSourceLanguage);
       setDetectedSourceLanguage(null);
+      setDetectedSourceLanguageScore(null);
       setReturnTimestamp(false);
       setDenoiseAudio(false);
       setVisibleIsLoadingAudio(nextFile?.kind === "audio");
@@ -602,6 +646,7 @@ export function useTranslateFileController() {
       hasUserSelectedSourceLanguageRef.current = value !== AUTO_LANGUAGE;
       setSourceLanguage(value);
       setDetectedSourceLanguage(null);
+      setDetectedSourceLanguageScore(null);
 
       if (!selectedFile) return;
 
@@ -728,6 +773,7 @@ export function useTranslateFileController() {
       setSourceText(value);
       resetTranslatedResult();
       setDetectedSourceLanguage(null);
+      setDetectedSourceLanguageScore(null);
       updateTranslateProgress(0);
     },
     [resetTranslatedResult, updateTranslateProgress],
@@ -736,6 +782,8 @@ export function useTranslateFileController() {
   const clearSourceText = useCallback(() => {
     setSourceText("");
     resetTranslatedResult();
+    setDetectedSourceLanguage(null);
+    setDetectedSourceLanguageScore(null);
     updateTranslateProgress(0);
   }, [resetTranslatedResult, updateTranslateProgress]);
 
@@ -756,6 +804,7 @@ export function useTranslateFileController() {
     clearSourceText,
     copyText,
     denoiseAudio,
+    detectedSourceLanguageConfidence,
     detectedSourceLanguageLabel,
     downloadTranslatedFile,
     errorMessage,

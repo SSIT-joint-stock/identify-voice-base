@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { Role, UserStatus } from '@prisma/client';
 import { GetVoiceDetailUseCase } from '../use-cases/get-voice-detail.usecase';
 import { voiceRecord } from './voices-test-utils';
 
@@ -13,6 +14,8 @@ describe(GetVoiceDetailUseCase.name, () => {
       findDetail: jest.fn().mockResolvedValue({
         ...voiceRecord.user,
         voice_records: [voiceRecord],
+        can_modify: false,
+        access_source: 'MATCHED_SESSION',
       }),
       findIdentifyHistory: jest.fn().mockResolvedValue([
         {
@@ -27,12 +30,23 @@ describe(GetVoiceDetailUseCase.name, () => {
     const result = await new GetVoiceDetailUseCase(
       repository as never,
       { cdnUrl: 'http://cdn.local' } as never,
-    ).execute('user-1');
+    ).execute('user-1', {
+      id: 'operator-1',
+      email: 'operator@example.com',
+      username: 'operator',
+      password: 'hashed',
+      role: Role.OPERATOR,
+      permissions: [],
+      refresh_token: null,
+      status: UserStatus.ACTIVE,
+    });
 
     expect(result).toMatchObject({
       id: 'user-1',
       voice_id: 'voice-1',
       audio_available: true,
+      can_modify: false,
+      access_source: 'MATCHED_SESSION',
       identify_history: [expect.objectContaining({ score: 0.8 })],
     });
   });

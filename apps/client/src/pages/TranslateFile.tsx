@@ -8,7 +8,7 @@ import { TranslateFileOptionsCard } from "@/feature/translate/components/transla
 import { TranslateOutputPanel } from "@/feature/translate/components/translate-output-panel";
 import { TranslateSourceTextPanel } from "@/feature/translate/components/translate-source-text-panel";
 import { TRANSLATION_LANGUAGES } from "@/feature/translate/constants/translate.constants";
-import { useTranslateFileController } from "@/feature/translate/hooks/use-translate-file-controller";
+import { useTranslateFileController } from "@/feature/translate/hooks/use-translate-file";
 
 export default function TranslateFile() {
   const {
@@ -17,6 +17,7 @@ export default function TranslateFile() {
     clearSourceText,
     copyText,
     denoiseAudio,
+    detectedSourceLanguageConfidence,
     detectedSourceLanguageLabel,
     downloadTranslatedFile,
     errorMessage,
@@ -63,6 +64,7 @@ export default function TranslateFile() {
   const renderTranslateOptions = () => (
     <TranslateFileOptionsCard
       detectedSourceLanguageLabel={detectedSourceLanguageLabel}
+      detectedSourceLanguageConfidence={detectedSourceLanguageConfidence}
       denoiseAudio={denoiseAudio}
       disabled={isBusy}
       isAudio={isAudio}

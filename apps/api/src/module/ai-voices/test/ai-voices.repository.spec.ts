@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { AiVoicesRepository } from '../repository/ai-voices.repository';
 import { cacheRecord, createAiVoicesPrismaMock } from './ai-voices-test-utils';
 
@@ -42,6 +43,44 @@ describe(AiVoicesRepository.name, () => {
     });
   });
 
+  it('filters non-enrolled AI identities by operator sessions', async () => {
+    prisma.voice_records.findMany.mockResolvedValue([
+      { voice_id: 'enrolled-1' },
+    ]);
+    prisma.identify_sessions.findMany.mockResolvedValue([
+      {
+        results: {
+          speakers: [
+            { matched_voice_id: 'voice-1' },
+            { matched_voice_id: 'voice-2' },
+          ],
+        },
+      },
+    ]);
+    prisma.ai_identities_cache.findMany.mockResolvedValue([cacheRecord]);
+    prisma.ai_identities_cache.count.mockResolvedValue(1);
+
+    await repository.findNonEnrolled({ page: 1 }, {
+      id: 'operator-1',
+      role: Role.OPERATOR,
+    } as never);
+
+    expect(prisma.identify_sessions.findMany).toHaveBeenCalledWith({
+      where: { user_id: 'operator-1' },
+      select: { results: true },
+    });
+    expect(prisma.ai_identities_cache.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          voice_id: {
+            notIn: ['enrolled-1'],
+            in: ['voice-1', 'voice-2'],
+          },
+        }),
+      }),
+    );
+  });
+
   it('returns cache by voice id or throws when not found', async () => {
     prisma.ai_identities_cache.findUnique.mockResolvedValueOnce(cacheRecord);
     await expect(repository.findById(cacheRecord.voice_id)).resolves.toBe(
@@ -62,6 +101,25 @@ describe(AiVoicesRepository.name, () => {
     ).resolves.toEqual({ id: 'session-1' });
     expect(prisma.identify_sessions.findFirst).toHaveBeenCalledWith({
       where: {
+        results: {
+          array_contains: [{ matched_voice_id: cacheRecord.voice_id }],
+        },
+      },
+      orderBy: { identified_at: 'asc' },
+    });
+  });
+
+  it('filters sample session by owner for operators', async () => {
+    prisma.identify_sessions.findFirst.mockResolvedValue({ id: 'session-1' });
+
+    await repository.findFirstSampleSession(cacheRecord.voice_id, {
+      id: 'operator-1',
+      role: Role.OPERATOR,
+    } as never);
+
+    expect(prisma.identify_sessions.findFirst).toHaveBeenCalledWith({
+      where: {
+        user_id: 'operator-1',
         results: {
           array_contains: [{ matched_voice_id: cacheRecord.voice_id }],
         },

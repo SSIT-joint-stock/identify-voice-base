@@ -36,18 +36,18 @@ import { VoiceDirectorySearchBar } from "@/feature/voice-directory/components/Vo
 import type { VoiceDirectorySearchField } from "@/feature/voice-directory/types/voice-directory.types";
 import { useScrollOffset } from "@/hooks/use-scroll-offset";
 import {
+  AgePill,
+  GenderPill,
+  InfoTooltip,
+  PassportPill,
+} from "@/feature/voice-directory/utils/VoiceDirectory.helpers";
+import {
   GENDER_FILTER_OPTIONS,
   PAGE_SIZE_OPTIONS,
   SORT_OPTIONS,
   buildPaginationItems,
   getAvatarColor,
-} from "./VoiceDirectory.constants";
-import {
-  AgePill,
-  GenderPill,
-  InfoTooltip,
-  PassportPill,
-} from "./VoiceDirectory.helpers";
+} from "@/feature/voice-directory/utils/VoiceDirectory.constants";
 
 const PAGINATION_SCROLL_OFFSET_Y = 128;
 

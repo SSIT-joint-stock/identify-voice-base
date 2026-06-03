@@ -61,19 +61,13 @@ export function useSpeechToTextJob() {
   );
 
   const finishBackgroundToast = useCallback(
-    (type: "success" | "error", message: string, onViewResult?: () => void) => {
+    (type: "success" | "error", message: string) => {
       const toastId = backgroundToastIdRef.current;
       if (toastId === null) return;
 
       if (type === "success") {
         toast.success(message, {
           id: toastId,
-          action: onViewResult
-            ? {
-                label: "Xem kết quả",
-                onClick: onViewResult,
-              }
-            : undefined,
         });
       } else {
         toast.error(message, { id: toastId });
@@ -128,11 +122,7 @@ export function useSpeechToTextJob() {
             resultCacheRef.current[options.key] = nextResult;
             setResult(nextResult);
             setProgress(100);
-            finishBackgroundToast(
-              "success",
-              successMessage,
-              options.onViewResult,
-            );
+            finishBackgroundToast("success", successMessage);
             return nextResult;
           }
 

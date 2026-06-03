@@ -46,8 +46,8 @@ export class VoicesController {
   @ApiResponse({ status: 200, description: 'Success' })
   @ApiSuccess('Lấy danh sách giọng nói thành công!')
   @Permissions([VOICES.READ])
-  async findAll(@Query() filter: VoiceFilterDto) {
-    return this.voicesService.findAll(filter);
+  async findAll(@Query() filter: VoiceFilterDto, @User() user: auth_accounts) {
+    return this.voicesService.findAll(filter, user);
   }
 
   @Get(':id')
@@ -57,8 +57,8 @@ export class VoicesController {
   @ApiResponse({ status: 404, description: 'Không tìm thấy hồ sơ' })
   @ApiSuccess('Lấy chi tiết giọng nói thành công!')
   @Permissions([VOICES.READ])
-  async findOne(@Param('id') id: string) {
-    return this.voicesService.findOne(id);
+  async findOne(@Param('id') id: string, @User() user: auth_accounts) {
+    return this.voicesService.findOne(id, user);
   }
 
   @Patch(':id')
@@ -68,8 +68,12 @@ export class VoicesController {
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiSuccess('Cập nhật thông tin cá nhân thành công!')
   @Permissions([VOICES.UPDATE])
-  async update(@Param('id') id: string, @Body() dto: UpdateVoiceInfoDto) {
-    return this.voicesService.update(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateVoiceInfoDto,
+    @User() user: auth_accounts,
+  ) {
+    return this.voicesService.update(id, dto, user);
   }
 
   @Patch(':id/delete-voice')
@@ -80,8 +84,8 @@ export class VoicesController {
   @ApiResponse({ status: 404, description: 'Không tìm thấy hồ sơ' })
   @ApiSuccess('Xóa hồ sơ giọng nói thành công!')
   @Permissions([VOICES.DELETE])
-  async deleteVoice(@Param('id') id: string) {
-    return this.voicesService.deleteVoice(id);
+  async deleteVoice(@Param('id') id: string, @User() user: auth_accounts) {
+    return this.voicesService.deleteVoice(id, user);
   }
 
   @Post(':id/update-from-audios')
@@ -100,7 +104,7 @@ export class VoicesController {
     if (!dto.audioIds || dto.audioIds.length === 0) {
       throw new BadRequestException('Bắt buộc phải có ít nhất 1 audio ID');
     }
-    return this.voicesService.updateEmbedding(userId, dto.audioIds, user.id);
+    return this.voicesService.updateEmbedding(userId, dto.audioIds, user);
   }
 
   @Post(':id/denoise-enroll-audio')
@@ -118,10 +122,6 @@ export class VoicesController {
     @User() user: auth_accounts,
     @UploadedFile() filteredAudio?: Express.Multer.File,
   ) {
-    return this.voicesService.denoiseEnrollAudio(
-      userId,
-      user.id,
-      filteredAudio,
-    );
+    return this.voicesService.denoiseEnrollAudio(userId, user, filteredAudio);
   }
 }

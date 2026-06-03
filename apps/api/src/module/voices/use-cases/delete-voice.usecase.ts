@@ -1,5 +1,6 @@
 import { AiCoreService } from '@/module/ai-core/service/ai-core.service';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import type { auth_accounts } from '@prisma/client';
 import { VoicesRepository } from '../repository/voices.repository';
 
 @Injectable()
@@ -11,10 +12,13 @@ export class DeleteVoiceUseCase {
     private readonly aiCoreService: AiCoreService,
   ) {}
 
-  async execute(userId: string): Promise<void> {
+  async execute(userId: string, requester: auth_accounts): Promise<void> {
     this.logger.log(`Deleting voice profile for user ${userId}`);
 
-    const voiceData = await this.voicesRepository.findVoiceWithFiles(userId);
+    const voiceData = await this.voicesRepository.findVoiceWithFiles(
+      userId,
+      requester,
+    );
     if (!voiceData) {
       throw new NotFoundException(
         `Không tìm thấy hồ sơ giọng nói với ID: ${userId}`,
@@ -27,7 +31,7 @@ export class DeleteVoiceUseCase {
     }
 
     await this.aiCoreService.deleteVoice(voiceId);
-    await this.voicesRepository.deactivate(userId);
+    await this.voicesRepository.deactivate(userId, requester);
 
     this.logger.log(`Successfully deleted voice profile for user ${userId}`);
   }

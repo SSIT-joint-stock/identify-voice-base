@@ -22,6 +22,7 @@ export function createSessionsPrismaMock() {
       findMany: jest.fn(),
       count: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
     },
     voice_records: {
       findFirst: jest.fn(),

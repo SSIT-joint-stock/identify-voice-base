@@ -2,9 +2,14 @@ import { SearchUtil } from '@/common/helpers/search.util';
 import { GENDER_ALIAS_MAP, parseByAliasMap } from '@/common/search-alias';
 import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { Prisma, UserGender, UserSource } from '@prisma/client';
+import { Prisma, Role, UserGender, UserSource } from '@prisma/client';
 import { UpdateVoiceInfoDto } from '../dto/update-voice-info.dto';
 import { VoiceFilterDto } from '../dto/voice-filter.dto';
 
@@ -17,7 +22,137 @@ export class VoicesRepository {
     private readonly storage: ConfigType<typeof storageConfig>,
   ) {}
 
-  async findActiveVoices(filter: VoiceFilterDto) {
+  private getVoiceOwnerWhere(requester?: {
+    id: string;
+    role: Role;
+  }): Prisma.voice_recordsWhereInput {
+    if (!requester || requester.role === Role.ADMIN) {
+      return {};
+    }
+
+    return {
+      audio_file: {
+        uploaded_by: requester.id,
+      },
+    };
+  }
+
+  private getUserOwnerWhere(requester?: {
+    id: string;
+    role: Role;
+  }): Prisma.usersWhereInput {
+    if (!requester || requester.role === Role.ADMIN) {
+      return {};
+    }
+
+    return {
+      voice_records: {
+        some: {
+          audio_file: {
+            uploaded_by: requester.id,
+          },
+        },
+      },
+    };
+  }
+
+  private isAdmin(requester?: { role: Role }) {
+    return !requester || requester.role === Role.ADMIN;
+  }
+
+  private isUserVoiceOwner(
+    user: {
+      voice_records: Array<{
+        audio_file?: {
+          uploaded_by?: string | null;
+        } | null;
+      }>;
+    },
+    requester?: { id: string; role: Role },
+  ) {
+    if (this.isAdmin(requester)) {
+      return true;
+    }
+
+    return user.voice_records.some(
+      (record) => record.audio_file?.uploaded_by === requester?.id,
+    );
+  }
+
+  private buildMatchedVoiceWhere(
+    voiceId: string,
+  ): Prisma.identify_sessionsWhereInput[] {
+    return [
+      {
+        results: {
+          array_contains: [{ matched_voice_id: voiceId }],
+        },
+      },
+      {
+        results: {
+          path: ['speakers'],
+          array_contains: [{ matched_voice_id: voiceId }],
+        },
+      },
+    ];
+  }
+
+  private async hasMatchedVoiceSession(
+    voiceIds: string[],
+    requester?: { id: string; role: Role },
+  ) {
+    if (this.isAdmin(requester)) {
+      return true;
+    }
+
+    if (!requester || voiceIds.length === 0) {
+      return false;
+    }
+
+    const session = await this.prisma.identify_sessions.findFirst({
+      where: {
+        user_id: requester.id,
+        OR: voiceIds.flatMap((voiceId) => this.buildMatchedVoiceWhere(voiceId)),
+      },
+      select: { id: true },
+    });
+
+    return Boolean(session);
+  }
+
+  async canModifyVoice(userId: string, requester?: { id: string; role: Role }) {
+    if (this.isAdmin(requester)) {
+      return true;
+    }
+
+    const user = await this.prisma.users.findFirst({
+      where: {
+        id: userId,
+        ...this.getUserOwnerWhere(requester),
+      },
+      select: { id: true },
+    });
+
+    return Boolean(user);
+  }
+
+  async assertCanModifyVoice(
+    userId: string,
+    requester?: { id: string; role: Role },
+  ) {
+    if (await this.canModifyVoice(userId, requester)) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Bạn không có quyền chỉnh sửa hồ sơ giọng nói này',
+    );
+  }
+
+  async findActiveVoices(
+    filter: VoiceFilterDto,
+    requester?: { id: string; role: Role },
+  ) {
     const {
       page = 1,
       page_size = 10,
@@ -48,6 +183,7 @@ export class VoicesRepository {
 
     const where: Prisma.voice_recordsWhereInput = {
       is_active: true,
+      ...this.getVoiceOwnerWhere(requester),
       ...(filterGender && {
         user: {
           gender: { equals: filterGender },
@@ -111,9 +247,11 @@ export class VoicesRepository {
   /**
    * Lấy chi tiết hồ sơ giọng nói.
    */
-  async findDetail(userId: string) {
-    const user = await this.prisma.users.findUnique({
-      where: { id: userId },
+  async findDetail(userId: string, requester?: { id: string; role: Role }) {
+    const user = await this.prisma.users.findFirst({
+      where: {
+        id: userId,
+      },
       include: {
         voice_records: {
           include: { audio_file: true },
@@ -128,14 +266,53 @@ export class VoicesRepository {
       );
     }
 
+    const activeVoiceIds = user.voice_records
+      .filter((record) => record.is_active)
+      .map((record) => record.voice_id);
+    const canModify = this.isUserVoiceOwner(user, requester);
+    const canView =
+      canModify ||
+      (await this.hasMatchedVoiceSession(activeVoiceIds, requester));
+
+    if (!canView) {
+      throw new NotFoundException(
+        `Không tìm thấy hồ sơ giọng nói với ID: ${userId}`,
+      );
+    }
+
+    Object.assign(user, {
+      can_modify: canModify,
+      access_source: canModify
+        ? this.isAdmin(requester)
+          ? 'ADMIN'
+          : 'OWNER'
+        : 'MATCHED_SESSION',
+    });
+
     return user;
   }
 
   /**
    * Cập nhật thông tin user.
    */
-  async updateUserInfo(userId: string, data: UpdateVoiceInfoDto) {
-    const user = await this.findDetail(userId);
+  async updateUserInfo(
+    userId: string,
+    data: UpdateVoiceInfoDto,
+    requester?: { id: string; role: Role },
+  ) {
+    await this.assertCanModifyVoice(userId, requester);
+
+    const user = await this.prisma.users.findFirst({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException(
+        `Không tìm thấy hồ sơ giọng nói với ID: ${userId}`,
+      );
+    }
+
     return this.prisma.users.update({
       where: { id: user.id },
       data: {
@@ -148,13 +325,17 @@ export class VoicesRepository {
   /**
    * Tìm kiếm lịch sử nhận dạng.
    */
-  async findIdentifyHistory(voiceId: string) {
+  async findIdentifyHistory(
+    voiceId: string,
+    requester?: { id: string; role: Role },
+  ) {
     if (!voiceId) {
       return [];
     }
 
     const sessions = await this.prisma.identify_sessions.findMany({
       where: {
+        ...(requester?.role === Role.OPERATOR && { user_id: requester.id }),
         results: {
           array_contains: [{ matched_voice_id: voiceId }],
         },
@@ -169,13 +350,22 @@ export class VoicesRepository {
   /**
    * Tìm kiếm thông tin giọng nói kèm theo file audio để phục vụ việc xóa.
    */
-  async findVoiceWithFiles(userId: string) {
-    const user = await this.prisma.users.findUnique({
-      where: { id: userId },
+  async findVoiceWithFiles(
+    userId: string,
+    requester?: { id: string; role: Role },
+  ) {
+    await this.assertCanModifyVoice(userId, requester);
+
+    const user = await this.prisma.users.findFirst({
+      where: {
+        id: userId,
+      },
       include: {
         voice_records: {
           include: { audio_file: true },
-          where: { is_active: true },
+          where: {
+            is_active: true,
+          },
           orderBy: { created_at: 'desc' },
         },
       },
@@ -375,8 +565,25 @@ export class VoicesRepository {
   /**
    * Vô hiệu hóa hồ sơ giọng nói thay vì xóa cứng.
    */
-  async deactivate(userId: string) {
-    const user = await this.findDetail(userId);
+  async deactivate(userId: string, requester?: { id: string; role: Role }) {
+    await this.assertCanModifyVoice(userId, requester);
+
+    const user = await this.prisma.users.findFirst({
+      where: { id: userId },
+      include: {
+        voice_records: {
+          include: { audio_file: true },
+          orderBy: { created_at: 'desc' },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(
+        `Không tìm thấy hồ sơ giọng nói với ID: ${userId}`,
+      );
+    }
+
     const activeRecord = user.voice_records.find((record) => record.is_active);
 
     if (!activeRecord) {

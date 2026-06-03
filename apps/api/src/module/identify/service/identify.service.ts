@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { auth_accounts } from '@prisma/client';
 import { IdentifyUseCase } from '../use-cases/identify.use-case';
 
 @Injectable()
@@ -10,9 +11,9 @@ export class IdentifyService {
    */
   async identify(
     file: Express.Multer.File,
-    operatorId: string,
+    requester: auth_accounts,
     type: 'SINGLE' | 'MULTI',
   ) {
-    return this.identifyUseCase.execute(file, operatorId, type);
+    return this.identifyUseCase.execute(file, requester, type);
   }
 }

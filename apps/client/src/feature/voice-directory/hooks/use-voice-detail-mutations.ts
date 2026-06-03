@@ -21,6 +21,7 @@ interface UseVoiceDetailMutationsParams {
   form: UseFormReturn<UpdateVoiceDirectoryFormValues>;
   selectedAudioIds: Set<string>;
   filteredEnrollAudioFile: File | null;
+  canModify: boolean;
   fetchProtectedAudioBlob: (audioUrl: string) => Promise<Blob>;
   setSelectedAudioIds: (value: Set<string>) => void;
   setConfirmDeactivateOpen: (open: boolean) => void;
@@ -45,6 +46,7 @@ export function useVoiceDetailMutations({
   form,
   selectedAudioIds,
   filteredEnrollAudioFile,
+  canModify,
   fetchProtectedAudioBlob,
   setSelectedAudioIds,
   setConfirmDeactivateOpen,
@@ -59,6 +61,8 @@ export function useVoiceDetailMutations({
 
   const updateMutation = useMutation({
     mutationFn: () => {
+      if (!canModify)
+        throw new Error("Bạn không có quyền chỉnh sửa hồ sơ này.");
       if (!voiceId) throw new Error("Thiếu ID hồ sơ.");
       return voiceDirectoryApi.updateVoiceInfo(
         voiceId,
@@ -83,6 +87,7 @@ export function useVoiceDetailMutations({
 
   const deleteVoiceMutation = useMutation({
     mutationFn: () => {
+      if (!canModify) throw new Error("Bạn không có quyền xóa hồ sơ này.");
       if (!voiceId) throw new Error("Thiếu ID hồ sơ.");
       return voiceDirectoryApi.deleteVoice(voiceId);
     },
@@ -102,6 +107,7 @@ export function useVoiceDetailMutations({
 
   const embeddingMutation = useMutation({
     mutationFn: () => {
+      if (!canModify) throw new Error("Bạn không có quyền cập nhật hồ sơ này.");
       const vid = detail?.voice_id ?? voiceId;
       if (!vid) throw new Error("Thiếu voice_id.");
       const ids = Array.from(selectedAudioIds);
@@ -126,6 +132,8 @@ export function useVoiceDetailMutations({
 
   const denoiseEnrollAudioMutation = useMutation({
     mutationFn: () => {
+      if (!canModify)
+        throw new Error("Bạn không có quyền cập nhật audio đăng ký.");
       if (!voiceId) throw new Error("Thiếu ID hồ sơ.");
       if (!filteredEnrollAudioFile) {
         throw new Error("Chưa có audio lọc ồn để cập nhật.");
@@ -154,6 +162,8 @@ export function useVoiceDetailMutations({
 
   const denoisePreviewMutation = useMutation({
     mutationFn: async () => {
+      if (!canModify)
+        throw new Error("Bạn không có quyền lọc ồn audio đăng ký.");
       if (!enrollAudioUrl) throw new Error("Không có audio đăng ký.");
 
       const sourceBlob = await fetchProtectedAudioBlob(enrollAudioUrl);

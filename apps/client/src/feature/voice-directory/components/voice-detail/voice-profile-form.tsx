@@ -18,6 +18,7 @@ interface VoiceProfileFormProps {
     FieldArrayWithId<UpdateVoiceDirectoryFormValues, "criminal_record", "id">
   >;
   isSaving: boolean;
+  canModify: boolean;
   onSubmit: () => void;
   append: UseFieldArrayAppend<
     UpdateVoiceDirectoryFormValues,
@@ -30,6 +31,7 @@ export function VoiceProfileForm({
   form,
   fields,
   isSaving,
+  canModify,
   onSubmit,
   append,
   remove,
@@ -44,6 +46,7 @@ export function VoiceProfileForm({
           <Input
             id="vd-name"
             placeholder="Nhập họ tên"
+            disabled={!canModify}
             {...form.register("name")}
           />
           {form.formState.errors.name ? (
@@ -57,6 +60,7 @@ export function VoiceProfileForm({
           <Input
             id="vd-cccd"
             placeholder="Nhập CCCD"
+            disabled={!canModify}
             {...form.register("citizen_identification")}
           />
         </div>
@@ -66,6 +70,7 @@ export function VoiceProfileForm({
             id="vd-phone"
             inputMode="tel"
             placeholder="Nhập số điện thoại"
+            disabled={!canModify}
             {...form.register("phone_number")}
           />
           {form.formState.errors.phone_number ? (
@@ -79,6 +84,7 @@ export function VoiceProfileForm({
           <select
             id="vd-gender"
             className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canModify}
             {...form.register("gender")}
           >
             <option value="">Chọn giới tính</option>
@@ -93,6 +99,7 @@ export function VoiceProfileForm({
             inputMode="numeric"
             pattern="[0-9]*"
             placeholder="Nhập tuổi"
+            disabled={!canModify}
             {...form.register("age", {
               onChange: (event) => {
                 event.target.value = event.target.value.replace(/\D/g, "");
@@ -110,6 +117,7 @@ export function VoiceProfileForm({
           <Input
             id="vd-hometown"
             placeholder="Nhập quê quán"
+            disabled={!canModify}
             {...form.register("hometown")}
           />
         </div>
@@ -118,6 +126,7 @@ export function VoiceProfileForm({
           <Input
             id="vd-job"
             placeholder="Nhập nghề nghiệp"
+            disabled={!canModify}
             {...form.register("job")}
           />
         </div>
@@ -126,6 +135,7 @@ export function VoiceProfileForm({
           <Input
             id="vd-passport"
             placeholder="Nhập số hộ chiếu"
+            disabled={!canModify}
             {...form.register("passport")}
           />
         </div>
@@ -138,6 +148,7 @@ export function VoiceProfileForm({
             type="button"
             variant="outline"
             size="sm"
+            disabled={!canModify}
             onClick={() => append({ case: "", year: "" })}
           >
             <Plus className="mr-1 size-4" />
@@ -154,6 +165,7 @@ export function VoiceProfileForm({
                 <Label className="text-xs">Vụ việc</Label>
                 <Input
                   placeholder="Ví dụ: Tội trộm cắp"
+                  disabled={!canModify}
                   {...form.register(`criminal_record.${index}.case`)}
                 />
               </div>
@@ -161,6 +173,7 @@ export function VoiceProfileForm({
                 <Label className="text-xs">Năm</Label>
                 <Input
                   placeholder="Nhập năm"
+                  disabled={!canModify}
                   {...form.register(`criminal_record.${index}.year`)}
                 />
               </div>
@@ -169,6 +182,7 @@ export function VoiceProfileForm({
                 variant="ghost"
                 size="icon"
                 className="shrink-0 text-destructive transition-colors duration-300 hover:cursor-pointer hover:bg-red-50 hover:text-red-500"
+                disabled={!canModify}
                 onClick={() => remove(index)}
                 aria-label="Xóa dòng"
               >
@@ -182,7 +196,7 @@ export function VoiceProfileForm({
       <Button
         size="lg"
         type="submit"
-        disabled={isSaving}
+        disabled={isSaving || !canModify}
         className="w-full px-6 sm:w-auto"
       >
         {isSaving ? (

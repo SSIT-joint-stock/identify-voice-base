@@ -1,4 +1,4 @@
-import { Languages, LoaderCircle, Trash2, XCircle } from "lucide-react";
+import { Languages, LoaderCircle, RotateCcw, XCircle } from "lucide-react";
 import type { RefObject } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -66,8 +66,8 @@ export function TranslateSourceTextPanel({
             disabled={!hasSourceText || isBusy}
             onClick={onClear}
           >
-            <Trash2 className="mr-2 size-4" />
-            Xóa
+            <RotateCcw className="mr-2 size-4" />
+            Đặt lại
           </Button>
         </div>
       </CardHeader>

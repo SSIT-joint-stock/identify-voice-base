@@ -44,6 +44,8 @@ export interface SessionSpeaker {
   criminal_record?: unknown;
   enroll_audio_url?: string | null;
   truth_source: "BUSINESS" | "AI" | "NONE";
+  can_modify?: boolean;
+  access_source?: "ADMIN" | "OWNER" | "MATCHED_SESSION";
 }
 
 export interface SessionDetail {

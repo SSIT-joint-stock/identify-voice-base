@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { JobStatus } from '@prisma/client';
+import { auth_accounts, JobStatus, Role } from '@prisma/client';
 import type { Queue } from 'bullmq';
 
 @Injectable()
@@ -20,11 +20,16 @@ export class UpdateVoiceEmbeddingUseCase {
     private readonly updateVoiceQueue: Queue,
   ) {}
 
-  async execute(userId: string, audioIds: string[], adminId: string) {
+  async execute(userId: string, audioIds: string[], requester: auth_accounts) {
     const activeVoice = await this.prisma.voice_records.findFirst({
       where: {
         user_id: userId,
         is_active: true,
+        ...(requester.role !== Role.ADMIN && {
+          audio_file: {
+            uploaded_by: requester.id,
+          },
+        }),
       },
       include: { user: true },
       orderBy: { created_at: 'desc' },
@@ -55,6 +60,7 @@ export class UpdateVoiceEmbeddingUseCase {
 
     const matchedSessions = await this.prisma.identify_sessions.findMany({
       where: {
+        ...(requester.role !== Role.ADMIN && { user_id: requester.id }),
         audio_file_id: { in: audioIds },
         results: {
           array_contains: [{ matched_voice_id: activeVoice.voice_id }],
@@ -92,7 +98,7 @@ export class UpdateVoiceEmbeddingUseCase {
         voiceId: activeVoice.voice_id,
         activeVoiceRecordId: activeVoice.id,
         audioIds,
-        adminId,
+        adminId: requester.id,
       },
       {
         attempts: 3,

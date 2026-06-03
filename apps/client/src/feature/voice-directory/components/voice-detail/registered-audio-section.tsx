@@ -7,6 +7,7 @@ interface RegisteredAudioSectionProps {
   audioUrl: string | null;
   fileName: string;
   isDenoising: boolean;
+  canModify: boolean;
   isTranscribing?: boolean;
   onOpenDenoisePreview: () => void;
   onOpenDuplicateDialog: () => void;
@@ -17,6 +18,7 @@ export function RegisteredAudioSection({
   audioUrl,
   fileName,
   isDenoising,
+  canModify,
   isTranscribing = false,
   onOpenDenoisePreview,
   onOpenDuplicateDialog,
@@ -48,20 +50,22 @@ export function RegisteredAudioSection({
       </section>
 
       <div className="flex flex-col gap-2 py-1 sm:flex-row sm:justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full sm:w-auto"
-          disabled={!hasAudio || isDenoising}
-          onClick={onOpenDenoisePreview}
-        >
-          {isDenoising ? (
-            <Loader2 className="mr-2 size-4 animate-spin" />
-          ) : (
-            <Sparkles className="mr-2 size-4" />
-          )}
-          Lọc ồn audio đăng ký
-        </Button>
+        {canModify ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            disabled={!hasAudio || isDenoising}
+            onClick={onOpenDenoisePreview}
+          >
+            {isDenoising ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 size-4" />
+            )}
+            Lọc ồn audio đăng ký
+          </Button>
+        ) : null}
         <Button
           type="button"
           className="w-full sm:w-auto"

@@ -1,6 +1,6 @@
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { UserSource } from '@prisma/client';
+import { auth_accounts, UserSource } from '@prisma/client';
 import { AiVoicesRepository } from '../repository/ai-voices.repository';
 
 @Injectable()
@@ -12,11 +12,11 @@ export class ConvertAiVoiceUseCase {
     private readonly aiVoicesRepository: AiVoicesRepository,
   ) {}
 
-  async execute(voiceId: string) {
+  async execute(voiceId: string, requester?: auth_accounts) {
     this.logger.log(`Bắt đầu chuyển đổi AI Voice sang User: ${voiceId}`);
 
     // 1. Kiểm tra tồn tại trong cache
-    const cache = await this.aiVoicesRepository.findById(voiceId);
+    const cache = await this.aiVoicesRepository.findById(voiceId, requester);
 
     // 2. Kiểm tra xem đã enroll chưa (đề phòng bấm nhầm)
     const existingRecord = await this.prisma.voice_records.findFirst({
@@ -29,8 +29,10 @@ export class ConvertAiVoiceUseCase {
     }
 
     // 3. Tìm mẫu audio đầu tiên để làm Enroll Audio
-    const firstSession =
-      await this.aiVoicesRepository.findFirstSampleSession(voiceId);
+    const firstSession = await this.aiVoicesRepository.findFirstSampleSession(
+      voiceId,
+      requester,
+    );
 
     if (!firstSession) {
       this.logger.warn(

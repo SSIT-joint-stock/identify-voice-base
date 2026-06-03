@@ -122,14 +122,22 @@ describe(AiTranslateUseCase.name, () => {
   });
 
   it('detects language through AI Core', async () => {
-    const post = jest
-      .fn()
-      .mockReturnValue(of({ data: { detected_languages: ['vi'] } }));
+    const post = jest.fn().mockReturnValue(
+      of({
+        data: {
+          success: true,
+          detected_languages: 'en',
+          scores: 0.30764684081077576,
+        },
+      }),
+    );
     const { useCase } = createUseCase(post);
 
     await expect(useCase.detectLanguage({ text: 'Xin chào' })).resolves.toEqual(
       {
-        detected_languages: ['vi'],
+        success: true,
+        detected_languages: 'en',
+        scores: 0.30764684081077576,
       },
     );
     expect(post).toHaveBeenCalledWith(

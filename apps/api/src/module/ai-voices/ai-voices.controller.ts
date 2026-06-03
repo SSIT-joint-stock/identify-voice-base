@@ -1,5 +1,6 @@
 import { VOICES } from '@/common/auth/permissions';
 import { Permissions, ApiSuccess } from '@/common/decorators';
+import { User } from '@/common/decorators/user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { VoiceFilterDto } from '@/module/voices/dto/voice-filter.dto';
@@ -20,6 +21,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { type auth_accounts } from '@prisma/client';
 import { ConvertAiVoiceUseCase } from './use-cases/convert-ai-voice.usecase';
 import { FindAllAiVoicesUseCase } from './use-cases/find-all-ai-voices.usecase';
 import { GetAiVoiceDetailUseCase } from './use-cases/get-voice-detail-ai.usecase';
@@ -40,8 +42,8 @@ export class AiVoicesController {
   @ApiResponse({ status: 200, description: 'Success' })
   @ApiSuccess('Lấy danh sách AI voices thành công!')
   @Permissions([VOICES.READ])
-  async findAll(@Query() filter: VoiceFilterDto) {
-    return this.findAllUseCase.execute(filter);
+  async findAll(@Query() filter: VoiceFilterDto, @User() user: auth_accounts) {
+    return this.findAllUseCase.execute(filter, user);
   }
 
   @Get(':id')
@@ -50,8 +52,8 @@ export class AiVoicesController {
   @ApiResponse({ status: 200, description: 'Success' })
   @ApiSuccess('Lấy chi tiết AI voice thành công!')
   @Permissions([VOICES.READ])
-  async findOne(@Param('id') id: string) {
-    return this.getDetailUseCase.execute(id);
+  async findOne(@Param('id') id: string, @User() user: auth_accounts) {
+    return this.getDetailUseCase.execute(id, user);
   }
 
   @Post(':id/convert')
@@ -63,7 +65,7 @@ export class AiVoicesController {
   @ApiResponse({ status: 200, description: 'Chuyển đổi thành công' })
   @ApiSuccess('Chuyển đổi hồ sơ người dùng thành công!')
   @Permissions([VOICES.ENROLL])
-  async convert(@Param('id') id: string) {
-    return this.convertUseCase.execute(id);
+  async convert(@Param('id') id: string, @User() user: auth_accounts) {
+    return this.convertUseCase.execute(id, user);
   }
 }

@@ -2,7 +2,7 @@ import storageConfig from '@/config/storage.config';
 import { PrismaService } from '@/database/prisma/prisma.service';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { auth_accounts, Prisma, Role } from '@prisma/client';
 import { GetSessionsFilterDto } from '../dto/get-sessions-filter.dto';
 
 @Injectable()
@@ -25,12 +25,14 @@ export class SessionsRepository {
   /**
    * Lấy danh sách các phiên nhận dạng với phân trang và bộ lọc.
    */
-  async findAll(filter: GetSessionsFilterDto) {
+  async findAll(filter: GetSessionsFilterDto, requester?: auth_accounts) {
     const page = filter.page ?? 1;
     const page_size = filter.page_size ?? 10;
     const { from_date, to_date } = filter;
 
     const where: Prisma.identify_sessionsWhereInput = {
+      ...(requester &&
+        requester.role !== Role.ADMIN && { user_id: requester.id }),
       ...((from_date || to_date) && {
         identified_at: {
           ...(from_date && { gte: new Date(from_date) }),
@@ -90,9 +92,13 @@ export class SessionsRepository {
   /**
    * Lấy chi tiết một phiên nhận dạng.
    */
-  async findOne(id: string) {
-    const session = await this.prisma.identify_sessions.findUnique({
-      where: { id },
+  async findOne(id: string, requester?: auth_accounts) {
+    const session = await this.prisma.identify_sessions.findFirst({
+      where: {
+        id,
+        ...(requester &&
+          requester.role !== Role.ADMIN && { user_id: requester.id }),
+      },
       include: {
         operator: { select: { id: true, username: true } },
         audio_file: { select: { file_path: true } },

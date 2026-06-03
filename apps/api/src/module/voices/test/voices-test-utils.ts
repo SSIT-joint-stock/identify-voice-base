@@ -41,10 +41,12 @@ export function createVoicesPrismaMock() {
     },
     users: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       update: jest.fn(),
     },
     identify_sessions: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
     },
     update_voice_jobs: {
       findMany: jest.fn(),

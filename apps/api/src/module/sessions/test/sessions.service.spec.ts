@@ -1,6 +1,7 @@
 import { SegmentUtil } from '@/common/helpers/segment.util';
+import { NotFoundError } from '@/common/response';
 import { AudioSegmentService } from '@/module/ai-core/service/audio-segment.service';
-import { Logger, NotFoundException } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import { SessionsService } from '../service/sessions.service';
 import { createSessionsPrismaMock, sessionRecord } from './sessions-test-utils';
@@ -38,8 +39,11 @@ describe(SessionsService.name, () => {
   });
 
   it('returns enriched business speaker detail', async () => {
-    prisma.identify_sessions.findUnique.mockResolvedValue(sessionRecord);
+    prisma.identify_sessions.findFirst.mockResolvedValue(sessionRecord);
     prisma.voice_records.findFirst.mockResolvedValue({
+      audio_file: {
+        uploaded_by: 'operator-1',
+      },
       user: {
         name: 'Business User',
         citizen_identification: '999',
@@ -65,7 +69,7 @@ describe(SessionsService.name, () => {
   });
 
   it('falls back to AI cache or unknown speaker detail', async () => {
-    prisma.identify_sessions.findUnique.mockResolvedValue(sessionRecord);
+    prisma.identify_sessions.findFirst.mockResolvedValue(sessionRecord);
     prisma.voice_records.findFirst.mockResolvedValue(null);
     prisma.ai_identities_cache.findUnique.mockResolvedValue({
       name: 'AI Cache',
@@ -86,17 +90,17 @@ describe(SessionsService.name, () => {
   });
 
   it('throws when session detail is missing', async () => {
-    prisma.identify_sessions.findUnique.mockResolvedValue(null);
+    prisma.identify_sessions.findFirst.mockResolvedValue(null);
 
     await expect(service.getSessionDetail('missing')).rejects.toBeInstanceOf(
-      NotFoundException,
+      NotFoundError,
     );
   });
 
   it('streams speaker audio and removes temporary file after send', async () => {
     const sendFile = jest.fn((_path, callback) => callback());
     const res = { sendFile } as never;
-    prisma.identify_sessions.findUnique.mockResolvedValue({
+    prisma.identify_sessions.findFirst.mockResolvedValue({
       ...sessionRecord,
       audio_file: { file_path: 'identify/audio.wav' },
     });

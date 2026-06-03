@@ -68,6 +68,7 @@ export function VoiceDirectoryDetailSheet({
   });
 
   const detail = detailQuery.data;
+  const canModify = detail?.can_modify ?? false;
   const enrollAudioUrl = detail?.audio_url?.trim() || null;
   const enrollAudioTranscriptKey = detail
     ? `voice-detail-${detail.id}-enroll-audio`
@@ -112,6 +113,7 @@ export function VoiceDirectoryDetailSheet({
     form,
     selectedAudioIds,
     filteredEnrollAudioFile,
+    canModify,
     fetchProtectedAudioBlob,
     setSelectedAudioIds,
     setConfirmDeactivateOpen,
@@ -170,6 +172,7 @@ export function VoiceDirectoryDetailSheet({
                 <RegisteredAudioSection
                   audioUrl={enrollAudioUrl}
                   fileName={`${detail.name || "voice-sample"}.wav`}
+                  canModify={canModify}
                   isDenoising={
                     denoiseEnrollAudioMutation.isPending ||
                     denoisePreviewMutation.isPending
@@ -203,14 +206,18 @@ export function VoiceDirectoryDetailSheet({
                   append={append}
                   remove={remove}
                   isSaving={updateMutation.isPending}
+                  canModify={canModify}
                   onSubmit={() => updateMutation.mutate()}
                 />
                 <hr />
                 <IdentifyHistoryTable
                   rows={historyRows}
                   selectedAudioIds={selectedAudioIds}
+                  canModify={canModify}
                   canUpdateEmbedding={
-                    selectedAudioIds.size > 0 && Boolean(detail.voice_id)
+                    canModify &&
+                    selectedAudioIds.size > 0 &&
+                    Boolean(detail.voice_id)
                   }
                   isUpdatingEmbedding={embeddingMutation.isPending}
                   onToggleAudioSelection={toggleAudioSelection}
@@ -218,16 +225,18 @@ export function VoiceDirectoryDetailSheet({
                   onOpenSessionAudio={setPreviewSessionId}
                 />
 
-                <div className="border-t pt-4">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    className="w-full sm:w-auto"
-                    onClick={() => setConfirmDeactivateOpen(true)}
-                  >
-                    Xóa hồ sơ
-                  </Button>
-                </div>
+                {canModify ? (
+                  <div className="border-t pt-4">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="w-full sm:w-auto"
+                      onClick={() => setConfirmDeactivateOpen(true)}
+                    >
+                      Xóa hồ sơ
+                    </Button>
+                  </div>
+                ) : null}
               </>
             ) : null}
           </div>

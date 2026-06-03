@@ -1,12 +1,12 @@
-import { BaseUseCase } from '@/shared/interfaces/base-usecase.interface';
 import { Injectable } from '@nestjs/common';
+import type { auth_accounts } from '@prisma/client';
 import { AiVoicesRepository } from '../repository/ai-voices.repository';
 
 @Injectable()
-export class GetAiVoiceDetailUseCase implements BaseUseCase<string, any> {
+export class GetAiVoiceDetailUseCase {
   constructor(private readonly aiVoicesRepository: AiVoicesRepository) {}
 
-  async execute(voiceId: string) {
-    return this.aiVoicesRepository.findById(voiceId);
+  async execute(voiceId: string, requester?: auth_accounts) {
+    return this.aiVoicesRepository.findById(voiceId, requester);
   }
 }

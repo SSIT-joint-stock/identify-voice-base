@@ -549,7 +549,7 @@ export function SourceTextPanel({
           </p>
         </div>
       </div>
-      <div className="relative h-[68vh] min-h-[520px]">
+      <div className="relative h-[68vh] min-h-130">
         {isContentLoading ? (
           <PreparingContent />
         ) : (

@@ -1,21 +1,25 @@
 import storageConfig from '@/config/storage.config';
-import { BaseUseCase } from '@/shared/interfaces/base-usecase.interface';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
+import type { auth_accounts } from '@prisma/client';
 import { existsSync } from 'fs';
 import { basename, resolve } from 'path';
 import { VoicesRepository } from '../repository/voices.repository';
 
 @Injectable()
-export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
+export class GetVoiceDetailUseCase {
   constructor(
     private readonly voicesRepository: VoicesRepository,
     @Inject(storageConfig.KEY)
     private readonly storage: ConfigType<typeof storageConfig>,
   ) {}
 
-  async execute(id: string) {
-    const user = await this.voicesRepository.findDetail(id);
+  async execute(id: string, requester: auth_accounts) {
+    const user = await this.voicesRepository.findDetail(id, requester);
+    const voiceAccess = user as typeof user & {
+      can_modify?: boolean;
+      access_source?: 'ADMIN' | 'OWNER' | 'MATCHED_SESSION';
+    };
     const activeRecord = user.voice_records.find((record) => record.is_active);
 
     // 1. Kiểm tra audio available (local disk check)
@@ -32,6 +36,7 @@ export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
     // 2. Lấy lịch sử nhận dạng (5 phiên gần nhất)
     const rawSessions = await this.voicesRepository.findIdentifyHistory(
       activeRecord?.voice_id || '',
+      requester,
     );
 
     const identifyHistory = rawSessions.map((s) => {
@@ -72,6 +77,8 @@ export class GetVoiceDetailUseCase implements BaseUseCase<string, any> {
         ? `${this.storage.cdnUrl}/${activeRecord.audio_file.file_path}`
         : null,
       audio_available: audioAvailable,
+      can_modify: voiceAccess.can_modify ?? false,
+      access_source: voiceAccess.access_source ?? 'MATCHED_SESSION',
       enrolled_at: activeRecord?.created_at || null,
       voice_history: user.voice_records.map((record) => ({
         audio_url: `${this.storage.cdnUrl}/${record.audio_file.file_path}`,

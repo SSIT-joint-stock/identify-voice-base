@@ -15,6 +15,7 @@ import type { VoiceIdentifyHistoryItem } from "../../types/voice-directory.types
 interface IdentifyHistoryTableProps {
   rows: VoiceIdentifyHistoryItem[];
   selectedAudioIds: Set<string>;
+  canModify: boolean;
   canUpdateEmbedding: boolean;
   isUpdatingEmbedding: boolean;
   onToggleAudioSelection: (audioFileId: string) => void;
@@ -25,6 +26,7 @@ interface IdentifyHistoryTableProps {
 export function IdentifyHistoryTable({
   rows,
   selectedAudioIds,
+  canModify,
   canUpdateEmbedding,
   isUpdatingEmbedding,
   onToggleAudioSelection,
@@ -41,7 +43,7 @@ export function IdentifyHistoryTable({
           type="button"
           variant="secondary"
           size="sm"
-          disabled={!canUpdateEmbedding || isUpdatingEmbedding}
+          disabled={!canModify || !canUpdateEmbedding || isUpdatingEmbedding}
           onClick={onUpdateEmbedding}
         >
           {isUpdatingEmbedding ? (
@@ -73,7 +75,7 @@ export function IdentifyHistoryTable({
           ) : (
             rows.map((row) => {
               const audioFileId = row.audio_file_id;
-              const selectable = Boolean(audioFileId);
+              const selectable = canModify && Boolean(audioFileId);
 
               return (
                 <TableRow key={row.session_id}>

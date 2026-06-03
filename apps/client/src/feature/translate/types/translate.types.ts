@@ -64,6 +64,7 @@ export interface TranslateJobResponse {
 export interface DetectLanguageResponse {
   success?: boolean;
   detected_languages?: string | string[];
+  scores?: number | number[];
 }
 
 export interface OcrTextBox {

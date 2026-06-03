@@ -86,6 +86,8 @@ export interface VoiceIdentifyItem {
   audio_url?: string;
   enroll_audio_url?: string;
   truth_source?: VoiceTruthSource;
+  can_modify?: boolean;
+  access_source?: "ADMIN" | "OWNER" | "MATCHED_SESSION";
 }
 
 export interface VoiceIdentifyTwoItem extends VoiceIdentifyItem {

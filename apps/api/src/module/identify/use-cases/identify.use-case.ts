@@ -5,7 +5,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { AudioPurpose } from '@prisma/client';
+import { AudioPurpose, auth_accounts, Role } from '@prisma/client';
 import * as path from 'path';
 
 import storageConfig from '@/config/storage.config';
@@ -35,9 +35,10 @@ export class IdentifyUseCase {
 
   async execute(
     file: Express.Multer.File,
-    operatorId: string,
+    requester: auth_accounts,
     type: 'SINGLE' | 'MULTI',
   ) {
+    const operatorId = requester.id;
     this.logger.log(
       `Bắt đầu quy trình Identify bởi operator: ${operatorId} (${type})`,
     );
@@ -166,11 +167,14 @@ export class IdentifyUseCase {
               voice_id: s.matched_voice_id,
               is_active: true,
             },
-            include: { user: true },
+            include: { audio_file: true, user: true },
             orderBy: { created_at: 'desc' },
           });
           if (voiceRecord?.is_active && voiceRecord.user) {
             const u = voiceRecord.user;
+            const canModify =
+              requester.role === Role.ADMIN ||
+              voiceRecord.audio_file.uploaded_by === requester.id;
             row = {
               ...row,
               user_id: u.id,
@@ -184,6 +188,12 @@ export class IdentifyUseCase {
               gender: u.gender,
               criminal_record: u.criminal_record,
               enroll_audio_url: u.audio_url ?? undefined,
+              can_modify: canModify,
+              access_source: canModify
+                ? requester.role === Role.ADMIN
+                  ? 'ADMIN'
+                  : 'OWNER'
+                : 'MATCHED_SESSION',
             };
           }
         }

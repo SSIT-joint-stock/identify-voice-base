@@ -133,13 +133,15 @@ describe(AiCoreService.name, () => {
 
   it('delegates language detection', async () => {
     translateUseCase.detectLanguage.mockResolvedValue({
-      detected_languages: ['vi'],
+      detected_languages: 'en',
+      scores: 0.30764684081077576,
     });
 
     await expect(
       createService().detectLanguage({ text: 'Xin chào' }),
     ).resolves.toEqual({
-      detected_languages: ['vi'],
+      detected_languages: 'en',
+      scores: 0.30764684081077576,
     });
   });
 });

@@ -16,41 +16,51 @@ import type { ProcessingStep } from "@/utils";
 import type { TranslateMode } from "../types/translate.types";
 
 interface TranslateFileOptionsCardProps {
+  className?: string;
+  detectedSourceLanguageConfidence: string | null;
   detectedSourceLanguageLabel: string | null;
-  denoiseAudio: boolean;
+  denoiseAudio?: boolean;
   disabled: boolean;
+  idPrefix?: string;
   isAudio: boolean;
   mode: TranslateMode;
   processingStep: ProcessingStep;
-  returnTimestamp: boolean;
+  returnTimestamp?: boolean;
+  showAudioOptions?: boolean;
+  showExtractButton?: boolean;
   sourceLanguage: string;
   sourceLanguageLabel: string;
   sourceLanguageOptions: readonly ComboboxOption[];
   targetLanguage: string;
   targetLanguageOptions: readonly ComboboxOption[];
-  canExtract: boolean;
-  onDenoiseAudioChange: (value: string) => void;
-  onExtractText: () => void;
+  canExtract?: boolean;
+  onDenoiseAudioChange?: (value: string) => void;
+  onExtractText?: () => void;
   onModeChange: (value: string) => void;
-  onReturnTimestampChange: (value: string) => void;
+  onReturnTimestampChange?: (value: string) => void;
   onSourceLanguageChange: (value: string) => void;
   onTargetLanguageChange: (value: string) => void;
 }
 
 export function TranslateFileOptionsCard({
+  className,
+  detectedSourceLanguageConfidence,
   detectedSourceLanguageLabel,
-  denoiseAudio,
+  denoiseAudio = false,
   disabled,
+  idPrefix = "translate",
   isAudio,
   mode,
   processingStep,
-  returnTimestamp,
+  returnTimestamp = false,
+  showAudioOptions = isAudio,
+  showExtractButton = !isAudio,
   sourceLanguage,
   sourceLanguageLabel,
   sourceLanguageOptions,
   targetLanguage,
   targetLanguageOptions,
-  canExtract,
+  canExtract = false,
   onDenoiseAudioChange,
   onExtractText,
   onModeChange,
@@ -59,25 +69,25 @@ export function TranslateFileOptionsCard({
   onTargetLanguageChange,
 }: TranslateFileOptionsCardProps) {
   return (
-    <Card className="translation-surface py-5">
+    <Card className={`translation-surface py-5 ${className ?? ""}`}>
       <CardContent
         className={`flex flex-col gap-4 ${
-          isAudio
+          showAudioOptions
             ? "xl:flex-row xl:items-end xl:justify-between"
             : "lg:flex-row lg:items-end lg:justify-between"
         }`}
       >
         <div
           className={`grid flex-1 gap-3 sm:grid-cols-2 ${
-            isAudio ? "xl:max-w-6xl xl:grid-cols-4" : "lg:max-w-2xl"
+            showAudioOptions ? "xl:max-w-6xl xl:grid-cols-4" : "lg:max-w-2xl"
           }`}
         >
           <div className="space-y-2">
-            <Label htmlFor="translate-source-language">
+            <Label htmlFor={`${idPrefix}-source-language`}>
               {sourceLanguageLabel}
             </Label>
             <Combobox
-              id="translate-source-language"
+              id={`${idPrefix}-source-language`}
               value={sourceLanguage}
               onValueChange={onSourceLanguageChange}
               options={sourceLanguageOptions}
@@ -86,24 +96,29 @@ export function TranslateFileOptionsCard({
               emptyMessage="Không tìm thấy ngôn ngữ nguồn"
             />
             {detectedSourceLanguageLabel ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="rounded-md border border-border px-2 py-0.5">
-                  {`Nhận diện: ${detectedSourceLanguageLabel}`}
+                  {`Ngôn ngữ phát hiện: ${detectedSourceLanguageLabel}`}
                 </span>
+                {detectedSourceLanguageConfidence ? (
+                  <span className="rounded-md border border-border px-2 py-0.5">
+                    {`Độ chính xác: ${detectedSourceLanguageConfidence}`}
+                  </span>
+                ) : null}
               </div>
             ) : null}
           </div>
 
-          {isAudio ? (
+          {showAudioOptions ? (
             <div className="space-y-2">
-              <Label htmlFor="translate-return-timestamp">Timestamp</Label>
+              <Label htmlFor={`${idPrefix}-return-timestamp`}>Timestamp</Label>
               <Select
                 value={String(returnTimestamp)}
                 onValueChange={onReturnTimestampChange}
                 disabled={disabled}
               >
                 <SelectTrigger
-                  id="translate-return-timestamp"
+                  id={`${idPrefix}-return-timestamp`}
                   className="w-full"
                 >
                   <SelectValue />
@@ -120,15 +135,18 @@ export function TranslateFileOptionsCard({
             </div>
           ) : null}
 
-          {isAudio ? (
+          {showAudioOptions ? (
             <div className="space-y-2">
-              <Label htmlFor="translate-denoise-audio">Khử nhiễu</Label>
+              <Label htmlFor={`${idPrefix}-denoise-audio`}>Khử nhiễu</Label>
               <Select
                 value={String(denoiseAudio)}
                 onValueChange={onDenoiseAudioChange}
                 disabled={disabled}
               >
-                <SelectTrigger id="translate-denoise-audio" className="w-full">
+                <SelectTrigger
+                  id={`${idPrefix}-denoise-audio`}
+                  className="w-full"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -140,9 +158,9 @@ export function TranslateFileOptionsCard({
           ) : null}
 
           <div className="space-y-2">
-            <Label htmlFor="translate-target-language">Dịch sang</Label>
+            <Label htmlFor={`${idPrefix}-target-language`}>Dịch sang</Label>
             <Combobox
-              id="translate-target-language"
+              id={`${idPrefix}-target-language`}
               value={targetLanguage}
               onValueChange={onTargetLanguageChange}
               options={targetLanguageOptions}
@@ -155,7 +173,7 @@ export function TranslateFileOptionsCard({
 
         <div
           className={`flex shrink-0 flex-wrap items-center gap-3 ${
-            isAudio ? "xl:justify-end" : "lg:justify-end"
+            showAudioOptions ? "xl:justify-end" : "lg:justify-end"
           }`}
         >
           <Tabs value={mode} onValueChange={onModeChange}>
@@ -171,7 +189,7 @@ export function TranslateFileOptionsCard({
             </TabsList>
           </Tabs>
 
-          {!isAudio ? (
+          {showExtractButton ? (
             <Button
               type="button"
               variant="outline"

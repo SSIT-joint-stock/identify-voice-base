@@ -20,6 +20,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { type auth_accounts } from '@prisma/client';
 import { IdentifyService } from './service/identify.service';
 
 @ApiTags('identify')
@@ -57,9 +58,9 @@ export class IdentifyController {
   @Permissions([IDENTIFY.RUN])
   async identify(
     @UploadedFile() file: Express.Multer.File,
-    @User('id') userId: string,
+    @User() user: auth_accounts,
     @Body('type') type: 'SINGLE' | 'MULTI' = 'MULTI',
   ) {
-    return this.identifyService.identify(file, userId, type);
+    return this.identifyService.identify(file, user, type);
   }
 }

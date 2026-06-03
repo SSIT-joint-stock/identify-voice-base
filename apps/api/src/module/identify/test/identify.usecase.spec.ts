@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { Role, UserStatus } from '@prisma/client';
 import { IdentifyUseCase } from '../use-cases/identify.use-case';
 import {
   aiSpeaker,
@@ -67,11 +68,25 @@ describe(IdentifyUseCase.name, () => {
     };
   }
 
+  const requester = {
+    id: 'operator-1',
+    email: 'operator@example.com',
+    username: 'operator',
+    password: 'hashed',
+    role: Role.OPERATOR,
+    permissions: [],
+    refresh_token: null,
+    status: UserStatus.ACTIVE,
+  };
+
   it('identifies single-speaker audio, caches AI identities, stores session, and enriches business user', async () => {
     const { prisma, useCase, aiCoreService, sessionsRepository } =
       createUseCase();
     prisma.voice_records.findFirst.mockResolvedValue({
       is_active: true,
+      audio_file: {
+        uploaded_by: 'operator-1',
+      },
       user: {
         id: 'user-1',
         name: 'Business Name',
@@ -87,7 +102,7 @@ describe(IdentifyUseCase.name, () => {
       },
     });
 
-    const result = await useCase.execute(identifyFile, 'operator-1', 'SINGLE');
+    const result = await useCase.execute(identifyFile, requester, 'SINGLE');
 
     expect(aiCoreService.identifySingle).toHaveBeenCalledWith(
       '/tmp/normalized.wav',
@@ -113,6 +128,8 @@ describe(IdentifyUseCase.name, () => {
       user_id: 'user-1',
       name: 'Business Name',
       score: 0.91,
+      can_modify: true,
+      access_source: 'OWNER',
     });
     expect(aiCoreService.speechToText).not.toHaveBeenCalled();
     expect(result.transcript).toBeNull();
@@ -123,12 +140,44 @@ describe(IdentifyUseCase.name, () => {
     const { prisma, useCase, aiCoreService } = createUseCase('MULTI');
     prisma.voice_records.findFirst.mockResolvedValue(null);
 
-    const result = await useCase.execute(identifyFile, 'operator-1', 'MULTI');
+    const result = await useCase.execute(identifyFile, requester, 'MULTI');
 
     expect(aiCoreService.identifyMulti).toHaveBeenCalled();
     expect(result.speakers[0]).toMatchObject({
       audio_url:
         'http://api/v1.local/cdn/sessions/session-1/speakers/SPEAKER_1/audio',
+    });
+  });
+
+  it('marks matched business voice from another operator as read-only', async () => {
+    const { prisma, useCase } = createUseCase();
+    prisma.voice_records.findFirst.mockResolvedValue({
+      is_active: true,
+      audio_file: {
+        uploaded_by: 'operator-2',
+      },
+      user: {
+        id: 'user-2',
+        name: 'Other Owner Voice',
+        citizen_identification: '888',
+        phone_number: '0777',
+        hometown: 'HN',
+        job: 'Analyst',
+        passport: 'P2',
+        age: 31,
+        gender: 'FEMALE',
+        criminal_record: [],
+        audio_url: 'http://cdn.local/other-enroll.wav',
+      },
+    });
+
+    const result = await useCase.execute(identifyFile, requester, 'SINGLE');
+
+    expect(result.speakers[0]).toMatchObject({
+      user_id: 'user-2',
+      name: 'Other Owner Voice',
+      can_modify: false,
+      access_source: 'MATCHED_SESSION',
     });
   });
 
@@ -153,7 +202,7 @@ describe(IdentifyUseCase.name, () => {
       ],
     });
 
-    const result = await useCase.execute(identifyFile, 'operator-1', 'MULTI');
+    const result = await useCase.execute(identifyFile, requester, 'MULTI');
 
     expect(aiCoreService.speechToText).not.toHaveBeenCalled();
     expect(result.transcript).toBeNull();

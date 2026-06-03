@@ -21,6 +21,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
@@ -433,6 +434,39 @@ export class AiCoreController {
         text: {
           type: 'string',
           example: 'Hello world',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Phát hiện ngôn ngữ thành công',
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          example: true,
+        },
+        detected_languages: {
+          oneOf: [
+            { type: 'string', example: 'en' },
+            {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['en'],
+            },
+          ],
+        },
+        scores: {
+          oneOf: [
+            { type: 'number', example: 0.30764684081077576 },
+            {
+              type: 'array',
+              items: { type: 'number' },
+              example: [0.30764684081077576],
+            },
+          ],
         },
       },
     },
