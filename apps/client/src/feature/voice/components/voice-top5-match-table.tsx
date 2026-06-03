@@ -33,6 +33,7 @@ import {
   CheckCircle2,
   Database,
   IdCard,
+  MessageCircleWarning,
   Pencil,
   Phone,
   Play,
@@ -59,6 +60,8 @@ interface VoiceTop5MatchTableProps {
   deletingUserId?: string | null;
   onRegisterItem?: (item: VoiceIdentifyItem) => void;
   onResultsChange?: () => void;
+  onOpenTranscript?: (item: VoiceIdentifyItem, rowKey: string) => void;
+  transcribingItemKey?: string | null;
 }
 
 interface AudioDialogState {
@@ -274,6 +277,8 @@ export function VoiceTop5MatchTable({
   deletingUserId = null,
   onRegisterItem,
   onResultsChange,
+  onOpenTranscript,
+  transcribingItemKey = null,
 }: VoiceTop5MatchTableProps) {
   const [audioDialog, setAudioDialog] = useState<AudioDialogState | null>(null);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
@@ -283,6 +288,8 @@ export function VoiceTop5MatchTable({
   >({});
 
   const shouldShowAudioColumn = items.length > 0;
+  const shouldShowTranscriptColumn =
+    items.length > 0 && typeof onOpenTranscript === "function";
   const shouldShowQuickActions =
     typeof onDeleteItem === "function" || typeof onRegisterItem === "function";
   const shouldShowActionColumn =
@@ -321,7 +328,7 @@ export function VoiceTop5MatchTable({
             </div>
           ) : (
             <div className="no-scrollbar overflow-x-auto">
-              <Table className="w-full min-w-[1500px] table-fixed">
+              <Table className="w-full min-w-375 table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[5%] px-1 text-center whitespace-nowrap">
@@ -331,14 +338,22 @@ export function VoiceTop5MatchTable({
                       />
                     </TableHead>
                     {shouldShowAudioColumn ? (
-                      <TableHead className="w-[7%] pr-3 pl-0 text-center whitespace-nowrap">
+                      <TableHead className="w-[4%] pr-2 pl-0 text-center whitespace-nowrap">
                         <HeaderTooltip
                           label="Audio"
                           description="Mở hộp thoại để phát audio của người nói này."
                         />
                       </TableHead>
                     ) : null}
-                    <TableHead className="w-[13%] pl-2 whitespace-nowrap">
+                    {shouldShowTranscriptColumn ? (
+                      <TableHead className="w-[6%] px-1 text-center whitespace-nowrap">
+                        <HeaderTooltip
+                          label="Nội dung"
+                          description="Chuyển audio tra cứu thành nội dung ghi âm."
+                        />
+                      </TableHead>
+                    ) : null}
+                    <TableHead className="w-[12%] pl-2 whitespace-nowrap">
                       <HeaderTooltip
                         label="Họ và tên"
                         description="Tên hồ sơ hoặc danh tính AI được ánh xạ với kết quả khớp."
@@ -439,6 +454,8 @@ export function VoiceTop5MatchTable({
                       : `Phát lại audio gốc cho ${audioLabel.personName}`;
                     const deleteKey = getDeleteKey(displayItem);
                     const isDeleteable = Boolean(deleteKey);
+                    const rowActionKey =
+                      deleteKey || `${speakerIndex}-${index}`;
 
                     return (
                       <TableRow
@@ -450,7 +467,7 @@ export function VoiceTop5MatchTable({
                           {index + 1}
                         </TableCell>
                         {shouldShowAudioColumn ? (
-                          <TableCell className="w-[7%] pr-3 pl-0 text-center align-middle">
+                          <TableCell className="w-[6%] pr-2 pl-0 text-center align-middle">
                             {canPlayAudio && audioDialogState ? (
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -473,7 +490,36 @@ export function VoiceTop5MatchTable({
                             )}
                           </TableCell>
                         ) : null}
-                        <TableCell className="w-[13%] min-w-0 pl-2 align-middle font-medium">
+                        {shouldShowTranscriptColumn ? (
+                          <TableCell className="w-[7%] px-1 text-center align-middle">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  size="icon-sm"
+                                  variant="outline"
+                                  className="mx-auto size-8 rounded-full border-violet-200 bg-violet-50 text-violet-500 shadow-sm hover:bg-violet-100 hover:text-violet-600"
+                                  onClick={() =>
+                                    onOpenTranscript?.(
+                                      displayItem,
+                                      rowActionKey,
+                                    )
+                                  }
+                                  disabled={
+                                    transcribingItemKey === rowActionKey
+                                  }
+                                  aria-label={`Xem nội dung ghi âm của ${audioLabel.personName}`}
+                                >
+                                  <MessageCircleWarning className="size-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Xem nội dung ghi âm
+                              </TooltipContent>
+                            </Tooltip>
+                          </TableCell>
+                        ) : null}
+                        <TableCell className="w-[12%] min-w-0 pl-2 align-middle font-medium">
                           <TextCellTooltip
                             value={displayItem.name}
                             className="truncate"

@@ -7,16 +7,20 @@ interface RegisteredAudioSectionProps {
   audioUrl: string | null;
   fileName: string;
   isDenoising: boolean;
+  isTranscribing?: boolean;
   onOpenDenoisePreview: () => void;
   onOpenDuplicateDialog: () => void;
+  onOpenTranscript?: () => void;
 }
 
 export function RegisteredAudioSection({
   audioUrl,
   fileName,
   isDenoising,
+  isTranscribing = false,
   onOpenDenoisePreview,
   onOpenDuplicateDialog,
+  onOpenTranscript,
 }: RegisteredAudioSectionProps) {
   const hasAudio = Boolean(audioUrl);
 
@@ -32,6 +36,8 @@ export function RegisteredAudioSection({
               fileName={fileName}
               compact
               showDownload
+              isTranscribing={isTranscribing}
+              onOpenTranscript={onOpenTranscript}
             />
           </div>
         ) : (

@@ -32,6 +32,8 @@ describe(IdentifyUseCase.name, () => {
     const aiCoreService = {
       identifySingle: jest.fn().mockResolvedValue({ speakers: [aiSpeaker] }),
       identifyMulti: jest.fn().mockResolvedValue({ speakers: [aiSpeaker] }),
+      speechToText: jest.fn(),
+      detectLanguage: jest.fn(),
     };
     const audioNormalizeService = {
       normalizeForAi: jest.fn().mockResolvedValue({
@@ -97,13 +99,24 @@ describe(IdentifyUseCase.name, () => {
     expect(sessionsRepository.create).toHaveBeenCalledWith({
       user_id: 'operator-1',
       audio_file_id: identifyAudioFile.id,
-      results: [aiSpeaker],
+      results: {
+        speakers: [aiSpeaker],
+        transcript: null,
+        detected_language: null,
+        transcript_segments: [],
+        speaker_transcripts: [],
+      },
+      transcript: null,
+      detected_language: null,
     });
     expect(result.speakers[0]).toMatchObject({
       user_id: 'user-1',
       name: 'Business Name',
       score: 0.91,
     });
+    expect(aiCoreService.speechToText).not.toHaveBeenCalled();
+    expect(result.transcript).toBeNull();
+    expect(result.detected_language).toBeNull();
   });
 
   it('adds speaker audio url for multi-speaker segments', async () => {
@@ -117,5 +130,33 @@ describe(IdentifyUseCase.name, () => {
       audio_url:
         'http://api/v1.local/cdn/sessions/session-1/speakers/SPEAKER_1/audio',
     });
+  });
+
+  it('does not run S2T during multi-speaker identify because transcript is loaded lazily per speaker', async () => {
+    const { useCase, aiCoreService } = createUseCase('MULTI');
+    aiCoreService.identifyMulti.mockResolvedValue({
+      speakers: [
+        {
+          ...aiSpeaker,
+          speaker_label: 'SPEAKER_1',
+          segments: [
+            { start: 0, end: 2 },
+            { start: 4, end: 5 },
+          ],
+        },
+        {
+          ...aiSpeaker,
+          speaker_label: 'SPEAKER_2',
+          matched_voice_id: null,
+          segments: [{ start: 2, end: 4 }],
+        },
+      ],
+    });
+
+    const result = await useCase.execute(identifyFile, 'operator-1', 'MULTI');
+
+    expect(aiCoreService.speechToText).not.toHaveBeenCalled();
+    expect(result.transcript).toBeNull();
+    expect(result.speaker_transcripts).toEqual([]);
   });
 });

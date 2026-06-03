@@ -1,7 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
-import { LoaderCircle, MessageSquareText, Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { PageLayout } from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useVoiceStore } from "@/feature/voice";
+import { voiceDirectoryApi } from "@/feature/voice-directory/api/voice-directory.api";
 import { VoiceAudioPlayer } from "@/feature/voice/components/voice-audio-player";
 import { VoiceEnrollDialog } from "@/feature/voice/components/voice-enroll-dialog";
 import { VoiceErrorDialog } from "@/feature/voice/components/voice-error-dialog";
@@ -22,14 +20,17 @@ import {
 } from "@/feature/voice/components/voice-single-search-form";
 import { VoiceTop5MatchTable } from "@/feature/voice/components/voice-top5-match-table";
 import { VoiceTranscriptDialog } from "@/feature/voice/components/voice-transcript-dialog";
-import { useVoiceStore } from "@/feature/voice";
+import { useVoiceSpeechToTextDialog } from "@/feature/voice/hooks/use-voice-speech-to-text-dialog";
 import type {
   VoiceIdentifyItem,
   VoiceIdentifyTwoItem,
 } from "@/feature/voice/types/voice.types";
-import { voiceDirectoryApi } from "@/feature/voice-directory/api/voice-directory.api";
 import { useScrollOffset } from "@/hooks/use-scroll-offset";
 import type { ApiError } from "@/types";
+import { useMutation } from "@tanstack/react-query";
+import { LoaderCircle, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const SINGLE_SEARCH_FORM_ID = "voice-single-search-form";
 const RESULT_SCROLL_OFFSET_Y = 96;
@@ -66,7 +67,7 @@ export default function VoiceSearchSingle() {
   const [deleteTarget, setDeleteTarget] = useState<VoiceIdentifyItem | null>(
     null,
   );
-  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
+  const speechToTextDialog = useVoiceSpeechToTextDialog();
   const { targetRef: resultSectionRef } = useScrollOffset<HTMLDivElement>({
     offsetY: RESULT_SCROLL_OFFSET_Y,
     scrollKey: identifyResult,
@@ -82,11 +83,27 @@ export default function VoiceSearchSingle() {
   const items = identifyResult?.items ?? [];
   const hasAudioFile = Boolean(audioFile);
   const hasSearchResult = identifyResult !== null;
-  const hasTranscriptData =
-    Boolean(identifyResult?.transcript) ||
-    Boolean(identifyResult?.detected_language);
   const refreshIdentify = () => {
     searchFormRef.current?.submitCurrent();
+  };
+
+  const handleOpenTranscript = async (
+    item?: VoiceIdentifyItem,
+    rowKey = "single-audio",
+  ) => {
+    if (!audioFile) {
+      toast.error("Chưa có audio để chạy S2T.");
+      return;
+    }
+
+    speechToTextDialog.runFile({
+      file: audioFile,
+      key: rowKey,
+      title: `Nội dung ghi âm - ${item?.name?.trim() || "Audio tra cứu"}`,
+      loadingText: "Đang tải nội dung ghi âm...",
+      backgroundMessage: "Đang chạy S2T audio tra cứu trong nền...",
+      successMessage: "Đã xử lý xong nội dung ghi âm.",
+    });
   };
 
   const deleteVoiceMutation = useMutation({
@@ -235,27 +252,16 @@ export default function VoiceSearchSingle() {
               onRegisterItem={openRegisterDialog}
               onDeleteItem={setDeleteTarget}
               onResultsChange={refreshIdentify}
+              onOpenTranscript={(item, rowKey) =>
+                void handleOpenTranscript(item, rowKey)
+              }
+              transcribingItemKey={speechToTextDialog.runningKey}
               deletingUserId={
                 deleteVoiceMutation.isPending
                   ? getDeleteKey(deleteTarget)
                   : null
               }
             />
-
-            {hasTranscriptData ? (
-              <div className="flex items-center justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 rounded-full border-violet-200 bg-violet-50 text-violet-700 shadow-sm hover:bg-violet-100 hover:text-violet-800"
-                  onClick={() => setTranscriptDialogOpen(true)}
-                >
-                  <MessageSquareText className="size-4" />
-                  Xem nội dung ghi âm (S2T)
-                </Button>
-              </div>
-            ) : null}
           </div>
         ) : null}
 
@@ -351,12 +357,7 @@ export default function VoiceSearchSingle() {
         onClose={closeErrorDialog}
       />
 
-      <VoiceTranscriptDialog
-        open={transcriptDialogOpen}
-        onOpenChange={setTranscriptDialogOpen}
-        transcript={identifyResult?.transcript}
-        detectedLanguage={identifyResult?.detected_language}
-      />
+      <VoiceTranscriptDialog {...speechToTextDialog.dialogProps} />
     </>
   );
 }

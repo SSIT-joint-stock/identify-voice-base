@@ -3,7 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNormalizeAudio } from "@/feature/voice/hooks/use-normalize-audio";
 import { formatTime } from "@/feature/voice/utils/format";
 import { cn } from "@/lib/utils";
-import { Download, Loader, Pause, Play } from "lucide-react";
+import {
+  Download,
+  Loader,
+  Loader2,
+  MessageCircleWarning,
+  Pause,
+  Play,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import WaveSurfer from "wavesurfer.js";
 
@@ -22,6 +29,8 @@ export interface VoiceAudioPlayerProps {
   loadingText?: string;
   compact?: boolean;
   showDownload?: boolean;
+  onOpenTranscript?: () => void;
+  isTranscribing?: boolean;
 }
 
 export function VoiceAudioPlayer({
@@ -38,6 +47,8 @@ export function VoiceAudioPlayer({
   isLoading = false,
   loadingText,
   compact = false,
+  isTranscribing = false,
+  onOpenTranscript,
   showDownload = false,
 }: VoiceAudioPlayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -306,7 +317,7 @@ export function VoiceAudioPlayer({
     <CardContent className={cn("space-y-4", compact && "px-4 py-4")}>
       <div
         className={cn(
-          "relative min-h-[122px] rounded-xl border bg-background p-3",
+          "relative min-h-30.5 rounded-xl border bg-background p-3",
           compact && "overflow-hidden rounded-2xl py-2",
         )}
       >
@@ -375,6 +386,24 @@ export function VoiceAudioPlayer({
           <div className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
             {resolvedFileName}
           </div>
+
+          {onOpenTranscript ? (
+            <Button
+              type="button"
+              variant="outline"
+              size={"sm"}
+              className="w-full sm:w-auto"
+              disabled={!hasAudioSource || visibleIsLoading || isTranscribing}
+              onClick={onOpenTranscript}
+            >
+              {isTranscribing ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <MessageCircleWarning className="mr-2 size-4" />
+              )}
+              Xem nội dung audio
+            </Button>
+          ) : null}
 
           {showDownload ? (
             <Button

@@ -11,10 +11,12 @@ import {
 } from "@/feature/voice/components/voice-multi-search-form";
 import { VoiceSpeakerResultCard } from "@/feature/voice/components/voice-speaker-result-card";
 import { VoiceTranscriptDialog } from "@/feature/voice/components/voice-transcript-dialog";
+import { useVoiceSpeechToTextDialog } from "@/feature/voice/hooks/use-voice-speech-to-text-dialog";
 import type { VoiceIdentifyTwoItem } from "@/feature/voice/types/voice.types";
 import { useScrollOffset } from "@/hooks/use-scroll-offset";
-import { LoaderCircle, MessageSquareText, UsersRound } from "lucide-react";
+import { LoaderCircle, UsersRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const MULTI_SEARCH_FORM_ID = "voice-multi-search-form";
 const RESULT_SCROLL_OFFSET_Y = 96;
@@ -43,7 +45,7 @@ export default function VoiceSearchMulti() {
     end?: number;
   }>({});
   const [isSearching, setIsSearching] = useState(false);
-  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
+  const speechToTextDialog = useVoiceSpeechToTextDialog();
   const { targetRef: resultSectionRef } = useScrollOffset<HTMLDivElement>({
     offsetY: RESULT_SCROLL_OFFSET_Y,
     scrollKey: identifyTwoResult,
@@ -62,11 +64,29 @@ export default function VoiceSearchMulti() {
 
   const items = identifyTwoResult?.items ?? [];
   const hasSearched = identifyTwoResult !== null;
-  const hasTranscriptData =
-    Boolean(identifyTwoResult?.transcript) ||
-    Boolean(identifyTwoResult?.detected_language);
   const refreshIdentify = () => {
     searchFormRef.current?.submitCurrent();
+  };
+
+  const handleOpenSpeakerTranscript = async (
+    item: VoiceIdentifyTwoItem,
+    cardTitle: string,
+    index: number,
+  ) => {
+    if (!item.audio_url) {
+      toast.error("Chưa có audio riêng cho người nói này.");
+      return;
+    }
+
+    void speechToTextDialog.runAudioUrl({
+      audioUrl: item.audio_url,
+      fileName: `${item.speaker_label || `speaker-${index + 1}`}.wav`,
+      key: String(index),
+      title: `Nội dung ghi âm - ${item.name?.trim() || cardTitle}`,
+      loadingText: "Đang lấy nội dung người nói...",
+      backgroundMessage: "Đang tải nội dung người nói...",
+      successMessage: "Đã xử lý xong nội dung ghi âm người nói.",
+    });
   };
 
   const handleSelectPreviewAudio = (file: File) => {
@@ -152,6 +172,18 @@ export default function VoiceSearchMulti() {
                         title={`Người nói ${index + 1}`}
                         item={item}
                         speakerIndex={index}
+                        isTranscriptLoading={
+                          speechToTextDialog.loadingAudioKey ===
+                            String(index) ||
+                          speechToTextDialog.runningKey === String(index)
+                        }
+                        onOpenTranscript={(selectedItem, cardTitle) =>
+                          void handleOpenSpeakerTranscript(
+                            selectedItem,
+                            cardTitle,
+                            index,
+                          )
+                        }
                         onRefreshIdentify={refreshIdentify}
                         onSelectSegment={(start, end) =>
                           setSelectedSegment({ start, end })
@@ -173,21 +205,6 @@ export default function VoiceSearchMulti() {
                 </div>
               )}
             </div>
-
-            {hasTranscriptData ? (
-              <div className="flex items-center justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 rounded-full border-violet-200 bg-violet-50 text-violet-700 shadow-sm hover:bg-violet-100 hover:text-violet-800"
-                  onClick={() => setTranscriptDialogOpen(true)}
-                >
-                  <MessageSquareText className="size-4" />
-                  Xem nội dung ghi âm (S2T)
-                </Button>
-              </div>
-            ) : null}
           </div>
         ) : null}
       </PageLayout>
@@ -217,12 +234,7 @@ export default function VoiceSearchMulti() {
         onClose={closeErrorDialog}
       />
 
-      <VoiceTranscriptDialog
-        open={transcriptDialogOpen}
-        onOpenChange={setTranscriptDialogOpen}
-        transcript={identifyTwoResult?.transcript}
-        detectedLanguage={identifyTwoResult?.detected_language}
-      />
+      <VoiceTranscriptDialog {...speechToTextDialog.dialogProps} />
     </>
   );
 }

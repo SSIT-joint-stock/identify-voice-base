@@ -11,10 +11,30 @@ import type {
   VoiceGender,
   VoiceIdentifyItem,
   VoiceIdentifyTwoItem,
+  VoiceSpeakerTranscript,
+  VoiceTranscriptSegment,
   VoiceTruthSource,
 } from "../types/voice.types";
 
 type IdentifyMode = "SINGLE" | "MULTI";
+
+interface SpeechToTextSpeakerResponse {
+  transcript: string | VoiceTranscriptSegment[];
+  language?: string;
+}
+
+interface SpeechToTextJobCreateResponse {
+  job_id: string;
+}
+
+interface SpeechToTextJobResponse {
+  job_id: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  progress: number;
+  mode: "speech-to-text";
+  result?: SpeechToTextSpeakerResponse;
+  error?: string;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -101,6 +121,7 @@ function extractIdentifyMetadata(payload: unknown): {
 function extractTranscriptAndLanguage(payload: unknown): {
   transcript?: string | null;
   detected_language?: string | null;
+  speaker_transcripts?: VoiceSpeakerTranscript[];
 } {
   if (!isRecord(payload)) return {};
   return {
@@ -110,6 +131,9 @@ function extractTranscriptAndLanguage(payload: unknown): {
       typeof payload.detected_language === "string"
         ? payload.detected_language
         : null,
+    speaker_transcripts: normalizeSpeakerTranscripts(
+      payload.speaker_transcripts,
+    ),
   };
 }
 
@@ -147,6 +171,78 @@ function normalizeSegments(
       end: asNumber(record.end) ?? 0,
     };
   });
+}
+
+function normalizeTranscriptSegments(value: unknown): VoiceTranscriptSegment[] {
+  return asArray<unknown>(value)
+    .map((segment) => {
+      const record = isRecord(segment) ? segment : {};
+      const text = asString(record.text, "").trim();
+      return {
+        start: asNumber(record.start) ?? 0,
+        end: asNumber(record.end) ?? 0,
+        text,
+      };
+    })
+    .filter((segment) => segment.text.length > 0);
+}
+
+function normalizeSpeakerTranscripts(
+  value: unknown,
+): VoiceSpeakerTranscript[] | undefined {
+  const transcripts = asArray<unknown>(value)
+    .map((item, index): VoiceSpeakerTranscript | null => {
+      if (!isRecord(item)) return null;
+
+      const segments = normalizeTranscriptSegments(item.segments);
+      const text = asString(item.text, "").trim();
+      const title = asString(item.title, "").trim();
+      const speakerLabel = asString(item.speaker_label, "").trim();
+
+      if (!text && segments.length === 0 && !title && !speakerLabel) {
+        return null;
+      }
+
+      return {
+        speaker_label: speakerLabel || undefined,
+        title: title || `Người nói ${index + 1}`,
+        text: text || segments.map((segment) => segment.text).join(" "),
+        segments,
+      };
+    })
+    .filter((item): item is VoiceSpeakerTranscript => item !== null);
+
+  return transcripts.length > 0 ? transcripts : undefined;
+}
+
+function getTranscriptText(transcript: unknown): string {
+  if (typeof transcript === "string") return transcript.trim();
+
+  return normalizeTranscriptSegments(transcript)
+    .map((segment) => segment.text)
+    .join(" ")
+    .trim();
+}
+
+async function transcribeAudioFile(
+  file: File,
+): Promise<{ transcript: string | null; detected_language: string | null }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("return_timestamp", "false");
+  formData.append("denoise_audio", "false");
+
+  const response = await axiosInstance.post<
+    ApiResponse<SpeechToTextSpeakerResponse>
+  >("/ai-core/speech-to-text", formData);
+  const data = unwrapApiResponse(response.data).data;
+  const transcript = getTranscriptText(data?.transcript);
+
+  return {
+    transcript: transcript || null,
+    detected_language:
+      typeof data?.language === "string" ? data.language : null,
+  };
 }
 
 function resolveTruthSource(params: {
@@ -421,6 +517,67 @@ export const voiceApi = {
       type: metadata.type,
       ...extractTranscriptAndLanguage(data),
       raw: response.data,
+    };
+  },
+
+  async transcribeSpeakerAudioUrl(
+    audioUrl: string,
+    fileName = "speaker.wav",
+  ): Promise<{ transcript: string | null; detected_language: string | null }> {
+    return transcribeAudioFile(
+      await this.getAudioFileFromUrl(audioUrl, fileName),
+    );
+  },
+
+  async getAudioFileFromUrl(audioUrl: string, fileName = "speaker.wav") {
+    const audioResponse = await axiosInstance.get<Blob>(audioUrl, {
+      responseType: "blob",
+    });
+    return new File([audioResponse.data], fileName, {
+      type: audioResponse.data.type || "audio/wav",
+      lastModified: Date.now(),
+    });
+  },
+
+  async transcribeAudioFile(
+    file: File,
+  ): Promise<{ transcript: string | null; detected_language: string | null }> {
+    return transcribeAudioFile(file);
+  },
+
+  async createSpeechToTextJob(
+    file: File,
+  ): Promise<SpeechToTextJobCreateResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("return_timestamp", "false");
+    formData.append("denoise_audio", "false");
+
+    const response = await axiosInstance.post<
+      ApiResponse<SpeechToTextJobCreateResponse>
+    >("/ai-core/speech-to-text/jobs", formData);
+
+    return unwrapApiResponse(response.data).data;
+  },
+
+  async getSpeechToTextJob(jobId: string): Promise<SpeechToTextJobResponse> {
+    const response = await axiosInstance.get<
+      ApiResponse<SpeechToTextJobResponse>
+    >(`/ai-core/speech-to-text/jobs/${jobId}`);
+
+    return unwrapApiResponse(response.data).data;
+  },
+
+  normalizeSpeechToTextResult(payload?: SpeechToTextSpeakerResponse | null): {
+    transcript: string | null;
+    detected_language: string | null;
+  } {
+    const transcript = getTranscriptText(payload?.transcript);
+
+    return {
+      transcript: transcript || null,
+      detected_language:
+        typeof payload?.language === "string" ? payload.language : null,
     };
   },
 };

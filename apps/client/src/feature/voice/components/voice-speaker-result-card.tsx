@@ -18,7 +18,12 @@ import {
 import { voiceDirectoryApi } from "@/feature/voice-directory/api/voice-directory.api";
 import type { ApiError } from "@/types";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  LoaderCircle,
+  MessageSquareText,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type {
@@ -34,6 +39,8 @@ interface VoiceSpeakerResultCardProps {
   onRegisterUnknown: (item?: VoiceIdentifyItem) => void;
   onSelectSegment?: (start: number, end?: number) => void;
   onRefreshIdentify?: () => void;
+  onOpenTranscript?: (item: VoiceIdentifyTwoItem, title: string) => void;
+  isTranscriptLoading?: boolean;
   speakerIndex?: number;
 }
 
@@ -74,6 +81,8 @@ export function VoiceSpeakerResultCard({
   onRegisterUnknown,
   onSelectSegment,
   onRefreshIdentify,
+  onOpenTranscript,
+  isTranscriptLoading = false,
   speakerIndex = 0,
 }: VoiceSpeakerResultCardProps) {
   const [isTimestampOpen, setIsTimestampOpen] = useState(true);
@@ -129,7 +138,26 @@ export function VoiceSpeakerResultCard({
     <>
       <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle>{!isUnknown && item.name ? item.name : title}</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle>{!isUnknown && item.name ? item.name : title}</CardTitle>
+            {item.audio_url && onOpenTranscript ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2 rounded-full border-violet-200 bg-violet-50 text-violet-700 shadow-sm hover:bg-violet-100 hover:text-violet-800"
+                disabled={isTranscriptLoading}
+                onClick={() => onOpenTranscript(item, title)}
+              >
+                {isTranscriptLoading ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <MessageSquareText className="size-4" />
+                )}
+                Nội dung ghi âm
+              </Button>
+            ) : null}
+          </div>
           <CardDescription>
             {identityMeta.length > 0
               ? identityMeta.join("  -  ")

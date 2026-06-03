@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/sheet";
 import { QUERY_KEYS } from "@/constants";
 
+import { VoiceTranscriptDialog } from "@/feature/voice/components/voice-transcript-dialog";
 import { useNormalizeAudio } from "@/feature/voice/hooks/use-normalize-audio";
+import { useVoiceSpeechToTextDialog } from "@/feature/voice/hooks/use-voice-speech-to-text-dialog";
 import { voiceDirectoryApi } from "../api/voice-directory.api";
 import { useVoiceDetailAudio } from "../hooks/use-voice-detail-audio";
 import { useVoiceDetailForm } from "../hooks/use-voice-detail-form";
@@ -43,6 +45,19 @@ export function VoiceDirectoryDetailSheet({
   onUpdated,
 }: VoiceDirectoryDetailSheetProps) {
   const { fetchProtectedAudioBlob } = useNormalizeAudio();
+  const loadAudioFileFromUrl = useCallback(
+    async (audioUrl: string, fileName: string) => {
+      const blob = await fetchProtectedAudioBlob(audioUrl);
+      return new File([blob], fileName, {
+        type: blob.type || "audio/wav",
+        lastModified: Date.now(),
+      });
+    },
+    [fetchProtectedAudioBlob],
+  );
+  const speechToTextDialog = useVoiceSpeechToTextDialog({
+    loadAudioFileFromUrl,
+  });
 
   const detailQuery = useQuery({
     queryKey: voiceId
@@ -54,6 +69,9 @@ export function VoiceDirectoryDetailSheet({
 
   const detail = detailQuery.data;
   const enrollAudioUrl = detail?.audio_url?.trim() || null;
+  const enrollAudioTranscriptKey = detail
+    ? `voice-detail-${detail.id}-enroll-audio`
+    : "voice-detail-enroll-audio";
 
   const { form, fields, append, remove } = useVoiceDetailForm(detail);
   const {
@@ -156,10 +174,28 @@ export function VoiceDirectoryDetailSheet({
                     denoiseEnrollAudioMutation.isPending ||
                     denoisePreviewMutation.isPending
                   }
+                  isTranscribing={
+                    speechToTextDialog.loadingAudioKey ===
+                      enrollAudioTranscriptKey ||
+                    speechToTextDialog.runningKey === enrollAudioTranscriptKey
+                  }
                   onOpenDenoisePreview={() =>
                     openDenoisePreview(() => denoisePreviewMutation.mutate())
                   }
                   onOpenDuplicateDialog={() => setDuplicateDialogOpen(true)}
+                  onOpenTranscript={() => {
+                    if (!enrollAudioUrl) return;
+                    void speechToTextDialog.runAudioUrl({
+                      audioUrl: enrollAudioUrl,
+                      fileName: `${detail.name || "voice-sample"}.wav`,
+                      key: enrollAudioTranscriptKey,
+                      title: `Nội dung audio - ${detail.name || "Mẫu giọng đăng ký"}`,
+                      loadingText: "Đang tải nội dung audio đăng ký...",
+                      backgroundMessage:
+                        "Đang chạy S2T audio đăng ký trong nền...",
+                      successMessage: "Đã xử lý xong nội dung audio đăng ký.",
+                    });
+                  }}
                 />
                 <VoiceProfileForm
                   form={form}
@@ -265,6 +301,8 @@ export function VoiceDirectoryDetailSheet({
         onOpenChange={setConfirmDenoiseOpen}
         onConfirm={() => denoiseEnrollAudioMutation.mutate()}
       />
+
+      <VoiceTranscriptDialog {...speechToTextDialog.dialogProps} />
     </>
   );
 }

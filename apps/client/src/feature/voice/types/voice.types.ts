@@ -8,6 +8,17 @@ export interface AudioSegment {
   end: number;
 }
 
+export interface VoiceTranscriptSegment extends AudioSegment {
+  text: string;
+}
+
+export interface VoiceSpeakerTranscript {
+  speaker_label?: string;
+  title?: string;
+  text: string;
+  segments: VoiceTranscriptSegment[];
+}
+
 export type VoiceGender = "MALE" | "FEMALE" | "OTHER";
 
 export interface UploadVoiceFormValues {
@@ -102,6 +113,7 @@ export interface IdentifyVoiceResponse {
   type?: "SINGLE" | "MULTI";
   transcript?: string | null;
   detected_language?: string | null;
+  speaker_transcripts?: VoiceSpeakerTranscript[];
   raw: unknown;
 }
 
@@ -113,6 +125,7 @@ export interface IdentifyTwoVoiceResponse {
   type?: "SINGLE" | "MULTI";
   transcript?: string | null;
   detected_language?: string | null;
+  speaker_transcripts?: VoiceSpeakerTranscript[];
   raw: unknown;
 }
 

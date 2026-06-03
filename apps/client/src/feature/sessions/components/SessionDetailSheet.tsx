@@ -283,7 +283,7 @@ export function SessionDetailSheet({
                           onClick={() => setTranscriptDialogOpen(true)}
                         >
                           <MessageSquareText className="size-4" />
-                          Xem nội dung ghi âm (S2T)
+                          Xem nội dung ghi âm
                         </Button>
                       </div>
                     ) : null}
