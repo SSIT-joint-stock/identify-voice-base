@@ -72,7 +72,9 @@ function getDetectedLanguageScore(
 function formatDetectedLanguageConfidence(score: number | null) {
   if (score === null) return null;
 
-  return `${(score * 100).toFixed(2)}%`;
+  const percentage = Math.max(0, Math.min(100, score * 100));
+
+  return `${percentage.toFixed(2)}%`;
 }
 
 export default function TranslateLive() {
