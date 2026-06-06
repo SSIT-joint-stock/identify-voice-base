@@ -5,6 +5,8 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-voice_db}
+    ports:
+      - "${DB_PUBLIC_PORT:-5432}:5432"
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
     healthcheck:
@@ -86,6 +88,32 @@ services:
       db:
         condition: service_healthy
     restart: "no"
+
+  prisma-studio:
+    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    profiles: ["tools"]
+    env_file: .env.production
+    working_dir: /app/apps/api
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/${DB_NAME:-voice_db}?schema=${DB_SCHEMA:-public}
+      NODE_ENV: production
+    command:
+      [
+        "pnpm",
+        "exec",
+        "prisma",
+        "studio",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5555",
+      ]
+    ports:
+      - "${PRISMA_STUDIO_PORT:-5555}:5555"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
   client:
     image: ${CLIENT_IMAGE}:${IMAGE_TAG}

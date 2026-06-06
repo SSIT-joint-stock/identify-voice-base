@@ -18,7 +18,7 @@ export IMAGE_TAG
 export CLIENT_PORT
 export CLIENT_API_BASE_URL
 
-.PHONY: build build-backend build-client push pull up down logs ps migrate restart
+.PHONY: build build-backend build-client push pull up down logs ps migrate restart tools-up tools-down studio-logs
 
 build: build-backend build-client
 
@@ -52,9 +52,17 @@ ps:
 migrate:
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) --profile ops run --rm migrate
 
+tools-up:
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) --profile tools up -d prisma-studio
+
+tools-down:
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) --profile tools stop prisma-studio
+
+studio-logs:
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) --profile tools logs -f prisma-studio
+
 restart:
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) restart
 
 seed:
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) run --rm backend pnpm run db:seed:prod
-

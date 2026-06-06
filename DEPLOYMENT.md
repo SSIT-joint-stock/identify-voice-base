@@ -63,6 +63,50 @@ Flow chuẩn:
 
 Source code không bắt buộc phải có nếu bên chạy chỉ cần pull image từ registry.
 
+## Prisma Studio Và Port Database
+
+Production compose expose PostgreSQL ra host qua biến:
+
+```env
+DB_PUBLIC_PORT=5432
+```
+
+Bên nhận có thể connect DB từ máy host bằng:
+
+```text
+Host: localhost
+Port: 5432
+Database: voice_db
+User: postgres
+Password: giá trị DB_PASSWORD trong .env.production
+```
+
+Prisma Studio được cấu hình thành service riêng dùng chung backend image. Khởi động bằng:
+
+```bash
+make tools-up
+```
+
+Mở Prisma Studio tại:
+
+```text
+http://localhost:5555
+```
+
+Nếu cần đổi port host:
+
+```env
+PRISMA_STUDIO_PORT=5555
+```
+
+Tắt Prisma Studio:
+
+```bash
+make tools-down
+```
+
+Lưu ý: chỉ nên mở `DB_PUBLIC_PORT` và `PRISMA_STUDIO_PORT` trong môi trường bàn giao/test hoặc mạng nội bộ tin cậy. Khi deploy public production thật, nên giới hạn firewall hoặc không expose các port này ra Internet.
+
 ## Chuẩn Bị `.env.production`
 
 Tạo file env từ template:
@@ -76,6 +120,7 @@ Nhóm biến quan trọng:
 - Image: `BACKEND_IMAGE`, `CLIENT_IMAGE`, `IMAGE_TAG`
 - Runtime: `CLIENT_PORT`, `PORT`, `CLIENT_API_BASE_URL`
 - Database: `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SCHEMA`
+- Tools: `DB_PUBLIC_PORT`, `PRISMA_STUDIO_PORT`
 - Redis: `REDIS_PASSWORD`
 - Auth: `JWT_*`
 - Email: `SMTP_*`, `EMAIL_FROM`
