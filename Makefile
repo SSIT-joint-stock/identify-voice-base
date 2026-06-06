@@ -57,6 +57,7 @@ tools-up:
 
 tools-down:
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) --profile tools stop prisma-studio
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) --profile tools rm -f prisma-studio
 
 studio-logs:
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) --profile tools logs -f prisma-studio
