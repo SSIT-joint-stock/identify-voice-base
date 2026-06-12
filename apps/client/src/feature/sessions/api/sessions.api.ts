@@ -1,6 +1,6 @@
 import axiosInstance from "@/api/axios.instance";
-import { env } from "@/configs/env.config";
 import { VOICE_API_ENDPOINTS } from "@/constants";
+import { normalizeVoiceAudioUrl } from "@/feature/voice/utils/audio-url";
 import { getValidAccessToken } from "@/lib/auth-refresh";
 import type { ApiResponse } from "@/types";
 import type { SessionDetail, SessionListResult } from "../types/session.types";
@@ -15,28 +15,6 @@ function unwrapApiData<T>(payload: unknown): T {
   }
 
   return payload as T;
-}
-
-function normalizeSpeakerAudioUrl(audioUrl: string): string {
-  const trimmed = audioUrl.trim().replace("/api/v1/api/v1/", "/api/v1/");
-
-  try {
-    const parsed = new URL(trimmed, env.API_BASE_URL);
-
-    if (parsed.pathname.includes("/sessions/")) {
-      const sessionPathIndex = parsed.pathname.indexOf("/sessions/");
-      const sessionPath = parsed.pathname.slice(sessionPathIndex);
-      return `${env.API_BASE_URL}${sessionPath}`;
-    }
-
-    return parsed.toString();
-  } catch {
-    if (trimmed.startsWith("/sessions/")) {
-      return `${env.API_BASE_URL}${trimmed}`;
-    }
-
-    return trimmed;
-  }
 }
 
 async function fetchSpeakerAudioWithToken(
@@ -78,7 +56,7 @@ export const sessionsApi = {
   },
 
   async getSpeakerAudioBlob(audioUrl: string): Promise<Blob> {
-    const normalizedUrl = normalizeSpeakerAudioUrl(audioUrl);
+    const normalizedUrl = normalizeVoiceAudioUrl(audioUrl);
     const accessToken = await getValidAccessToken({
       reason: "unauthorized",
     });

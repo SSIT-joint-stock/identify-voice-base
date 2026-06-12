@@ -1,32 +1,15 @@
-import { env } from "@/configs/env.config";
 import { getValidAccessToken } from "@/lib/auth-refresh";
 import { useCallback } from "react";
+import { normalizeVoiceAudioUrl } from "../utils/audio-url";
 
 export function useNormalizeAudio() {
   const WAVEFORM_FALLBACK_MESSAGE =
     "Không thể tải waveform cho file audio này. Bạn vẫn có thể phát bằng trình phát mặc định bên dưới.";
 
-  const normalizeAudioUrl = useCallback((audioUrl: string): string => {
-    const trimmed = audioUrl.trim().replace("/api/v1/api/v1/", "/api/v1/");
-
-    try {
-      const parsed = new URL(trimmed, env.API_BASE_URL);
-
-      if (parsed.pathname.includes("/sessions/")) {
-        const sessionPathIndex = parsed.pathname.indexOf("/sessions/");
-        const sessionPath = parsed.pathname.slice(sessionPathIndex);
-        return `${env.API_BASE_URL}${sessionPath}`;
-      }
-
-      return parsed.toString();
-    } catch {
-      if (trimmed.startsWith("/sessions/")) {
-        return `${env.API_BASE_URL}${trimmed}`;
-      }
-
-      return trimmed;
-    }
-  }, []);
+  const normalizeAudioUrl = useCallback(
+    (audioUrl: string) => normalizeVoiceAudioUrl(audioUrl),
+    [],
+  );
 
   const fetchAudioWithToken = useCallback(
     async (audioUrl: string, token?: string | null) => {

@@ -21,6 +21,12 @@ export default defineConfig({
         timeout: 0,
         proxyTimeout: 0,
       },
+      "/cdn": {
+        target: apiProxyTarget,
+        changeOrigin: true,
+        timeout: 0,
+        proxyTimeout: 0,
+      },
     },
   },
 });

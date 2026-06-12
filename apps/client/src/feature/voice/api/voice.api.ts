@@ -1,6 +1,7 @@
 import axiosInstance from "@/api/axios.instance";
 import { VOICE_API_ENDPOINTS } from "@/constants";
 import type { ApiResponse } from "@/types";
+import { normalizeVoiceAudioUrl } from "../utils/audio-url";
 import type {
   IdentifyTwoVoiceRequest,
   IdentifyTwoVoiceResponse,
@@ -530,9 +531,12 @@ export const voiceApi = {
   },
 
   async getAudioFileFromUrl(audioUrl: string, fileName = "speaker.wav") {
-    const audioResponse = await axiosInstance.get<Blob>(audioUrl, {
-      responseType: "blob",
-    });
+    const audioResponse = await axiosInstance.get<Blob>(
+      normalizeVoiceAudioUrl(audioUrl),
+      {
+        responseType: "blob",
+      },
+    );
     return new File([audioResponse.data], fileName, {
       type: audioResponse.data.type || "audio/wav",
       lastModified: Date.now(),
