@@ -1,15 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderCircle, Search } from "lucide-react";
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
-import { useForm, type SubmitHandler } from "react-hook-form";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,6 +8,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { LoaderCircle, Minus, Plus, Search } from "lucide-react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
+import { useForm, type SubmitHandler } from "react-hook-form";
+import { toast } from "sonner";
 import { voiceApi } from "../api/voice.api";
 import { useIdentifyVoice } from "../hooks/use-voice";
 import {
@@ -77,6 +78,7 @@ export const VoiceSingleSearchForm = forwardRef<
     resolver: zodResolver(identifyVoiceSchema),
     defaultValues: {
       audioFile: null,
+      topKRecords: 5,
     },
   });
   const audioFile = form.watch("audioFile");
@@ -225,6 +227,101 @@ export const VoiceSingleSearchForm = forwardRef<
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            <FormField
+              control={form.control}
+              name="topKRecords"
+              render={({ field }) => {
+                const currentValue = Number(field.value);
+                const isDisabled =
+                  identifyMutation.isPending || isNormalizingAudio;
+                const setTopKRecords = (value: number) => {
+                  form.setValue("topKRecords", Math.max(1, value), {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  });
+                };
+
+                return (
+                  <FormItem className="max-w-lg">
+                    <div>
+                      <FormLabel>Số kết quả gần giống</FormLabel>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Mặc định 5, có thể nhập số bất kỳ.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex h-9 w-44 overflow-hidden rounded-md border bg-background focus-within:border-green-100 focus-within:ring-2 focus-within:ring-green-100">
+                        <button
+                          type="button"
+                          aria-label="Giảm số kết quả"
+                          className="flex w-10 shrink-0 items-center justify-center border-r text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={isDisabled || currentValue <= 1}
+                          onClick={() => setTopKRecords(currentValue - 1)}
+                        >
+                          <Minus className="size-3.5" />
+                        </button>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            step={1}
+                            inputMode="numeric"
+                            value={
+                              field.value === undefined
+                                ? ""
+                                : String(field.value)
+                            }
+                            onChange={field.onChange}
+                            placeholder="5"
+                            aria-label="Số kết quả gần giống"
+                            className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent text-center font-semibold tabular-nums shadow-none focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            disabled={isDisabled}
+                          />
+                        </FormControl>
+                        <button
+                          type="button"
+                          aria-label="Tăng số kết quả"
+                          className="flex w-10 shrink-0 items-center justify-center border-l text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={isDisabled}
+                          onClick={() =>
+                            setTopKRecords(
+                              Number.isFinite(currentValue)
+                                ? currentValue + 1
+                                : 1,
+                            )
+                          }
+                        >
+                          <Plus className="size-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        {[5, 10, 20, 50, 100].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            disabled={isDisabled}
+                            aria-pressed={currentValue === preset}
+                            className={`rounded-md px-2 py-1 font-medium tabular-nums transition-colors disabled:opacity-40 ${
+                              currentValue === preset
+                                ? "bg-green-50 text-green-500"
+                                : "hover:bg-green-50 hover:text-green-500"
+                            }`}
+                            onClick={() => setTopKRecords(preset)}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             {showSubmitButton && audioFile ? (

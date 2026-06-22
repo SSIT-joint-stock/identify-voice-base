@@ -16,10 +16,11 @@ Tài liệu này hướng dẫn chi tiết về luồng nhận dạng dành cho 
 
 ## 2. Các tham số yêu cầu (Request Parameters)
 
-| Tham số | Loại     | Yêu cầu        | Mô tả                                                                                        |
-| :------ | :------- | :------------- | :------------------------------------------------------------------------------------------- |
-| `file`  | `Binary` | **Bắt buộc**   | File âm thanh cần nhận dạng (WAV, MP3, FLAC...). Giới hạn dung lượng < 50MB.                 |
-| `type`  | `Enum`   | Không bắt buộc | Giá trị: `SINGLE`. Nếu không gửi, hệ thống mặc định sẽ xử lý theo chế độ đa người (`MULTI`). |
+| Tham số         | Loại      | Yêu cầu        | Mô tả                                                                                        |
+| :-------------- | :-------- | :------------- | :------------------------------------------------------------------------------------------- |
+| `file`          | `Binary`  | **Bắt buộc**   | File âm thanh cần nhận dạng (WAV, MP3, FLAC...). Giới hạn dung lượng < 50MB.                 |
+| `type`          | `Enum`    | Không bắt buộc | Giá trị: `SINGLE`. Nếu không gửi, hệ thống mặc định sẽ xử lý theo chế độ đa người (`MULTI`). |
+| `top_k_records` | `Integer` | Không bắt buộc | Số nguyên dương xác định số kết quả gần giống tối đa. Mặc định: `5`.                         |
 
 ---
 

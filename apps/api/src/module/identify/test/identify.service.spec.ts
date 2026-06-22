@@ -7,12 +7,13 @@ describe(IdentifyService.name, () => {
     const service = new IdentifyService(useCase as never);
 
     await expect(
-      service.identify(identifyFile, 'operator-1', 'SINGLE'),
+      service.identify(identifyFile, 'operator-1', 'SINGLE', 20),
     ).resolves.toBe('result');
     expect(useCase.execute).toHaveBeenCalledWith(
       identifyFile,
       'operator-1',
       'SINGLE',
+      20,
     );
   });
 });

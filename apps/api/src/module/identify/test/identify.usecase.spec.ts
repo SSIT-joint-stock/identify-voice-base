@@ -102,11 +102,12 @@ describe(IdentifyUseCase.name, () => {
       },
     });
 
-    const result = await useCase.execute(identifyFile, requester, 'SINGLE');
+    const result = await useCase.execute(identifyFile, requester, 'SINGLE', 20);
 
     expect(aiCoreService.identifySingle).toHaveBeenCalledWith(
       '/tmp/normalized.wav',
       'audio/wav',
+      20,
     );
     expect(prisma.ai_identities_cache.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ where: { voice_id: 'voice-1' } }),
@@ -143,6 +144,7 @@ describe(IdentifyUseCase.name, () => {
     const result = await useCase.execute(identifyFile, requester, 'MULTI');
 
     expect(aiCoreService.identifyMulti).toHaveBeenCalled();
+    expect(aiCoreService.identifySingle).not.toHaveBeenCalled();
     expect(result.speakers[0]).toMatchObject({
       audio_url:
         'http://api/v1.local/cdn/sessions/session-1/speakers/SPEAKER_1/audio',

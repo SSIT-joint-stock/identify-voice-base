@@ -13,6 +13,7 @@ import FormData from 'form-data';
 import * as fs from 'fs';
 import * as path from 'path';
 import { catchError, firstValueFrom } from 'rxjs';
+import type { IdentifyTopKRecords } from '@/module/identify/dto/identify-request.dto';
 
 // Tái sử dụng Interface chuẩn hóa
 export interface NormalizedSpeakerResult {
@@ -47,6 +48,7 @@ export class AiIdentifySingleUseCase {
   async execute(
     filePath: string,
     mimeType?: string,
+    topKRecords: IdentifyTopKRecords = 5,
   ): Promise<NormalizedIdentifyResponse> {
     const formData = new FormData();
 
@@ -58,6 +60,7 @@ export class AiIdentifySingleUseCase {
       filename: path.basename(filePath),
       contentType: mimeType,
     });
+    formData.append('top_k_records', String(topKRecords));
 
     let aiResults: any;
 

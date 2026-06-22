@@ -54,8 +54,13 @@ describe(AiCoreService.name, () => {
       service.uploadVoice('/tmp/a.wav', 'name', 'audio/wav'),
     ).resolves.toBe('upload');
     await expect(
-      service.identifySingle('/tmp/a.wav', 'audio/wav'),
+      service.identifySingle('/tmp/a.wav', 'audio/wav', 50),
     ).resolves.toBe('single');
+    expect(identifySingleUseCase.execute).toHaveBeenCalledWith(
+      '/tmp/a.wav',
+      'audio/wav',
+      50,
+    );
     await expect(
       service.identifyMulti('/tmp/a.wav', 'audio/wav'),
     ).resolves.toBe('multi');

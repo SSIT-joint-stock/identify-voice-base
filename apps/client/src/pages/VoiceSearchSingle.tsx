@@ -270,7 +270,7 @@ export default function VoiceSearchSingle() {
             <div className="flex flex-wrap items-center gap-3">
               <p className="font-semibold">
                 {items.length > 0
-                  ? "Top 5 bên trên chưa đúng người?"
+                  ? "Các kết quả bên trên chưa đúng người?"
                   : "Đăng ký giọng nói từ file hiện tại"}
               </p>
               <Button

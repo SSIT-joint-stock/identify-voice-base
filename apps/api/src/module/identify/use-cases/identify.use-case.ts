@@ -18,6 +18,7 @@ import {
 import { NormalizedIdentifyResponse } from '@/module/ai-core/usecase/ai-identify-single.usecase';
 import { SessionsRepository } from '@/module/sessions/repository/sessions.repository';
 import { UploadService } from '@/module/upload/service/upload.service';
+import type { IdentifyTopKRecords } from '../dto/identify-request.dto';
 
 @Injectable()
 export class IdentifyUseCase {
@@ -37,6 +38,7 @@ export class IdentifyUseCase {
     file: Express.Multer.File,
     requester: auth_accounts,
     type: 'SINGLE' | 'MULTI',
+    topKRecords: IdentifyTopKRecords = 5,
   ) {
     const operatorId = requester.id;
     this.logger.log(
@@ -82,7 +84,11 @@ export class IdentifyUseCase {
       // 2. Identify là bắt buộc. Với MULTI cần identify trước để lấy segments.
       aiResponse =
         type === 'SINGLE'
-          ? await this.aiCoreService.identifySingle(aiAudioPath, aiMimeType)
+          ? await this.aiCoreService.identifySingle(
+              aiAudioPath,
+              aiMimeType,
+              topKRecords,
+            )
           : await this.aiCoreService.identifyMulti(aiAudioPath, aiMimeType);
 
       // 3. Upsert vào ai_identities_cache metadata từ AI thay vì dính líu đến users

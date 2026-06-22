@@ -8,6 +8,7 @@ import { AiTranslateUseCase } from '@/module/ai-core/usecase/ai-translate.usecas
 import { UploadVoiceUseCase } from '@/module/ai-core/usecase/ai-upload-voice.usecase';
 import { TranslationHistoryService } from '@/module/translation-history/service/translation-history.service';
 import { Injectable } from '@nestjs/common';
+import type { IdentifyTopKRecords } from '@/module/identify/dto/identify-request.dto';
 import { OcrRequestDto } from '../dto/ocr-request.dto';
 import { SpeechToTextRequestDto } from '../dto/speech-to-text-request.dto';
 import {
@@ -33,8 +34,12 @@ export class AiCoreService {
     return this.uploadVoiceUseCase.execute(filePath, name, mimeType);
   }
 
-  async identifySingle(filePath: string, mimeType?: string) {
-    return this.identifySingleUseCase.execute(filePath, mimeType);
+  async identifySingle(
+    filePath: string,
+    mimeType?: string,
+    topKRecords: IdentifyTopKRecords = 5,
+  ) {
+    return this.identifySingleUseCase.execute(filePath, mimeType, topKRecords);
   }
 
   async identifyMulti(filePath: string, mimeType?: string) {

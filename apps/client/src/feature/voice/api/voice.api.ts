@@ -387,10 +387,17 @@ function buildUploadVoiceFormData(payload: UploadVoiceRequest): FormData {
   return formData;
 }
 
-function buildIdentifyFormData(file: File, type: IdentifyMode): FormData {
+function buildIdentifyFormData(
+  file: File,
+  type: IdentifyMode,
+  topKRecords?: IdentifyVoiceRequest["top_k_records"],
+): FormData {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("type", type);
+  if (type === "SINGLE" && topKRecords !== undefined) {
+    formData.append("top_k_records", String(topKRecords));
+  }
   return formData;
 }
 
@@ -466,7 +473,11 @@ export const voiceApi = {
   async identifyVoice(
     payload: IdentifyVoiceRequest,
   ): Promise<IdentifyVoiceResponse> {
-    const formData = buildIdentifyFormData(payload.file, "SINGLE");
+    const formData = buildIdentifyFormData(
+      payload.file,
+      "SINGLE",
+      payload.top_k_records,
+    );
     const response = await axiosInstance.post<ApiResponse<unknown>>(
       VOICE_API_ENDPOINTS.IDENTIFY,
       formData,
@@ -479,8 +490,7 @@ export const voiceApi = {
     const items = extractSpeakerItems(data)
       .map(normalizeIdentifyItem)
       .filter((item): item is VoiceIdentifyItem => item !== null)
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-      .slice(0, 5);
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
     return {
       items,

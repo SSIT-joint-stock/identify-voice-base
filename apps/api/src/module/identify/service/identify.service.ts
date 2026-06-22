@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { auth_accounts } from '@prisma/client';
+import type { IdentifyTopKRecords } from '../dto/identify-request.dto';
 import { IdentifyUseCase } from '../use-cases/identify.use-case';
 
 @Injectable()
@@ -13,7 +14,8 @@ export class IdentifyService {
     file: Express.Multer.File,
     requester: auth_accounts,
     type: 'SINGLE' | 'MULTI',
+    topKRecords: IdentifyTopKRecords = 5,
   ) {
-    return this.identifyUseCase.execute(file, requester, type);
+    return this.identifyUseCase.execute(file, requester, type, topKRecords);
   }
 }

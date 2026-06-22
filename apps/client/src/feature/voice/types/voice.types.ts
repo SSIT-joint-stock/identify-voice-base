@@ -20,6 +20,7 @@ export interface VoiceSpeakerTranscript {
 }
 
 export type VoiceGender = "MALE" | "FEMALE" | "OTHER";
+export type IdentifyTopKRecords = number;
 
 export interface UploadVoiceFormValues {
   name: string;
@@ -38,6 +39,7 @@ export interface UploadVoiceFormValues {
 
 export interface IdentifyVoiceFormValues {
   audioFile: File | null;
+  topKRecords: IdentifyTopKRecords;
 }
 
 export interface IdentifyTwoVoiceFormValues {
@@ -59,6 +61,7 @@ export interface UploadVoiceRequest {
 
 export interface IdentifyVoiceRequest {
   file: File;
+  top_k_records?: IdentifyTopKRecords;
 }
 
 export interface IdentifyTwoVoiceRequest {

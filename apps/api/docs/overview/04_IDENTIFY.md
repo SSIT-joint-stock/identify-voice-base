@@ -39,12 +39,17 @@ Authorization: Bearer <access_token>
 Content-Type: multipart/form-data
 ```
 
+Với `type=SINGLE`, có thể gửi thêm field multipart `top_k_records` là một
+số nguyên dương (mặc định `5`). Số kết quả
+thực tế có thể ít hơn do AI Core chỉ trả các bản ghi vượt ngưỡng tương đồng.
+
 **Form fields:**
 
-| Field  | Type     | Required | Mô tả                                                         |
-| ------ | -------- | -------- | ------------------------------------------------------------- |
-| `file` | `File`   | ✅       | File hội thoại (WAV/MP3/FLAC/OGG, ≤ 50MB, ≤ 10 phút)          |
-| `type` | `String` | ❌       | Loại nhận dạng. Enum: `SINGLE` hoặc `MULTI`. Mặc định `MULTI` |
+| Field           | Type      | Required | Mô tả                                                          |
+| --------------- | --------- | -------- | -------------------------------------------------------------- |
+| `file`          | `File`    | ✅       | File hội thoại (WAV/MP3/FLAC/OGG, ≤ 50MB, ≤ 10 phút)           |
+| `type`          | `String`  | ❌       | Loại nhận dạng. Enum: `SINGLE` hoặc `MULTI`. Mặc định `MULTI`  |
+| `top_k_records` | `Integer` | ❌       | Số nguyên dương xác định số kết quả cho `SINGLE`. Mặc định `5` |
 
 > ⚠️ **Diarization rất tốn tài nguyên.** Backend **phải** validate size + duration trước khi gọi AI Service.
 

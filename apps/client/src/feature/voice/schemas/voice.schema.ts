@@ -86,6 +86,10 @@ export const uploadVoiceSchema = z.object({
 
 export const identifyVoiceSchema = z.object({
   audioFile: audioFileSchema,
+  topKRecords: z.coerce
+    .number()
+    .int("Số lượng kết quả phải là số nguyên")
+    .min(1, "Số lượng kết quả phải lớn hơn 0"),
 });
 
 export const identifyTwoVoiceSchema = z.object({

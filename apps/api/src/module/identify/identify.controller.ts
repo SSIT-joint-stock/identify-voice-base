@@ -21,6 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { type auth_accounts } from '@prisma/client';
+import { IdentifyRequestDto } from './dto/identify-request.dto';
 import { IdentifyService } from './service/identify.service';
 
 @ApiTags('identify')
@@ -47,6 +48,12 @@ export class IdentifyController {
           description: 'Loại nhận dạng (1 người hoặc 2 người)',
           default: 'MULTI',
         },
+        top_k_records: {
+          type: 'integer',
+          minimum: 1,
+          default: 5,
+          description: 'Số kết quả gần giống tối đa cho chế độ SINGLE',
+        },
         file: { type: 'string', format: 'binary', description: 'File ghi âm' },
       },
       required: ['file'],
@@ -59,8 +66,13 @@ export class IdentifyController {
   async identify(
     @UploadedFile() file: Express.Multer.File,
     @User() user: auth_accounts,
-    @Body('type') type: 'SINGLE' | 'MULTI' = 'MULTI',
+    @Body() dto: IdentifyRequestDto,
   ) {
-    return this.identifyService.identify(file, user, type);
+    return this.identifyService.identify(
+      file,
+      user,
+      dto.type,
+      dto.top_k_records,
+    );
   }
 }

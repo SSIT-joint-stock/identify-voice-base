@@ -85,6 +85,7 @@ export function useIdentifyVoice(options?: IdentifyVoiceOptions) {
     mutationFn: async (values: IdentifyVoiceSchemaOutput) => {
       return voiceApi.identifyVoice({
         file: values.audioFile,
+        top_k_records: values.topKRecords,
       });
     },
     onSuccess: (data) => {
