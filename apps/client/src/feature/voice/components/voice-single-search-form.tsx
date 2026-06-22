@@ -249,7 +249,7 @@ export const VoiceSingleSearchForm = forwardRef<
                     <div>
                       <FormLabel>Số kết quả gần giống</FormLabel>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Mặc định 5, có thể nhập số bất kỳ.
+                        Mặc định 5, chỉ nhận số nguyên dương.
                       </p>
                     </div>
 
@@ -266,16 +266,33 @@ export const VoiceSingleSearchForm = forwardRef<
                         </button>
                         <FormControl>
                           <Input
-                            type="number"
-                            min={1}
-                            step={1}
+                            type="text"
                             inputMode="numeric"
+                            pattern="[1-9][0-9]*"
                             value={
                               field.value === undefined
                                 ? ""
                                 : String(field.value)
                             }
-                            onChange={field.onChange}
+                            onChange={(event) => {
+                              const nextValue = event.target.value;
+
+                              if (nextValue === "") {
+                                field.onChange(nextValue);
+                                return;
+                              }
+
+                              if (/^[1-9]\d*$/.test(nextValue)) {
+                                field.onChange(nextValue);
+                              }
+                            }}
+                            onBlur={(event) => {
+                              field.onBlur();
+
+                              if (event.currentTarget.value === "") {
+                                setTopKRecords(5);
+                              }
+                            }}
                             placeholder="5"
                             aria-label="Số kết quả gần giống"
                             className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent text-center font-semibold tabular-nums shadow-none focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
