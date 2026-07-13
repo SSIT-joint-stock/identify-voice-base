@@ -102,7 +102,7 @@ export function TranslateFileOptionsCard({
                 </span>
                 {detectedSourceLanguageConfidence ? (
                   <span className="rounded-md border border-border px-2 py-0.5">
-                    {`Độ chính xác: ${detectedSourceLanguageConfidence}`}
+                    {`Độ tự tin: ${detectedSourceLanguageConfidence}`}
                   </span>
                 ) : null}
               </div>
