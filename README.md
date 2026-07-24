@@ -1,281 +1,231 @@
-# Voice Identify Service - Monorepo Overview
+# Hệ thống Định danh Giọng nói
 
-Welcome to the **Voice Identify Service** monorepo. This project is a comprehensive platform for voice biometric identification, featuring a high-performance backend, a background processing worker, and a modern frontend client.
+Hệ thống hỗ trợ đăng ký, quản lý và định danh giọng nói. Dự án còn cung cấp xử lý audio, Speech-to-Text, OCR, dịch, tóm tắt và quản lý lịch sử.
 
----
+Repository được tổ chức theo mô hình monorepo, gồm React Client, NestJS API và worker xử lý tác vụ nền.
 
-## 🏗️ Project Architecture
+## Chức năng chính
 
-This project is built as a **Turborepo Monorepo** managed by **pnpm workspaces**. This structure allows for shared configurations, efficient dependency management, and centralized orchestration of multiple services.
+- Đăng nhập, refresh token, đăng xuất và đổi mật khẩu.
+- Quản lý tài khoản `ADMIN` và `OPERATOR`.
+- Upload và kiểm tra file audio.
+- Đăng ký hồ sơ giọng nói.
+- Định danh một hoặc nhiều người nói.
+- Quản lý hồ sơ và lịch sử cập nhật giọng nói.
+- Xem phiên định danh và phát audio theo speaker.
+- Chuyển dữ liệu AI gợi ý thành hồ sơ chính thức.
+- Chuẩn hóa audio, lọc nhiễu và Speech-to-Text.
+- OCR, dịch, tóm tắt, xuất file và lịch sử dịch.
 
-### Core Components
-
-1.  **Backend (API & Worker)**: Located in `apps/api`.
-    - **API**: A NestJS-based RESTful service providing authentication, voice profile management, and identification session orchestration.
-    - **Worker**: A background job processor using BullMQ (Redis) to handle computationally intensive voice identification tasks.
-2.  **Frontend (Client)**: Located in `apps/client`.
-    - A React-based interface (cloned from `voice-identity-fe`) for users to interact with the service, upload voices, and view identification results.
-3.  **Shared Resources**:
-    - **Database**: PostgreSQL 15, managed via Prisma 7.
-    - **Cache/Queue**: Redis 7, used for BullMQ job queueing and potential caching.
-    - **Infrastructure**: Orchestrated using Docker and Docker Compose.
-
----
-
-## 📁 Directory Structure
-
-```text
-.
-├── apps
-│   ├── api                 # NestJS Backend (API + Worker)
-│   │   ├── prisma          # Prisma schema and migrations
-│   │   ├── src
-│   │   │   ├── common      # Global filters, guards, interceptors
-│   │   │   ├── config      # Dynamic configuration system
-│   │   │   ├── database    # Prisma & Redis providers
-│   │   │   ├── module      # Feature modules (Auth, Voices, Identify)
-│   │   │   ├── shared      # Global interfaces and utilities
-│   │   │   ├── workers     # Background processor and entry point
-│   │   │   ├── main.ts     # API entry point
-│   │   │   └── worker.main.ts # Worker entry point
-│   │   └── Dockerfile      # Multi-stage production build
-│   └── client              # React Frontend Client
-│       ├── src             # Frontend source code
-│       └── vite.config.ts  # Vite configuration
-├── packages
-│   ├── eslint-config       # Shared ESLint rules
-│   └── typescript-config   # Shared TSConfig bases
-├── .github
-│   └── workflows           # CI/CD (GitHub Actions)
-├── .husky                  # Git hooks (Commitlint, Lint-staged)
-├── docker-compose.yml      # Full-stack orchestration
-└── pnpm-workspace.yaml     # Workspace definition
-```
-
----
-
-## 🛠️ Getting Started
-
-### Prerequisites
-
-- **Node.js**: v20 or higher.
-- **pnpm**: v9 or higher.
-- **Docker**: For running the database and Redis.
-- **Task Runner**: [Turborepo](https://turbo.build/repo/docs/installing) (optional, but recommended).
-
-### Installation
-
-1.  **Clone the repository**:
-
-    ```bash
-    git clone <repository-url>
-    cd voice-identify-monorepo
-    ```
-
-2.  **Install dependencies**:
-
-    ```bash
-    pnpm install
-    ```
-
-3.  **Environment Setup**:
-    Copy the example environment file at the root:
-
-    ```bash
-    cp .env.example .env
-    ```
-
-4.  **Database Synchronization**:
-    Start the database and Redis containers:
-    ```bash
-    pnpm infra:up
-    ```
-    Generate the Prisma client:
-    ```bash
-    pnpm prisma:generate
-    ```
-
----
-
-## 🔐 Login Feature Setup
-
-- Team checklist sau khi pull để login chạy ổn định: `docs/dev-login-setup.md`
-
----
-
-## 🚀 Development Scripts
-
-The monorepo uses centralized scripts in the root `package.json` to manage all apps and packages.
-
-### Global Tasks
-
-- `pnpm dev`: Runs both API and Client in development mode via Turbo.
-- `pnpm build`: Builds all applications for production.
-- `pnpm lint`: Lints the entire codebase.
-
-### Backend-Specific
-
-- `pnpm dev:api`: Starts the NestJS API with hot-reload.
-- `pnpm dev:worker`: Starts the background worker.
-- `pnpm prisma:migrate`: Runs database migrations.
-
-### Frontend-Specific
-
-- `pnpm dev:client`: Starts the frontend development server.
-
----
-
-## 🛡️ Development Standards
-
-### Git Hooks & Quality Control
-
-We use **Husky** and **lint-staged** to ensure code quality before every commit.
-
-- **Commitlint**: Enforces [Conventional Commits](https://www.conventionalcommits.org/).
-- **Prettier**: Enforces consistent code formatting.
-- **ESLint**: Enforces project-specific coding standards.
-
-#### Commit Message Conventions
-
-We follow the **Conventional Commits** specification. Every commit message must follow this structure:
-
-```text
-<type>[optional scope]: <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-**Allowed Types:**
-
-| Type       | Description                                                                                                                 |
-| :--------- | :-------------------------------------------------------------------------------------------------------------------------- |
-| `feat`     | A new feature                                                                                                               |
-| `fix`      | A bug fix                                                                                                                   |
-| `docs`     | Documentation only changes                                                                                                  |
-| `style`    | Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)                      |
-| `refactor` | A code change that neither fixes a bug nor adds a feature                                                                   |
-| `perf`     | A code change that improves performance                                                                                     |
-| `test`     | Adding missing tests or correcting existing tests                                                                           |
-| `build`    | Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)                         |
-| `ci`       | Changes to our CI configuration files and scripts (example scopes: GitHub Actions, Travis, Circle, BrowserStack, SauceLabs) |
-| `chore`    | Other changes that don't modify src or test files                                                                           |
-| `revert`   | Reverts a previous commit                                                                                                   |
-
-**Example:** `feat(api): add voice identification endpoint`
-
-### Branching Model
-
-- `main`: Production-ready code.
-- `develop`: Integration branch for features.
-- `feature/*`: Branch for new features.
-- `hotfix/*`: Branch for hotfixes.
-- `fix/*`: Branch for bug fixes.
-
----
-
-## 🐳 Infrastructure & Deployment
-
-### Production Orchestration
-
-The project is containerized using a multi-stage `Dockerfile` and `docker-compose.yml`.
+## Kiến trúc tổng quan
 
 ```mermaid
-graph TD
-    User((User)) -->|HTTP| Nginx[Nginx Proxy/Gateway]
-    Nginx -->|API Request| API[NestJS API Container]
-    API -->|Query| DB[(PostgreSQL)]
-    API -->|Queue Job| Redis[(Redis)]
-    Worker[NestJS Worker Container] -->|Listen| Redis
-    Worker -->|Process Identification| AI[AI/ML Engine Placeholder]
-    Worker -->|Update Results| DB
-    Client[React Client Container] -->|Static Content| Nginx
+flowchart LR
+    U[Người dùng] --> C[React Client / Nginx]
+    C -->|/api/v1| A[NestJS API]
+
+    A --> DB[(PostgreSQL)]
+    A --> R[(Redis / BullMQ)]
+    A --> S[(Local Storage)]
+    A --> AI[AI Core Services]
+
+    W[NestJS Worker] --> R
+    W --> DB
+    W --> S
+    W --> AI
 ```
 
-### CI/CD
+Các thành phần:
 
-We use **GitHub Actions** for our CI pipeline:
+- `apps/client`: giao diện React/Vite.
+- `apps/api`: API NestJS và worker.
+- PostgreSQL: dữ liệu nghiệp vụ.
+- Redis/BullMQ: queue và trạng thái job tạm.
+- Local Storage: audio và file xử lý.
+- AI Core: identify, OCR, Speech-to-Text, lọc nhiễu và dịch.
 
-1.  **Lint**: Checks code formatting and standards.
-2.  **Type-Check**: Verifies TypeScript safety.
-3.  **Build**: Ensures the project builds successfully in a clean environment.
+Chi tiết xem [Kiến trúc hệ thống](./docs/architecture/system-architecture.md).
 
----
+## Công nghệ
 
-## 🧠 Business Logic & Use-Case Pattern
+| Thành phần | Công nghệ                         |
+| ---------- | --------------------------------- |
+| Monorepo   | pnpm workspace, Turborepo         |
+| Backend    | Node.js 20, NestJS 11, TypeScript |
+| Frontend   | React 19, Vite 8, TypeScript      |
+| Database   | PostgreSQL 15, Prisma 7           |
+| Queue      | Redis, BullMQ                     |
+| API docs   | Swagger/OpenAPI                   |
+| Logging    | Winston                           |
+| Kiểm thử   | Jest, Supertest                   |
+| Triển khai | Docker, Docker Compose, Nginx     |
 
-The project follows a **Clean Architecture** approach using the **Use-Case Pattern**. Instead of bloated services, every business action is encapsulated in a specific class.
+## Bắt đầu nhanh
 
-### Example: RegisterUserUseCase
+### Yêu cầu
 
-Located in `apps/api/src/module/auth/use-cases/register-user.usecase.ts`:
+- Node.js 20 trở lên.
+- pnpm 9.15.4 hoặc tương thích.
+- Docker Engine và Docker Compose v2.
+- Git.
 
-1.  **Validate input**: Check if user exists.
-2.  **Secure data**: Hash the password using bcrypt.
-3.  **Persist**: Save the account to the database via Prisma.
-4.  **Return**: Return the created user (masking sensitive data).
+Xem đầy đủ tại [Yêu cầu hệ thống](./docs/technical/system-requirements.md).
 
-### Benefits:
+### Cài đặt
 
-- **Testability**: Each use-case can be unit-tested in isolation.
-- **Readability**: Clear boundaries for business logic.
-- **Maintainability**: Changes in one feature don't impact others.
+```bash
+pnpm install
+cp .env.example .env.development
+pnpm infra:up
+pnpm prisma:generate
+pnpm prisma:migrate
+```
 
----
+### Chạy ứng dụng
 
-## 🤝 Contribution Guide
+API và frontend:
 
-We welcome contributions to the **Voice Identify Service**! To maintain code quality and consistency, please follow these guidelines:
+```bash
+pnpm dev
+```
 
-### 1. Development Process
+Worker:
 
-- Always create a new branch from `develop`.
-- Ensure your code follows the established ESLint and Prettier rules.
-- Write meaningful commit messages using the **Conventional Commits** format.
-- Update documentation in the relevant `OVERVIEW.md` files if your changes affect the architecture or features.
+```bash
+pnpm dev:worker
+```
 
-### 2. Pull Request Requirements
+Worker phải chạy khi sử dụng job BullMQ.
 
-- Describe your changes in detail in the PR description.
-- Include screenshots or recordings for UI changes.
-- Ensure all CI checks (Lint, Build, Type-Check) pass.
-- Request reviews from the core engineering team.
+Hướng dẫn đầy đủ:
 
----
+- [Cài đặt môi trường](./docs/setup/environment-setup.md).
+- [Build và chạy dự án](./docs/setup/build-and-run.md).
 
-## 🗺️ Project Roadmap
+## Địa chỉ development
 
-### Phase 1: Foundation (Completed)
+| Thành phần  | Địa chỉ mặc định                 |
+| ----------- | -------------------------------- |
+| Frontend    | `http://localhost:5173`          |
+| Backend     | `http://localhost:3000`          |
+| API prefix  | `http://localhost:3000/api/v1`   |
+| Swagger     | `http://localhost:3000/api-docs` |
+| Module docs | `http://localhost:3000/docs`     |
+| PostgreSQL  | `localhost:5442`                 |
+| Redis       | `localhost:6382`                 |
 
-- [x] Monorepo structure setup (Turborepo + pnpm).
-- [x] API & Worker consolidation.
-- [x] Database schema & Prisma 7 integration.
-- [x] Basic Auth, Voices, and Identify modules.
+Port thực tế có thể thay đổi qua `.env.development`.
 
-### Phase 2: AI Integration (Ongoing)
+## Lệnh thường dùng
 
-- [/] Integration with advanced voice embedding extraction models.
-- [ ] Real-time identification streaming.
-- [ ] Multi-voice separation and identification logic.
+| Mục đích             | Lệnh                 |
+| -------------------- | -------------------- |
+| Chạy API và frontend | `pnpm dev`           |
+| Chạy API             | `pnpm dev:api`       |
+| Chạy frontend        | `pnpm dev:client`    |
+| Chạy worker          | `pnpm dev:worker`    |
+| Build                | `pnpm build`         |
+| Lint                 | `pnpm lint`          |
+| Kiểm tra type        | `pnpm check-types`   |
+| Test backend         | `pnpm test:api`      |
+| Prisma Studio        | `pnpm prisma:studio` |
+| Xem log Docker       | `pnpm infra:logs`    |
 
-### Phase 3: Advanced Features (Planned)
+## Tài liệu kỹ thuật
 
-- [ ] Admin Dashboard for voice profile analytics.
-- [ ] Webhook notifications for completed sessions.
-- [ ] Mobile application (React Native) implementation.
+Toàn bộ tài liệu bàn giao được viết bằng Markdown và quản lý cùng mã nguồn.
 
----
+### Technical
 
-## 📄 Licensing & Permissions
+| Tài liệu                                                    | Nội dung                                   |
+| ----------------------------------------------------------- | ------------------------------------------ |
+| [Yêu cầu hệ thống](./docs/technical/system-requirements.md) | Phần mềm, phần cứng, network và dependency |
+| [Cấu trúc dự án](./docs/technical/project-structure.md)     | Trách nhiệm của thư mục và module          |
+| [Tổng quan API](./docs/technical/api-overview.md)           | Endpoint, response, xác thực và mã lỗi     |
 
-This project is private and intended for use by the **Voice Identify Team** only. All rights reserved.
+### Setup
 
----
+| Tài liệu                                                | Nội dung                         |
+| ------------------------------------------------------- | -------------------------------- |
+| [Cài đặt môi trường](./docs/setup/environment-setup.md) | Chuẩn bị development             |
+| [Build và chạy](./docs/setup/build-and-run.md)          | Lệnh chạy, build, test và Prisma |
 
-## 📞 Support & Documentation
+### Architecture
 
-For more detailed information, please refer to the specific overviews:
+| Tài liệu                                                         | Nội dung                              |
+| ---------------------------------------------------------------- | ------------------------------------- |
+| [Kiến trúc hệ thống](./docs/architecture/system-architecture.md) | Thành phần và kết nối                 |
+| [Luồng dữ liệu](./docs/architecture/data-flow.md)                | Auth, upload, enroll, identify và job |
+| [ERD](./docs/architecture/erd.md)                                | Bảng, quan hệ, index và quy tắc xóa   |
 
-- [API Overview](file:///home/trh_thanh30/Documents/indentify-voice-base/apps/api/OVERVIEW.md)
-- [Client Overview](file:///home/trh_thanh30/Documents/indentify-voice-base/apps/client/OVERVIEW.md)
+### Operations
+
+| Tài liệu                                                | Nội dung                         |
+| ------------------------------------------------------- | -------------------------------- |
+| [Triển khai](./docs/operations/deployment.md)           | Build image và deploy production |
+| [Troubleshooting](./docs/operations/troubleshooting.md) | Mã lỗi, tình huống và cách xử lý |
+
+## Database
+
+Nguồn chuẩn của database:
+
+- Schema: `apps/api/prisma/schema.prisma`.
+- Migration: `apps/api/prisma/migrations`.
+- Seed: `apps/api/prisma/seed.ts`.
+
+Database hiện có chín bảng nghiệp vụ. ERD đầy đủ nằm trong [docs/architecture/erd.md](./docs/architecture/erd.md).
+
+## API
+
+API dùng prefix `/api/v1`. Swagger được tạo từ decorator trong source và có tại `/api-docs` khi backend chạy.
+
+Tài liệu API theo module nằm trong `apps/api/docs` và được phục vụ tại `/docs`.
+
+Khi bàn giao offline, nên xuất thêm OpenAPI JSON/YAML hoặc Postman Collection từ đúng phiên bản backend phát hành.
+
+## Kiểm tra trước khi commit
+
+```bash
+pnpm lint
+pnpm check-types
+pnpm test:api
+pnpm build
+```
+
+Repository dùng Husky, lint-staged, Prettier, ESLint và Commitlint.
+
+## Triển khai
+
+Luồng production:
+
+1. Tạo `.env.production`.
+2. Build và push image.
+3. Pull đúng image tag.
+4. Backup database.
+5. Chạy migration.
+6. Khởi động stack.
+7. Smoke test và theo dõi log.
+
+Không dùng riêng tag `latest` cho bản bàn giao. Dùng version hoặc commit SHA để truy vết.
+
+Xem [Hướng dẫn triển khai](./docs/operations/deployment.md).
+
+## Bảo mật bàn giao
+
+- Không commit `.env`, token, key hoặc mật khẩu.
+- Không bàn giao `node_modules`, log runtime hoặc dữ liệu giọng nói thật.
+- Thay toàn bộ secret sau khi bàn giao.
+- Không mở Redis ra Internet.
+- Chỉ mở PostgreSQL và Prisma Studio trong mạng tin cậy.
+- Dùng dữ liệu giả hoặc đã ẩn danh khi demo.
+
+## Trạng thái và giới hạn
+
+- Storage hiện hỗ trợ local driver.
+- Hệ thống phụ thuộc vào nhiều AI Core endpoint độc lập.
+- Monitoring hoàn chỉnh chưa nằm trong phạm vi bắt buộc.
+- Mã lỗi nghiệp vụ hiện còn dùng nhiều mã tổng quát.
+- Cần load test trước khi chốt cấu hình phần cứng production.
+- Cần chốt retention, backup và restore trước production.
+
+Khi thay đổi kiến trúc, API, database hoặc biến môi trường, phải cập nhật tài liệu liên quan trong cùng pull request.
