@@ -6,17 +6,17 @@ Nguồn khai báo là `apps/api/prisma/schema.prisma`. Trạng thái database th
 
 ## 1. Quy ước
 
-| Ký hiệu | Ý nghĩa                                       |
-| ------- | --------------------------------------------- | -------------- | ----------------- |
-| PK      | Khóa chính                                    |
-| FK      | Khóa ngoại                                    |
-| UK      | Ràng buộc duy nhất                            |
-| NN      | Không được null                               |
-| JSONB   | Dữ liệu JSON, không được database kiểm tra FK |
-| `       |                                               | `              | Bắt buộc đúng một |
-| `o      | `                                             | Không hoặc một |
-| `o{`    | Không hoặc nhiều                              |
-| `       | {`                                            | Một hoặc nhiều |
+| Ký hiệu                   | Ý nghĩa                                       |
+| ------------------------- | --------------------------------------------- |
+| PK                        | Khóa chính                                    |
+| FK                        | Khóa ngoại                                    |
+| UK                        | Ràng buộc duy nhất                            |
+| NN                        | Không được null                               |
+| JSONB                     | Dữ liệu JSON, không được database kiểm tra FK |
+| <code>&#124;&#124;</code> | Bắt buộc đúng một                             |
+| <code>o&#124;</code>      | Không hoặc một                                |
+| <code>o{</code>           | Không hoặc nhiều                              |
+| <code>&#124;{</code>      | Một hoặc nhiều                                |
 
 Quan hệ vẽ bằng đường ER là quan hệ FK thật, trừ khi phần mô tả ghi rõ đó là quan hệ logic.
 
