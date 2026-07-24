@@ -6,7 +6,8 @@ ENV_FILE ?= $(ROOT_DIR)/.env.production
 COMPOSE_FILE ?= $(ROOT_DIR)/docker-compose.prod.yml
 BACKEND_IMAGE ?= ghcr.io/your-org/identify-voice-backend
 CLIENT_IMAGE ?= ghcr.io/your-org/identify-voice-client
-IMAGE_TAG ?= latest
+BACKEND_IMAGE_TAG ?= latest
+CLIENT_IMAGE_TAG ?= latest
 CLIENT_PORT ?= 8080
 CLIENT_API_BASE_URL ?= /api/v1
 
@@ -14,7 +15,8 @@ export ENV_FILE
 export COMPOSE_FILE
 export BACKEND_IMAGE
 export CLIENT_IMAGE
-export IMAGE_TAG
+export BACKEND_IMAGE_TAG
+export CLIENT_IMAGE_TAG
 export CLIENT_PORT
 export CLIENT_API_BASE_URL
 
@@ -23,16 +25,16 @@ export CLIENT_API_BASE_URL
 build: build-backend build-client
 
 build-backend:
-	docker build -f $(ROOT_DIR)/apps/api/Dockerfile -t $(BACKEND_IMAGE):$(IMAGE_TAG) $(ROOT_DIR)
+	docker build -f $(ROOT_DIR)/apps/api/Dockerfile -t $(BACKEND_IMAGE):$(BACKEND_IMAGE_TAG) $(ROOT_DIR)
 
 build-client:
 	docker build -f $(ROOT_DIR)/apps/client/Dockerfile \
 		--build-arg VITE_API_BASE_URL=$(CLIENT_API_BASE_URL) \
-		-t $(CLIENT_IMAGE):$(IMAGE_TAG) $(ROOT_DIR)
+		-t $(CLIENT_IMAGE):$(CLIENT_IMAGE_TAG) $(ROOT_DIR)
 
 push:
-	docker push $(BACKEND_IMAGE):$(IMAGE_TAG)
-	docker push $(CLIENT_IMAGE):$(IMAGE_TAG)
+	docker push $(BACKEND_IMAGE):$(BACKEND_IMAGE_TAG)
+	docker push $(CLIENT_IMAGE):$(CLIENT_IMAGE_TAG)
 
 pull:
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) pull

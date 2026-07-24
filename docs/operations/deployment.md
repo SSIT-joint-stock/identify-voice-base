@@ -106,10 +106,45 @@ make build-client
 Tag thủ công có thể dùng version:
 
 ```env
-IMAGE_TAG=v1.0.0
+BACKEND_IMAGE_TAG=v1.0.0
+CLIENT_IMAGE_TAG=v1.0.0
 ```
 
-Không trộn tag CI `sha-*` và tag version thủ công nếu chưa xác định image nào là release chuẩn.
+Không trộn tag CI `sha-*` và tag version thủ công nếu chưa xác định image nào là
+release chuẩn. Hai tag có thể giống nhau khi cả hai image được phát hành cùng một
+version.
+
+### 3.3. Registry sau khi bàn giao
+
+Bên nhận bàn giao có thể sửa source code, build image mới và push lên registry do họ
+quản lý. Không bắt buộc tiếp tục sử dụng repository image của bên bàn giao.
+
+Ví dụ cấu hình image thuộc tổ chức nhận bàn giao:
+
+```env
+BACKEND_IMAGE=docker.io/<to-chuc-nhan-ban-giao>/identify-voice-backend
+CLIENT_IMAGE=docker.io/<to-chuc-nhan-ban-giao>/identify-voice-client
+BACKEND_IMAGE_TAG=v1.1.0
+CLIENT_IMAGE_TAG=v1.1.0
+```
+
+Khi dùng CI, phải thay `DOCKERHUB_USERNAME` và `DOCKERHUB_TOKEN` trong GitHub Secrets
+bằng tài khoản có quyền push vào registry mới.
+
+Image chỉ chứa ứng dụng và dependency runtime. Image không chứa:
+
+- Database PostgreSQL production.
+- Audio/file trong Storage production.
+- Log runtime.
+- Secret trong `.env.production`.
+
+Vì vậy thay repository hoặc tag image không tự làm mất dữ liệu. Dữ liệu chỉ tiếp tục
+được sử dụng khi stack mới kết nối đúng database và mount đúng volume/Storage cũ.
+
+CI phát hiện thay đổi backend và frontend riêng. Compose dùng
+`BACKEND_IMAGE_TAG` và `CLIENT_IMAGE_TAG` độc lập, vì vậy có thể giữ tag client cũ khi
+chỉ backend thay đổi và ngược lại. Trước khi deploy phải xác nhận từng cặp image/tag
+đã tồn tại trên registry.
 
 ## 4. File cần có trên server
 
@@ -182,10 +217,16 @@ Với image do CI tạo:
 ```env
 BACKEND_IMAGE=docker.io/<dockerhub-user>/identify-voice-backend
 CLIENT_IMAGE=docker.io/<dockerhub-user>/identify-voice-client
-IMAGE_TAG=sha-<short-commit>
+BACKEND_IMAGE_TAG=sha-<backend-commit>
+CLIENT_IMAGE_TAG=sha-<client-commit>
 ```
 
-Backend và frontend phải dùng tag thuộc cùng release.
+`backend`, `worker`, `migrate` và `prisma-studio` dùng chung
+`BACKEND_IMAGE_TAG`. Service `client` dùng `CLIENT_IMAGE_TAG`.
+
+Cấu hình cũ chỉ có `IMAGE_TAG` không còn được Compose sử dụng. Khi nâng cấp tài liệu
+triển khai, phải thay biến này bằng đủ hai biến tag mới trước khi chạy trực tiếp
+`docker compose`.
 
 ### 6.3. Database và Redis
 
@@ -466,12 +507,41 @@ Rollback khi:
 
 1. Đọc release note và migration.
 2. Xác định migration có tương thích ngược không.
-3. Ghi lại `IMAGE_TAG` đang chạy.
-4. Backup PostgreSQL.
-5. Cập nhật `IMAGE_TAG` mới.
-6. Chạy kiểm tra tại phần 7.
+3. Ghi lại repository, `BACKEND_IMAGE_TAG` và `CLIENT_IMAGE_TAG` đang chạy.
+4. Xác nhận image backend và frontend mới đã tồn tại trên registry.
+5. Backup PostgreSQL và Storage theo yêu cầu nghiệp vụ.
+6. Cập nhật `BACKEND_IMAGE`, `CLIENT_IMAGE`, `BACKEND_IMAGE_TAG` và
+   `CLIENT_IMAGE_TAG` nếu cần.
+7. Chạy kiểm tra tại phần 7.
 
-### 12.2. Migration tương thích ngược
+### 12.2. Cập nhật từ source code bàn giao
+
+Sau khi sửa source code trong gói bàn giao:
+
+1. Tạo repository Git do bên nhận quản lý và commit thay đổi.
+2. Chạy lint, test và build.
+3. Build backend và client bằng đúng Dockerfile trong release.
+4. Push image lên registry của bên nhận bằng tag bất biến.
+5. Backup dữ liệu production.
+6. Cập nhật đường dẫn image/tag trong `.env.production`.
+7. Pull image mới, chạy migration rồi khởi động lại ứng dụng.
+8. Chạy smoke test và theo dõi log.
+9. Giữ lại image/tag trước để rollback.
+
+Việc push image mới lên registry không tự cập nhật container đang chạy. Trên server
+vẫn phải chạy:
+
+```bash
+make pull
+make migrate
+make up
+make ps
+```
+
+`make restart` chỉ khởi động lại container hiện có; lệnh này không pull image mới và
+không chạy migration.
+
+### 12.3. Migration tương thích ngược
 
 Nếu schema mới vẫn chạy được với image cũ:
 
@@ -484,7 +554,7 @@ make ps
 
 Sau đó chạy smoke test và theo dõi log.
 
-### 12.3. Migration không tương thích ngược
+### 12.4. Migration không tương thích ngược
 
 Phải lập kế hoạch downtime và rollback dữ liệu riêng.
 
@@ -505,7 +575,7 @@ Không chạy migration phá vỡ schema trong khi image cũ vẫn xử lý requ
 
 Nếu migration tương thích ngược:
 
-1. Đặt `IMAGE_TAG` về tag trước.
+1. Đặt `BACKEND_IMAGE_TAG` và/hoặc `CLIENT_IMAGE_TAG` về tag trước.
 2. Pull image cũ.
 3. Khởi động lại stack.
 4. Chạy smoke test.
@@ -542,6 +612,28 @@ Không chạy `migrate reset`, `db push` hoặc xóa volume để rollback produ
 Không dùng `down -v` trên môi trường có dữ liệu cần giữ.
 
 Storage và PostgreSQL phải được backup theo cùng mốc nghiệp vụ khi cần khôi phục nhất quán.
+
+Thay container, repository image hoặc image tag không xóa các named volume ở trên.
+Tuy nhiên phải giữ ổn định:
+
+- `COMPOSE_PROJECT_NAME=identify-voice`.
+- Tên volume trong `docker-compose.prod.yml`.
+- Server/host đang lưu volume.
+- Mount path `voice_storage:/app/storage`.
+
+Nếu thay `COMPOSE_PROJECT_NAME`, đổi thư mục/project Compose hoặc đổi tên volume,
+Docker có thể tạo volume mới. Dữ liệu cũ chưa chắc bị xóa nhưng ứng dụng sẽ nhìn thấy
+database hoặc Storage rỗng.
+
+Khi chuyển sang server mới, source ZIP và Docker image không mang theo dữ liệu
+production. Phải backup và restore riêng:
+
+1. PostgreSQL.
+2. File/audio trong `voice_storage`.
+3. Secret/cấu hình production qua kênh bảo mật.
+
+Không coi việc chạy được container trên server mới là bằng chứng dữ liệu đã được bàn
+giao đầy đủ.
 
 ## 15. Log và theo dõi sau deploy
 
@@ -636,7 +728,9 @@ Chi tiết xem [Troubleshooting](troubleshooting.md).
 
 - Môi trường.
 - Commit hoặc release version.
-- Image tag backend/frontend.
+- Repository và tag/digest image backend/frontend.
+- Registry và đơn vị sở hữu registry.
+- `COMPOSE_PROJECT_NAME`.
 - Người thực hiện.
 - Thời gian bắt đầu và kết thúc.
 - Migration đã chạy.

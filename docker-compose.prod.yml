@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    image: ${BACKEND_IMAGE}:${BACKEND_IMAGE_TAG}
     env_file: .env.production
     working_dir: /app/apps/api
     environment:
@@ -51,7 +51,7 @@ services:
     restart: unless-stopped
 
   worker:
-    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    image: ${BACKEND_IMAGE}:${BACKEND_IMAGE_TAG}
     env_file: .env.production
     working_dir: /app/apps/api
     environment:
@@ -74,7 +74,7 @@ services:
     restart: unless-stopped
 
   migrate:
-    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    image: ${BACKEND_IMAGE}:${BACKEND_IMAGE_TAG}
     profiles: ["ops"]
     env_file: .env.production
     working_dir: /app/apps/api
@@ -90,7 +90,7 @@ services:
     restart: "no"
 
   prisma-studio:
-    image: ${BACKEND_IMAGE}:${IMAGE_TAG}
+    image: ${BACKEND_IMAGE}:${BACKEND_IMAGE_TAG}
     profiles: ["tools"]
     env_file: .env.production
     working_dir: /app/apps/api
@@ -116,7 +116,7 @@ services:
     restart: unless-stopped
 
   client:
-    image: ${CLIENT_IMAGE}:${IMAGE_TAG}
+    image: ${CLIENT_IMAGE}:${CLIENT_IMAGE_TAG}
     ports:
       - "${CLIENT_PORT:-8080}:80"
     environment:

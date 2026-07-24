@@ -117,7 +117,7 @@ cp .env.production.example .env.production
 
 Nhóm biến quan trọng:
 
-- Image: `BACKEND_IMAGE`, `CLIENT_IMAGE`, `IMAGE_TAG`
+- Image: `BACKEND_IMAGE`, `CLIENT_IMAGE`, `BACKEND_IMAGE_TAG`, `CLIENT_IMAGE_TAG`
 - Runtime: `CLIENT_PORT`, `PORT`, `CLIENT_API_BASE_URL`
 - Database: `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SCHEMA`
 - Tools: `DB_PUBLIC_PORT`, `PRISMA_STUDIO_PORT`
@@ -130,17 +130,21 @@ Nhóm biến quan trọng:
 Lưu ý:
 
 - `CLIENT_API_BASE_URL` mặc định là `/api/v1`, frontend lấy runtime config từ container nên đổi biến này không cần rebuild image FE.
-- `BACKEND_IMAGE`, `CLIENT_IMAGE`, `IMAGE_TAG` nên được điền rõ trong `.env.production` nếu bạn chạy `docker compose ...` trực tiếp thay vì qua `make`.
+- `BACKEND_IMAGE`, `CLIENT_IMAGE`, `BACKEND_IMAGE_TAG`, `CLIENT_IMAGE_TAG` nên được điền rõ trong `.env.production` nếu bạn chạy `docker compose ...` trực tiếp thay vì qua `make`.
 
 Ví dụ:
 
 ```env
 BACKEND_IMAGE=ghcr.io/your-org/identify-voice-backend
 CLIENT_IMAGE=ghcr.io/your-org/identify-voice-client
-IMAGE_TAG=v1.0.0
+BACKEND_IMAGE_TAG=v1.0.0
+CLIENT_IMAGE_TAG=v1.0.0
 CLIENT_PORT=8080
 CLIENT_API_BASE_URL=/api/v1
 ```
+
+Biến cũ `IMAGE_TAG` không còn được Compose sử dụng. Phải khai báo đủ
+`BACKEND_IMAGE_TAG` và `CLIENT_IMAGE_TAG`.
 
 ### Ghi chú quan trọng cho các URL/domain trong `.env.production`
 
@@ -277,7 +281,8 @@ docker login
 ```bash
 export BACKEND_IMAGE=ghcr.io/your-org/identify-voice-backend
 export CLIENT_IMAGE=ghcr.io/your-org/identify-voice-client
-export IMAGE_TAG=v1.0.0
+export BACKEND_IMAGE_TAG=v1.0.0
+export CLIENT_IMAGE_TAG=v1.0.0
 ```
 
 Khuyến nghị:
@@ -308,10 +313,10 @@ Sau khi push xong, kiểm tra lại image/tag trên registry của bạn.
 
 Mỗi lần thay đổi code:
 
-1. đổi `IMAGE_TAG`
+1. đổi `BACKEND_IMAGE_TAG` và/hoặc `CLIENT_IMAGE_TAG`
 2. build lại image
 3. push lại image
-4. cập nhật `IMAGE_TAG` tương ứng ở máy chạy
+4. cập nhật tag tương ứng ở máy chạy
 5. pull và restart
 
 ## Phần 2: Pull Và Deploy Ở Máy Chạy
@@ -427,7 +432,7 @@ make seed
 - Logs runtime của backend/worker được mount vào volume `voice_logs`.
 - `worker` dùng cùng image với `backend`, chỉ khác command khởi động.
 - `db` và `redis` không cần build image riêng.
-- Nếu thấy warning kiểu `The "BACKEND_IMAGE" variable is not set`, hãy thêm `BACKEND_IMAGE`, `CLIENT_IMAGE`, `IMAGE_TAG` vào `.env.production` hoặc dùng `make` thay vì gọi `docker compose` trực tiếp.
+- Nếu thấy warning kiểu `The "BACKEND_IMAGE" variable is not set`, hãy thêm `BACKEND_IMAGE`, `CLIENT_IMAGE`, `BACKEND_IMAGE_TAG`, `CLIENT_IMAGE_TAG` vào `.env.production` hoặc dùng `make` thay vì gọi `docker compose` trực tiếp.
 
 ## Checklist Bàn Giao
 
