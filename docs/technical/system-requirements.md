@@ -38,9 +38,11 @@ Docker image backend đã cài `ffmpeg` và `poppler-utils`. Nếu chạy API tr
 | Backend và worker | `node:20-alpine`     |
 | Frontend runtime  | `nginx:1.27-alpine`  |
 | PostgreSQL        | `postgres:15-alpine` |
-| Redis             | `redis:alpine`       |
+| Redis             | `redis:7.4.9-alpine` |
 
-Khi bàn giao production, nên khóa Redis bằng version cụ thể thay vì dùng tag `alpine` để tránh thay đổi ngoài dự kiến.
+Redis được khóa ở `7.4.9-alpine` để các lần pull image không tự nâng phiên bản ngoài
+dự kiến. Trước khi đổi version Redis trên hệ thống đang có dữ liệu, phải backup và
+kiểm tra khả năng tương thích.
 
 ### 2.3. Trình duyệt
 

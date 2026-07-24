@@ -69,6 +69,12 @@ jobs:
       - name: Lint backend
         run: pnpm --filter api run lint
 
+      - name: Unit test backend
+        run: pnpm --filter api exec jest --runInBand
+
+      - name: E2E test backend
+        run: pnpm --filter api exec jest --config ./test/jest-e2e.json --runInBand
+
       - name: Build backend
         run: pnpm --filter api run build
 

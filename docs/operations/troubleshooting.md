@@ -48,6 +48,9 @@ Không gửi token, cookie, mật khẩu hoặc dữ liệu giọng nói nhạy 
 | 429  | `RATE_LIMIT_EXCEEDED` | Lỗi rate limit được tạo trực tiếp                     | Xử lý như trên                          |
 | 500  | `INTERNAL_ERROR`      | Lỗi nội bộ hoặc upstream chưa được phân loại          | Dùng log để tìm nguyên nhân             |
 | 500  | `UNKNOWN_ERROR`       | Exception không xác định                              | Thu thập log và dữ liệu tái hiện        |
+| 502  | `BAD_GATEWAY`         | Upstream trả phản hồi không hợp lệ                    | Kiểm tra upstream và contract           |
+| 503  | `SERVICE_UNAVAILABLE` | Dịch vụ hoặc Storage tạm thời không sẵn sàng          | Kiểm tra trạng thái dịch vụ             |
+| 504  | `GATEWAY_TIMEOUT`     | Upstream xử lý quá thời gian                          | Kiểm tra tải, network và timeout        |
 
 Mã hiện tại còn khá tổng quát. Message và `details` cần được dùng cùng code để xác định tình huống.
 
@@ -55,10 +58,10 @@ Mã hiện tại còn khá tổng quát. Message và `details` cần được d�
 
 - Các `HttpException` có status chưa được ánh xạ riêng có thể giữ HTTP status nhưng mang
   `error.code=INTERNAL_ERROR`.
-- Lỗi upload quá dung lượng có thể trả HTTP `413` nhưng chưa chắc mang mã
-  `PAYLOAD_TOO_LARGE`; cần đối chiếu cả status, message và log.
-- Lỗi upstream `502`, `503`, `504` và `ServiceUnavailableException` có thể bị chuẩn hóa
-  thành `INTERNAL_ERROR`.
+- Các status `413`, `502`, `503` và `504` đã có mã lỗi riêng và được kiểm tra bằng
+  contract test.
+- Exception không xác định chỉ trả thông báo tổng quát; stack trace được giữ trong log
+  server và không trả cho client.
 - Không dùng riêng `error.message` làm điều kiện xử lý ở frontend vì message chưa phải
   contract ổn định.
 
@@ -370,21 +373,17 @@ HTTP 4xx được log mức warning; 5xx được log mức error.
 - Một số NestJS status ngoài danh sách ánh xạ có thể bị chuẩn hóa thành `INTERNAL_ERROR`.
 - Message hiện có cả tiếng Việt và tiếng Anh.
 - Chưa có registry mã lỗi nghiệp vụ ổn định theo module.
-- Lỗi `413`, `502`, `503` và `504` chưa chắc có `error.code` tương ứng với HTTP status.
 - Một số lỗi chưa phân biệt được lỗi có thể retry và lỗi không được retry.
-- Chi tiết của lỗi không xác định có thể chứa stack trace; cần loại bỏ khỏi response production.
 - Job Redis tạm không phải lịch sử bền vững và có thể mất sau TTL hoặc khi API restart.
 
 Khuyến nghị tiếp theo:
 
 1. Định nghĩa mã lỗi theo domain.
 2. Không dùng message làm khóa xử lý ở frontend.
-3. Ánh xạ rõ `413`, `502`, `503` và `504`, đồng thời giữ nguyên HTTP status.
-4. Thêm request ID vào error response.
-5. Viết test contract cho từng mã lỗi.
-6. Không trả stack trace hoặc thông tin nội bộ cho client ở production.
-7. Bổ sung idempotency/compensation cho thao tác đồng thời qua AI, DB và Storage.
-8. Chuyển job dài hạn sang queue/worker bền vững nếu cần bảo đảm tiếp tục sau restart.
+3. Thêm request ID vào error response.
+4. Mở rộng contract test khi bổ sung mã lỗi mới.
+5. Bổ sung idempotency/compensation cho thao tác đồng thời qua AI, DB và Storage.
+6. Chuyển job dài hạn sang queue/worker bền vững nếu cần bảo đảm tiếp tục sau restart.
 
 ## 22. Tài liệu liên quan
 

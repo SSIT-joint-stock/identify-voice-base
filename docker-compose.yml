@@ -18,7 +18,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:alpine
+    image: redis:7.4.9-alpine
     container_name: identify-voice-redis-dev
     env_file: .env.development
     command: redis-server --requirepass ${REDIS_PASSWORD:-redis_password_123}

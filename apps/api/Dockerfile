@@ -33,6 +33,7 @@ RUN apk add --no-cache ffmpeg poppler-utils
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/apps/api/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./dist
+COPY --from=builder /app/apps/api/docs ./docs
 COPY --from=builder /app/apps/api/prisma ./prisma
 COPY --from=builder /app/apps/api/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/apps/api/src/module/docs ./src/module/docs

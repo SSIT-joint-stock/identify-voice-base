@@ -3,6 +3,11 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/../src/$1",
+    "^music-metadata$": "<rootDir>/../src/test/__mocks__/music-metadata.ts",
+    "^uuid$": "<rootDir>/../src/test/__mocks__/uuid.ts"
+  },
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   }

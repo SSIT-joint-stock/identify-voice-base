@@ -85,7 +85,8 @@ DOCKERHUB_USERNAME
 DOCKERHUB_TOKEN
 ```
 
-CI chưa chạy test tự động và chưa deploy lên server. Trước release phải chạy test liên quan hoặc bổ sung test vào quality gate của CI.
+CI chạy lint, unit test, E2E test và build backend; frontend chạy lint và build. CI
+chưa tự động deploy lên server.
 
 ### 3.2. Phát hành thủ công
 
@@ -741,7 +742,7 @@ Chi tiết xem [Troubleshooting](troubleshooting.md).
 
 ## 20. Giới hạn hiện tại
 
-- CI chưa chạy test và chưa tự động deploy lên server.
+- CI chưa có test tự động cho frontend và chưa tự động deploy lên server.
 - Chưa có health endpoint chuyên dụng.
 - Chưa có script backup/restore chuẩn.
 - Chưa có maintenance mode trong repository.

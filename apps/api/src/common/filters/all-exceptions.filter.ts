@@ -110,6 +110,37 @@ export class AllExceptionsFilter
         case HttpStatus.TOO_MANY_REQUESTS:
           error = new RateLimitError(message, 'RATE_LIMIT', details);
           break;
+        case HttpStatus.PAYLOAD_TOO_LARGE:
+          error = new PayloadTooLargeError(
+            message,
+            'PAYLOAD_TOO_LARGE',
+            details,
+          );
+          break;
+        case HttpStatus.BAD_GATEWAY:
+          error = new InternalServerError(
+            message,
+            'BAD_GATEWAY',
+            details,
+            status,
+          );
+          break;
+        case HttpStatus.SERVICE_UNAVAILABLE:
+          error = new InternalServerError(
+            message,
+            'SERVICE_UNAVAILABLE',
+            details,
+            status,
+          );
+          break;
+        case HttpStatus.GATEWAY_TIMEOUT:
+          error = new InternalServerError(
+            message,
+            'GATEWAY_TIMEOUT',
+            details,
+            status,
+          );
+          break;
         default:
           error = new InternalServerError(message, 'INTERNAL_ERROR', details);
           break;
@@ -161,12 +192,9 @@ export class AllExceptionsFilter
         },
       );
     } else if (exception instanceof Error) {
-      // Handle generic Error objects
-      error = new InternalServerError(
-        exception.message || 'Internal server error',
-        'INTERNAL_ERROR',
-        { stack: exception.stack },
-      );
+      // Do not expose internal messages or stack traces to API clients.
+      // Full diagnostics are retained in server logs by logError().
+      error = new InternalServerError();
     } else {
       // Handle unknown errors
       error = new InternalServerError(
