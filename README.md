@@ -152,11 +152,11 @@ Toàn bộ tài liệu bàn giao được viết bằng Markdown và quản lý 
 
 ### Architecture
 
-| Tài liệu                                                         | Nội dung                              |
-| ---------------------------------------------------------------- | ------------------------------------- |
-| [Kiến trúc hệ thống](./docs/architecture/system-architecture.md) | Thành phần và kết nối                 |
-| [Luồng dữ liệu](./docs/architecture/data-flow.md)                | Auth, upload, enroll, identify và job |
-| [ERD](./docs/architecture/erd.md)                                | Bảng, quan hệ, index và quy tắc xóa   |
+| Tài liệu                                                         | Nội dung                                          |
+| ---------------------------------------------------------------- | ------------------------------------------------- |
+| [Kiến trúc hệ thống](./docs/architecture/system-architecture.md) | Thành phần và kết nối                             |
+| [Luồng dữ liệu](./docs/architecture/data-flow.md)                | Toàn bộ luồng nghiệp vụ, job, lưu trữ và rollback |
+| [ERD](./docs/architecture/erd.md)                                | Bảng, quan hệ, index và quy tắc xóa               |
 
 ### Operations
 
