@@ -1,270 +1,310 @@
-# 🎙️ Voice Identify Service - Backend API Overview
+# Backend API của hệ thống định danh giọng nói
 
-The backend of the **Voice Identify Service** is a high-performance **NestJS** application designed with scalability, reliability, and security in mind. It serves as the primary orchestration layer for the platform, managing authentication, voice record management, and identification session processing.
+Backend là ứng dụng NestJS chịu trách nhiệm xác thực, quản lý tài khoản, lưu trữ audio, đăng ký giọng nói, định danh, xử lý AI và quản lý lịch sử nghiệp vụ.
 
----
+API đóng vai trò điều phối giữa frontend, PostgreSQL, Redis, hệ thống lưu trữ và các dịch vụ AI Core.
 
-## 🏗️ Architecture & Philosophy
+## 1. Kiến trúc
 
-The backend is built using a **Clean Architecture** approach, specifically the **Use-Case Pattern**. This is inspired by the `ecommerce-base` project structure, providing a clear separation between infrastructure (database, workers) and business logic.
+Backend được tổ chức theo module nghiệp vụ và mô hình Use Case.
 
-### Directory Structure
+Controller tiếp nhận HTTP request, kiểm tra dữ liệu đầu vào và gọi service hoặc use case. Tầng repository chịu trách nhiệm truy cập PostgreSQL thông qua Prisma.
+
+Luồng request tổng quát:
+
+```text
+Client
+  → Middleware
+  → Throttler/JWT/Permission Guard
+  → DTO Validation
+  → Controller
+  → Service/Use Case
+  → Repository/AI/Storage/Queue
+  → Response Interceptor
+  → Client
+```
+
+Các lỗi được chuẩn hóa bởi `AllExceptionsFilter`. Request ID, thời gian xử lý và trạng thái response được ghi bởi `HttpLogInterceptor`.
+
+Tài liệu chi tiết:
+
+- [Kiến trúc hệ thống](../../docs/architecture/system-architecture.md)
+- [Luồng dữ liệu](../../docs/architecture/data-flow.md)
+- [ERD](../../docs/architecture/erd.md)
+
+## 2. Cấu trúc thư mục
 
 ```text
 apps/api
-├── prisma              # Database management
-│   ├── schema.prisma   # PostgreSQL models
-│   └── migrations      # Database history
+├── prisma
+│   ├── migrations             # Lịch sử migration
+│   ├── schema.prisma          # Mô hình dữ liệu PostgreSQL
+│   └── seed.ts                # Dữ liệu khởi tạo
 ├── src
-│   ├── common          # Universal NestJS components
-│   │   ├── filters     # Global exception handling
-│   │   ├── guards      # Auth & Throttler guards
-│   │   └── interceptors # Logging & JSON responses
-│   ├── config          # Dynamic environment config
-│   │   ├── index.ts    # Main config export
-│   │   ├── app.config.ts # API server settings
-│   │   └── database.config.ts # Prisma Pg settings
-│   ├── database        # Resource providers
-│   │   ├── prisma      # Prisma Service & Module
-│   │   └── redis       # Redis connection provider
-│   ├── module          # Feature-based business logic
-│   │   ├── auth        # User Identity & Security
-│   │   ├── enroll      # Voice Registration & AI Enrolling
-│   │   ├── voices      # Profile & Record management
-│   │   └── identify    # AI Integration & Sessions
-│   ├── shared          # Global reusable artifacts
-│   │   ├── interfaces  # BaseUseCase defined here
-│   │   └── constants   # Global status codes
-│   ├── workers         # Background processing
-│   │   ├── voice       # Job processors for identification
-│   │   ├── worker.module.ts # Context for job processing
-│   │   └── worker.main.ts   # Entry point for the worker
-│   ├── main.ts         # Main API entry point (HTTP)
-│   └── app.module.ts   # Root NestJS module
-├── Dockerfile          # Multi-stage Docker build
-└── package.json        # Service dependencies
+│   ├── common                 # Guard, filter, interceptor và logger dùng chung
+│   ├── config                 # Đọc và kiểm tra biến môi trường
+│   ├── database
+│   │   ├── prisma             # Prisma service/module
+│   │   └── redis              # Redis service/module
+│   ├── module                 # Các module nghiệp vụ
+│   ├── shared                 # Interface và thành phần tái sử dụng
+│   ├── workers                # Tiến trình xử lý BullMQ
+│   ├── app.module.ts          # Module gốc
+│   └── main.ts                # Điểm khởi chạy HTTP API
+├── Dockerfile                 # Build Docker nhiều giai đoạn
+└── package.json               # Script và dependency của API
 ```
 
----
+Xem mô tả đầy đủ tại [Cấu trúc dự án](../../docs/technical/project-structure.md).
 
-## 🔑 Core Features and Modules
+## 3. Các module nghiệp vụ
 
-### 1. Authentication Module (`/auth`)
+| Module                | Trách nhiệm chính                                      |
+| --------------------- | ------------------------------------------------------ |
+| `auth`                | Đăng nhập, refresh token, logout và đổi mật khẩu       |
+| `user-auth`           | Quản lý tài khoản cá nhân và tài khoản bởi Admin       |
+| `upload`              | Kiểm tra và lưu file audio                             |
+| `storage`             | Trừu tượng hóa thao tác lưu, đọc và xóa file           |
+| `enroll`              | Đăng ký hồ sơ và mẫu giọng nói                         |
+| `identify`            | Định danh một hoặc nhiều người nói                     |
+| `sessions`            | Danh sách, chi tiết và audio theo speaker              |
+| `voices`              | Quản lý hồ sơ, phiên bản và cập nhật embedding         |
+| `ai-voices`           | Quản lý AI identity chưa chuyển thành hồ sơ chính thức |
+| `ai-core`             | OCR, S2T, dịch, tóm tắt và xử lý audio                 |
+| `translation-history` | Tra cứu và chỉnh sửa lịch sử dịch                      |
+| `docs`                | Phục vụ tài liệu Markdown trong ứng dụng               |
 
-We use JWT-based authentication for secure access. The module follows the Use-Case pattern:
+## 4. Xử lý nền và tiến trình Worker
 
-- **`RegisterUserUseCase`**: Handles creation of accounts with password hashing.
-- **`LoginUserUseCase`**: Verifies credentials and generates a signed access token.
-- **`AuthService`**: Orchestrates these use-cases.
+Worker hiện phục vụ queue `update-voice` để cập nhật embedding giọng nói từ các audio đã được chọn.
 
-### 2. Enroll Module (`/voices/enroll`)
-
-Quản lý việc đăng ký thông tin người dùng mới cùng mẫu giọng nói mẫu.
-
-- **`EnrollVoiceUseCase`**: Thực hiện toàn bộ quy trình từ nhận file, gọi AI Service trích xuất đặc trưng, đến lưu trữ hồ sơ tập trung vào database.
-- **AI Service Integration**: Tự động đồng bộ `voice_id` từ hệ thống AI và lưu URL audio phục vụ tra cứu.
-
-### 3. Voices Module (`/voices`)
-
-This module manages the "Ground Truth" of voice records.
-
-- **`CreateVoiceRecordUseCase`**: Saves a new voice profile (CCCD, Phone, Audio Metadata).
-- **`GetVoiceRecordUseCase`**: Retrieves detailed voice profiles.
-
-### 3. Identify Module (`/identify`)
-
-This is the heart of the system.
-
-- **`StartIdentifySessionUseCase`**: When a user submits an audio for identification, this use-case creates a session in PostgreSQL and enqueues a job in **Redis (BullMQ)** for processing.
-- **Status tracking**: Sessions track the state of identification (PENDING, PROCESSING, COMPLETED, FAILED).
-
----
-
-## 🛠️ Background Processing (Worker)
-
-To keep the API responsive, heavy identification tasks are offloaded to our background worker system.
-
-### BullMQ Integration
-
-The `IdentifyModule` pushes a job:
-
-```typescript
-// Enqueue job for background processing
-await this.voiceQueue.add('identify-voice', {
-  sessionId: session.id,
-  audioUrl: session.audio_url,
-  sessionType: session.session_type,
-});
+```text
+API
+  → tạo update_voice_jobs trong PostgreSQL
+  → thêm update-voice-job vào Redis/BullMQ
+  → Update Voice Worker nhận job
+  → gọi AI Core
+  → tạo phiên bản voice mới
+  → cập nhật trạng thái job trong PostgreSQL
 ```
 
-The `VoiceProcessor` at `apps/api/src/workers/voice/voice.processor.ts` picks it up:
+Khởi chạy worker:
 
-1.  **Extract Data**: Receives the session ID and audio source.
-2.  **AI Processing**: Placeholder for calling the identification engine.
-3.  **Update Database**: Writes back the identification results (Confidence, Match).
-
-### Worker Entry Point
-
-The worker has its own entry point `worker.main.ts`. It initializes a `NestFactory.createApplicationContext(WorkerModule)`, which avoids booting up the HTTP server and overhead while still having access to Prisma and Config services.
-
----
-
-## 💾 Database Management: Prisma 7
-
-The project uses **Prisma v7** for database orchestration. We utilize the `PrismaPg` adapter to manage PostgreSQL connections via a pre-configured `pg` Pool.
-
-### Key Config (PrismaService.ts)
-
-```typescript
-const pool = new Pool({
-  connectionString,
-  max: 12,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-});
-const adapter = new PrismaPg(pool);
-super({ adapter });
+```bash
+pnpm dev:worker
 ```
 
-### Database Models & Snake Case
+Worker dùng `NestFactory.createApplicationContext(WorkerModule)` nên không mở HTTP server.
 
-We strictly use `snake_case` for database column and table names to align with standard PostgreSQL conventions, while maintaining `camelCase` in our TypeScript application via Prisma mapping.
+Các job OCR, Speech-to-Text và Translation không dùng worker này. Chúng chạy nền trong process API và lưu trạng thái tạm tại Redis với TTL 30 phút.
 
-```prisma
-model voice_records {
-  id         String   @id @default(uuid()) @db.Uuid
-  name       String   @db.VarChar(255)
-  cccd       String   @unique @db.VarChar(12)
-  phone      String   @db.VarChar(15)
-  audio_url  String   @db.Text
-  metadata   Json?    @db.JsonB
-  created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @updatedAt @db.Timestamp(6)
-}
+Nếu API restart khi các job trên đang chạy, tác vụ có thể không được tiếp tục. Xem thêm [Luồng dữ liệu](../../docs/architecture/data-flow.md).
+
+## 5. Cơ sở dữ liệu
+
+Dự án sử dụng PostgreSQL và Prisma 7. Kết nối PostgreSQL được quản lý bằng `PrismaPg` và pool của thư viện `pg`.
+
+Các bảng nghiệp vụ chính:
+
+- `auth_accounts`: tài khoản đăng nhập và quyền.
+- `users`: thông tin hồ sơ nghiệp vụ.
+- `audio_files`: metadata của file audio.
+- `voice_records`: lịch sử phiên bản giọng nói.
+- `identify_sessions`: phiên và kết quả định danh.
+- `ai_identities_cache`: metadata identity từ AI Core.
+- `update_voice_jobs`: trạng thái job cập nhật voice.
+- `translation_records`: lịch sử dịch và tóm tắt.
+
+Tên bảng và cột trong PostgreSQL dùng `snake_case`. Code TypeScript có thể dùng tên được ánh xạ qua Prisma.
+
+Các lệnh Prisma thường dùng từ thư mục gốc:
+
+```bash
+pnpm prisma:generate
+pnpm prisma:migrate
+pnpm prisma:studio
 ```
 
----
+Không chạy lệnh reset database trên môi trường dùng chung hoặc môi trường vận hành.
 
-## ⚙️ Configuration System
+## 6. Cấu hình môi trường
 
-Our configuration system is dynamic and validates environment variables on startup.
+`ConfigModule` đọc cấu hình theo thứ tự ưu tiên:
 
-### Environments
+1. `.env.<NODE_ENV>.local`
+2. `.env.<NODE_ENV>`
+3. `.env.local`
+4. `.env`
+5. Các file môi trường ở thư mục gốc monorepo
 
-- `.env.development`: For local coding.
-- `.env.production`: For containerized deployment.
+Hàm `validateEnv` kiểm tra các biến bắt buộc khi ứng dụng khởi động. API sẽ dừng sớm và báo lỗi nếu cấu hình không hợp lệ.
 
-### Validation Schema (`validateEnv`)
+Các nhóm cấu hình chính:
 
-Located in `apps/api/src/config/index.ts`, we use `class-validator` and `class-transformer` to ensure all required fields like `DATABASE_URL`, `JWT_SECRET`, and `REDIS_HOST` are present. If a variable is missing, the backend will fail-fast and throw an error with a detailed report.
+| Nhóm        | Nội dung                                         |
+| ----------- | ------------------------------------------------ |
+| `app`       | Tên ứng dụng, môi trường và port                 |
+| `database`  | Kết nối PostgreSQL                               |
+| `jwt`       | Secret và thời hạn access/refresh token          |
+| `redis`     | Kết nối Redis                                    |
+| `storage`   | Driver, thư mục lưu trữ và CDN URL               |
+| `ai`        | URL của Identify, S2T, Filter Noise, Translation |
+| `throttler` | Giới hạn số request theo thời gian               |
+| `cookie`    | Domain, secure, HTTP-only và thời hạn cookie     |
+| `client`    | Origin của frontend                              |
 
-### Configuration Registry
+Dùng `.env.development` cho môi trường cục bộ và tạo `.env.production` từ file mẫu khi triển khai:
 
-- **`app`**: Server port, environment (dev/prod).
-- **`database`**: PostgreSQL connection strings and pool settings.
-- **`jwt`**: Secret keys and expiration timings.
-- **`redis`**: Host, port, and authentication for BullMQ.
-- **`throttler`**: Rate limiting thresholds (default 10 requests per minute).
+```bash
+cp .env.production.example .env.production
+```
 
----
+Không commit secret hoặc dùng lại secret của môi trường phát triển trên môi trường vận hành.
 
-## 📖 API Documentation (Swagger)
+## 7. Cài đặt và chạy cục bộ
 
-The backend provides built-in API documentation available at `/api/docs`.
+Thực hiện từ thư mục gốc của repository:
 
-- **Tags**: Organized by feature (Auth, Voices, Identify).
-- **DTOs**: Every request/response is documented with examples and validation requirements.
-- **Bearer Auth**: JWT protection is visualized in the UI for easy testing.
+```bash
+pnpm install
+pnpm infra:up
+pnpm prisma:generate
+pnpm prisma:migrate
+pnpm dev:api
+```
 
-### Swagger Documentation Rules
+Chạy worker ở terminal khác khi sử dụng chức năng Update Voice:
 
-1.  All exposed variables must have `@ApiProperty()`.
-2.  All controllers must specify `@ApiTags()`.
-3.  Error responses (`401`, `403`, `404`) must be explicitly documented using `@ApiResponse()`.
+```bash
+pnpm dev:worker
+```
 
----
+Địa chỉ mặc định:
 
-## 🛡️ Security Best Practices
+| Thành phần      | Địa chỉ                               |
+| --------------- | ------------------------------------- |
+| Backend         | `http://localhost:3000`               |
+| API prefix      | `http://localhost:3000/api/v1`        |
+| Swagger UI      | `http://localhost:3000/api-docs`      |
+| OpenAPI JSON    | `http://localhost:3000/api-docs-json` |
+| Tài liệu module | `http://localhost:3000/docs`          |
 
-### 1. Robust Rate Limiting
+Port thực tế có thể thay đổi theo biến môi trường.
 
-We use `ThrottlerModule` to protect all API endpoints from brute-force attacks and resource exhaustion.
+Xem hướng dẫn chi tiết:
 
-### 2. Standardized JWT Guards
+- [Cài đặt môi trường](../../docs/setup/environment-setup.md)
+- [Build và chạy dự án](../../docs/setup/build-and-run.md)
 
-A customized `JwtAuthGuard` ensures all endpoints in `IdentifyModule` and `VoicesModule` (protected routes) are secured.
+## 8. Tài liệu API bằng Swagger
 
-### 3. Response Standardization
+Backend tự động sinh tài liệu API từ decorator của controller và DTO.
 
-All API responses are wrapped by the `ResponseInterceptor` at `apps/api/src/common/interceptors/response.interceptor.ts`.
+- **Swagger UI**: `http://localhost:3000/api-docs`.
+- **OpenAPI JSON**: `http://localhost:3000/api-docs-json`.
+- **Tags**: API được phân nhóm theo chức năng.
+- **DTO**: Mô tả request, response, ví dụ và validation.
+- **Bearer Auth**: Cho phép nhập JWT access token để thử API được bảo vệ.
 
-### Standard Success Format:
+Quy tắc cập nhật Swagger:
+
+1. Thuộc tính công khai phải dùng `@ApiProperty()` hoặc `@ApiPropertyOptional()`.
+2. Controller phải có `@ApiTags()`.
+3. Endpoint phải mô tả mục đích bằng `@ApiOperation()`.
+4. Response và lỗi quan trọng phải dùng `@ApiResponse()` hoặc decorator tương ứng.
+5. Không đưa password, token hoặc dữ liệu nhạy cảm vào ví dụ response.
+
+Danh mục endpoint dạng Markdown nằm tại [Tổng quan API](../../docs/technical/api-overview.md).
+
+## 9. Xác thực và phân quyền
+
+Hệ thống sử dụng JWT access token trong Bearer header. Refresh token được gửi bằng HTTP-only cookie.
+
+Các endpoint bảo vệ có thể đi qua:
+
+- `JwtAuthGuard`: xác thực access token.
+- Role guard: giới hạn theo vai trò.
+- Permission guard: kiểm tra quyền nghiệp vụ.
+- `ThrottlerGuard`: hạn chế request.
+- `ValidationPipe`: loại field thừa và kiểm tra DTO.
+
+Password được hash trước khi lưu.
+
+Hiện phần triển khai lưu trực tiếp refresh token vào database dù comment/schema mô tả là hash. Cần xử lý sai lệch này trước khi đưa hệ thống lên môi trường vận hành.
+
+## 10. Chuẩn dữ liệu trả về và xử lý lỗi
+
+`ResponseInterceptor` chuẩn hóa response thành cấu trúc chung.
+
+Ví dụ response thành công:
 
 ```json
 {
   "success": true,
-  "data": { ... },
-  "message": "Operation successful",
+  "data": {},
+  "message": "Thao tác thành công",
   "meta": {
     "timestamp": "2026-04-04T15:26:00Z"
   }
 }
 ```
 
-### Standard Error Format:
+`AllExceptionsFilter` chuyển exception thành mã HTTP và payload lỗi thống nhất.
 
-Managed by the `AllExceptionsFilter`, providing a clear error trace for debugging while shielding internal database details from production users.
+Không trả stack trace, câu lệnh SQL, secret hoặc thông tin nội bộ cho client trên môi trường vận hành.
 
----
+Danh sách lỗi và cách xử lý nằm tại [Troubleshooting](../../docs/operations/troubleshooting.md).
 
-## 🏗️ Use-Case Pattern Implementation example
+## 11. Mô hình Use Case
 
-The project follows a **Clean Architecture** approach using the **Use-Case Pattern**. Instead of bloated services, every business action is encapsulated in a specific class.
+Mỗi hành động nghiệp vụ chính được đóng gói trong một use case riêng.
 
-### Example: RegisterUserUseCase
+Ví dụ một use case thường thực hiện:
 
-Located in `apps/api/src/module/auth/use-cases/register-user.usecase.ts`:
+1. Kiểm tra DTO và quyền truy cập.
+2. Đọc dữ liệu cần thiết từ repository.
+3. Áp dụng quy tắc nghiệp vụ.
+4. Gọi AI Core, Storage hoặc Queue khi cần.
+5. Ghi dữ liệu qua repository.
+6. Trả về dữ liệu đã loại bỏ thông tin nhạy cảm.
 
-1.  **Validate input**: Check if user exists.
-2.  **Secure data**: Hash the password using bcrypt.
-3.  **Persist**: Save the account to the database via Prisma.
-4.  **Return**: Return the created user (masking sensitive data).
+Lợi ích:
 
-### Benefits of the Use-Case Pattern:
+- Dễ kiểm thử từng nghiệp vụ độc lập.
+- Controller ngắn và tập trung vào HTTP.
+- Tách quy tắc nghiệp vụ khỏi Prisma và framework.
+- Giảm ảnh hưởng khi thay đổi một module.
 
-- **Testability**: Each use-case can be unit-tested in isolation, without mocking entire services.
-- **Readability**: Clear boundaries for business logic. Each file does one thing.
-- **Maintainability**: Changes in one feature (e.g., Auth) don't impact others (e.g., Identify).
+## 12. Kiểm thử và kiểm tra chất lượng
 
----
+Các lệnh thường dùng:
 
-## 🚀 Production Deployment Guide
+```bash
+pnpm test:api
+pnpm lint:api
+pnpm build:api
+```
 
-This section is the minimal runbook for deploying `apps/api` in production. The backend is split into two long-running processes:
+Có thể chạy test riêng trong package API:
 
-- `backend`: NestJS HTTP API
-- `worker`: BullMQ consumer for `update-voice` jobs
+```bash
+pnpm --filter api run test
+pnpm --filter api run test:watch
+pnpm --filter api run test:cov
+```
 
-Both processes must share the same PostgreSQL database, Redis instance, and AI service.
+Trước khi bàn giao, cần bảo đảm build thành công, migration hợp lệ và các test liên quan đều đạt.
 
-### 1. Required Runtime Dependencies
+## 13. Triển khai môi trường vận hành
 
-Before deploying, make sure these services already exist and are reachable from the API/worker runtime:
+Backend trên môi trường vận hành gồm hai tiến trình chạy lâu dài:
 
-- PostgreSQL
-- Redis
-- AI voice service
-- Persistent filesystem storage for uploaded files if you do not want local container storage to be ephemeral
+- `backend`: NestJS HTTP API.
+- `worker`: BullMQ consumer cho job `update-voice`.
 
-### 2. Required Environment Variables
+Cả hai phải sử dụng cùng PostgreSQL, Redis, Storage và cấu hình AI Core.
 
-At minimum, production must provide these variables in .env.example.production
-
-Do not reuse `.env.development` in production.
-
-### 3. Build Artifacts
-
-From the repo root:
+### 13.1. Biên dịch
 
 ```bash
 pnpm install --frozen-lockfile
@@ -272,92 +312,76 @@ pnpm --filter api run prisma:generate
 pnpm --filter api run build
 ```
 
-For Docker-based deployment, build from the root context because the Dockerfile depends on workspace files:
+Tạo Docker image từ thư mục gốc vì Dockerfile phụ thuộc các file trong workspace:
 
 ```bash
 docker build -f apps/api/Dockerfile -t voice-identify-api:latest .
 ```
 
-### 4. Database Migration
+### 13.2. Cập nhật cấu trúc cơ sở dữ liệu
 
-Run Prisma migrations before starting new application pods/containers:
+Chạy migration trước khi khởi động phiên bản ứng dụng mới:
 
 ```bash
 pnpm --filter api exec prisma migrate deploy
 ```
 
-If Prisma Client is not generated in your CI/CD step, run:
+Chỉ chạy seed khi môi trường thực sự cần dữ liệu khởi tạo.
 
-```bash
-pnpm --filter api run prisma:generate
-```
+### 13.3. Khởi động
 
-Only run seed scripts if your environment explicitly requires bootstrap data.
-
-### 5. Start Commands
-
-If you run processes directly:
+Chạy trực tiếp:
 
 ```bash
 pnpm --filter api run start:prod
 pnpm --filter api run start:worker:prod
 ```
 
-If you run with Docker Compose in this repo, the service names are:
+Chạy bằng Docker Compose:
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d backend worker
 ```
 
-Note:
+Tên service Compose là `backend`, không phải `api`.
 
-- The compose service name is `backend`, not `api`
-- The worker must be deployed separately from the HTTP API
-- Both services must use the same `DATABASE_URL` and `REDIS_URL`
+### 13.4. Danh sách kiểm tra sau triển khai
 
-### 6. Production Checklist
+1. `backend` khởi động không có lỗi validation môi trường.
+2. `worker` kết nối được Redis và nhận queue `update-voice`.
+3. Prisma migration đã chạy thành công.
+4. API và worker kết nối được PostgreSQL.
+5. Worker gọi được AI Core.
+6. Storage có quyền đọc và ghi đúng thư mục.
+7. Job thực tế chuyển qua `PENDING → PROCESSING → DONE` hoặc `FAILED`.
+8. Swagger chỉ được mở theo chính sách của môi trường.
 
-Before marking deployment healthy, verify:
+Xem runbook đầy đủ tại [Triển khai](../../docs/operations/deployment.md).
 
-1. `backend` starts without env validation errors
-2. `worker` starts and logs `Update-voice worker started and listening for jobs`
-3. `worker` logs the expected `AI config resolved: url=...`
-4. Prisma migrations have been applied successfully
-5. Redis is reachable from both API and worker
-6. AI service is reachable from worker
-7. A real `update-voice` job transitions through `PENDING -> PROCESSING -> DONE` or `FAILED` with a meaningful error
+## 14. Ghi log và giám sát
 
-### 7. Operational Notes
+Ứng dụng sử dụng Winston để ghi log có cấu trúc.
 
-- `update-voice` jobs retry automatically with BullMQ based on the configured attempts/backoff
-- A stuck job may remain in `PENDING` or `PROCESSING` if the worker dies mid-flight; the API currently marks stale jobs as `FAILED` before accepting a new one
-- If `worker` logs `AI config resolved: url=ngrok`, your runtime env is not loading the intended production value
-- If the worker logs `ECONNREFUSED` when calling `/upload_voice`, the AI service is not reachable from the worker runtime
+Các nhóm log chính:
 
-### 8. Example `.env.production`
+- HTTP request/response từ `HttpLogInterceptor`.
+- Sự kiện vòng đời của API và worker.
+- Lỗi ứng dụng và lỗi tích hợp.
+- Trạng thái xử lý BullMQ.
 
-You can use the repo template at root:
+Môi trường vận hành ghi log JSON để hệ thống thu thập log như ELK hoặc Grafana Loki có thể xử lý.
 
-```bash
-cp .env.production.example .env.production
-```
+Giám sát là hạng mục tùy chọn của lần bàn giao hiện tại. Tối thiểu cần giữ log lỗi, request ID và trạng thái job để phục vụ xử lý sự cố.
 
----
+Không ghi password, JWT, cookie, secret hoặc nội dung nhạy cảm vào log.
 
-## 📊 Monitoring & Logging
+## 15. Tài liệu liên quan
 
-We utilize **Winston** for structured logging across the application. Logs include:
-
-- **HTTP Logs**: Captured by `HttpLogInterceptor`.
-- **System Logs**: Application lifecycle events.
-- **Error Logs**: Persistent trace of all failures.
-
-All logs are formatted as JSON in production for easy ingestion by ELK or Grafana Loki stacks.
-
----
-
-## 📞 Support and Team
-
-This backend was architected by the **SSIT Engineering Team**. For questions regarding the identification algorithm or database schema, please reach out via GitHub Issues.
-
----
+- [README tổng quan](../../README.md)
+- [Yêu cầu hệ thống](../../docs/technical/system-requirements.md)
+- [Cấu trúc dự án](../../docs/technical/project-structure.md)
+- [Tổng quan API](../../docs/technical/api-overview.md)
+- [Kiến trúc hệ thống](../../docs/architecture/system-architecture.md)
+- [Luồng dữ liệu](../../docs/architecture/data-flow.md)
+- [ERD](../../docs/architecture/erd.md)
+- [Troubleshooting](../../docs/operations/troubleshooting.md)
