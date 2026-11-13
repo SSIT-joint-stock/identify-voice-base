@@ -31,7 +31,7 @@ flowchart LR
     Worker --> Storage
 ```
 
-Nginx trong image client lắng nghe HTTP port 80. HTTPS phải được terminate tại load balancer, ingress hoặc reverse proxy của hạ tầng.
+Nginx non-root trong image client lắng nghe HTTP port 8080. HTTPS phải được terminate tại load balancer, ingress hoặc reverse proxy của hạ tầng.
 
 AI Core nằm ngoài `docker-compose.prod.yml`. Server phải kết nối được tới từng endpoint AI đã cấu hình.
 

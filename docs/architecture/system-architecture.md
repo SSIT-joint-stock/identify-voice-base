@@ -433,7 +433,7 @@ Development có thể chạy backend và worker trong Docker bằng `docker-comp
 
 ```mermaid
 flowchart LR
-    User --> Nginx[Client / Nginx :80]
+    User --> Nginx[Client / Nginx :8080]
     Nginx --> API[Backend :3000]
     API --> DB[(PostgreSQL :5432)]
     API --> Redis[(Redis :6379)]

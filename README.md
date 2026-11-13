@@ -51,7 +51,7 @@ Chi tiết xem [Kiến trúc hệ thống](./docs/architecture/system-architectu
 | Thành phần | Công nghệ                                |
 | ---------- | ---------------------------------------- |
 | Monorepo   | pnpm workspace, Turborepo                |
-| Backend    | Node.js 20, NestJS 11, TypeScript        |
+| Backend    | Node.js 22, NestJS 11, TypeScript        |
 | Frontend   | React 19, Vite 8, TypeScript             |
 | Database   | PostgreSQL 15, Prisma 7                  |
 | Queue      | Redis, BullMQ                            |
@@ -64,7 +64,7 @@ Chi tiết xem [Kiến trúc hệ thống](./docs/architecture/system-architectu
 
 ### Yêu cầu
 
-- Node.js 20 trở lên.
+- Node.js 22.22.2 trở lên, cùng major 22.
 - pnpm 9.15.4 hoặc tương thích.
 - Docker Engine và Docker Compose v2.
 - Git.

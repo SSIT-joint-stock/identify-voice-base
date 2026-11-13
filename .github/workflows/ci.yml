@@ -7,11 +7,12 @@ on:
     branches: [main, develop]
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
   PNPM_VERSION: "9.15.4"
 
 jobs:
   detect_changes:
+    name: Changes - Detect Affected Applications
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
@@ -45,6 +46,7 @@ jobs:
               - '.github/workflows/ci.yml'
 
   test_backend:
+    name: Backend - Lint, Test and Build
     needs: detect_changes
     if: needs.detect_changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
@@ -87,6 +89,7 @@ jobs:
         run: pnpm --filter api run verify:terminal-launcher:dist
 
   test_frontend:
+    name: Frontend - Lint, Test and Build
     needs: detect_changes
     if: needs.detect_changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
@@ -209,6 +212,7 @@ jobs:
           echo "HIGH/CRITICAL secrets and misconfigurations also block CI." >> "$GITHUB_STEP_SUMMARY"
 
   verify_terminal_launcher_docker:
+    name: Terminal Launcher - Verify Docker Image
     needs: [detect_changes, test_backend]
     if: |
       needs.detect_changes.outputs.backend == 'true' &&
@@ -236,6 +240,7 @@ jobs:
             identify-voice-backend:terminal-launcher-ci
 
   build_and_push_backend:
+    name: Backend - Build and Push Docker Image
     needs:
       [
         detect_changes,
@@ -285,6 +290,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   build_and_push_frontend:
+    name: Frontend - Build and Push Docker Image
     needs: [detect_changes, test_frontend, security_scan]
     if: |
       github.event_name == 'push' &&

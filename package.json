@@ -1,6 +1,9 @@
 {
   "name": "voice-identify-service",
   "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=22.22.2 <23"
+  },
   "private": true,
   "scripts": {
     "prepare": "husky",
