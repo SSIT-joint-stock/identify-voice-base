@@ -66,6 +66,7 @@ CI hiện thực hiện:
 - Cài dependency bằng lockfile.
 - Sinh Prisma Client.
 - Lint và build.
+- Chạy regression test và xác minh build/Docker artifact của Terminal Launcher.
 - Build image khi push vào `main`.
 - Push image backend và frontend lên Docker Hub.
 
@@ -468,6 +469,7 @@ Thực hiện theo thứ tự:
 8. Tạo một Update Voice job và kiểm tra worker.
 9. Mở audio URL qua `/cdn`.
 10. Kiểm tra session và translation history.
+11. Kiểm tra `HEAD /api/terminal/install.sh` qua origin public của frontend.
 
 Checklist:
 
@@ -480,9 +482,13 @@ Checklist:
 - [ ] Worker xử lý job đến `DONE` hoặc trả lỗi có ý nghĩa.
 - [ ] Audio URL phát được.
 - [ ] PostgreSQL, Redis và AI Core không có lỗi kết nối lặp lại.
+- [ ] Terminal installer trả `200`, đúng content type và không bị SPA fallback.
 - [ ] Log không chứa secret hoặc dữ liệu nhạy cảm.
 
 Backend chưa có health endpoint chuyên dụng. Không dùng `/health` làm acceptance gate cho đến khi endpoint được triển khai.
+
+Quy trình chi tiết cho installer artifact và Ubuntu desktop acceptance nằm tại
+[Terminal Launcher operations](terminal-launcher.md).
 
 ## 11. Tiêu chí chấp nhận release
 

@@ -20,7 +20,7 @@ export CLIENT_IMAGE_TAG
 export CLIENT_PORT
 export CLIENT_API_BASE_URL
 
-.PHONY: build build-backend build-client push pull up down logs ps migrate restart tools-up tools-down studio-logs
+.PHONY: build build-backend build-client verify-terminal-launcher-image push pull up down logs ps migrate restart tools-up tools-down studio-logs
 
 build: build-backend build-client
 
@@ -31,6 +31,10 @@ build-client:
 	docker build -f $(ROOT_DIR)/apps/client/Dockerfile \
 		--build-arg VITE_API_BASE_URL=$(CLIENT_API_BASE_URL) \
 		-t $(CLIENT_IMAGE):$(CLIENT_IMAGE_TAG) $(ROOT_DIR)
+
+verify-terminal-launcher-image:
+	bash $(ROOT_DIR)/apps/api/test/terminal-launcher/docker.verify.sh \
+		$(BACKEND_IMAGE):$(BACKEND_IMAGE_TAG)
 
 push:
 	docker push $(BACKEND_IMAGE):$(BACKEND_IMAGE_TAG)

@@ -161,10 +161,11 @@ Toàn bộ tài liệu bàn giao được viết bằng Markdown và quản lý 
 
 ### Operations
 
-| Tài liệu                                                | Nội dung                         |
-| ------------------------------------------------------- | -------------------------------- |
-| [Triển khai](./docs/operations/deployment.md)           | Build image và deploy production |
-| [Troubleshooting](./docs/operations/troubleshooting.md) | Mã lỗi, tình huống và cách xử lý |
+| Tài liệu                                                    | Nội dung                                     |
+| ----------------------------------------------------------- | -------------------------------------------- |
+| [Triển khai](./docs/operations/deployment.md)               | Build image và deploy production             |
+| [Troubleshooting](./docs/operations/troubleshooting.md)     | Mã lỗi, tình huống và cách xử lý             |
+| [Terminal Launcher](./docs/operations/terminal-launcher.md) | CI, Docker verification, rollout và rollback |
 
 ## Database
 

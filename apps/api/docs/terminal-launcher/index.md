@@ -32,3 +32,9 @@ The command must run on the Ubuntu host, not inside the Docker container. Review
 the URL and trust the serving application before executing downloaded code.
 
 Supported installer actions are `install`, `reinstall`, and `uninstall`.
+
+## Operations
+
+CI gates, Docker artifact verification, deployment smoke tests, Ubuntu desktop
+acceptance and rollback are documented in the
+[Terminal Launcher operations runbook](../../../../docs/operations/terminal-launcher.md).

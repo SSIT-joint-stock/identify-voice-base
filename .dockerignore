@@ -1,11 +1,16 @@
 node_modules
+**/node_modules
 .git
 .github
 .turbo
 dist
+**/dist
 coverage
+**/coverage
 logs
+**/logs
 storage
+**/storage
 .env
 .env.local
 .env.*.local

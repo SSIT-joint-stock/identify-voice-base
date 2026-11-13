@@ -26,6 +26,7 @@ jobs:
             backend:
               - 'apps/api/**'
               - 'apps/api/Dockerfile'
+              - '.dockerignore'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
@@ -35,6 +36,7 @@ jobs:
             frontend:
               - 'apps/client/**'
               - 'apps/client/Dockerfile'
+              - '.dockerignore'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
@@ -72,11 +74,17 @@ jobs:
       - name: Unit test backend
         run: pnpm --filter api exec jest --runInBand
 
+      - name: Test Terminal Launcher installer
+        run: pnpm --filter api run test:terminal-launcher
+
       - name: E2E test backend
         run: pnpm --filter api exec jest --config ./test/jest-e2e.json --runInBand
 
       - name: Build backend
         run: pnpm --filter api run build
+
+      - name: Verify Terminal Launcher build artifact
+        run: pnpm --filter api run verify:terminal-launcher:dist
 
   test_frontend:
     needs: detect_changes
@@ -110,13 +118,41 @@ jobs:
         env:
           VITE_API_BASE_URL: /api/v1
 
-  build_and_push_backend:
+  verify_terminal_launcher_docker:
     needs: [detect_changes, test_backend]
+    if: |
+      needs.detect_changes.outputs.backend == 'true' &&
+      needs.test_backend.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build backend verification image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          load: true
+          push: false
+          tags: identify-voice-backend:terminal-launcher-ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify Terminal Launcher in final image
+        run: |
+          bash apps/api/test/terminal-launcher/docker.verify.sh \
+            identify-voice-backend:terminal-launcher-ci
+
+  build_and_push_backend:
+    needs: [detect_changes, test_backend, verify_terminal_launcher_docker]
     if: |
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       needs.detect_changes.outputs.backend == 'true' &&
-      needs.test_backend.result == 'success'
+      needs.test_backend.result == 'success' &&
+      needs.verify_terminal_launcher_docker.result == 'success'
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/identify-voice-backend
