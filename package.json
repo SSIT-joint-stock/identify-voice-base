@@ -58,6 +58,11 @@
   "prisma": {
     "schema": "apps/api/prisma/schema.prisma"
   },
+  "pnpm": {
+    "overrides": {
+      "proxy-addr@<2.0.8": "2.0.8"
+    }
+  },
   "devDependencies": {
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",
