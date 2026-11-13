@@ -67,8 +67,19 @@ CI hiện thực hiện:
 - Sinh Prisma Client.
 - Lint và build.
 - Chạy regression test và xác minh build/Docker artifact của Terminal Launcher.
+- Quét dependency, secret và cấu hình sai bằng Trivy.
+- Lưu báo cáo SARIF trong workflow artifact trong 30 ngày.
 - Build image khi push vào `main`.
 - Push image backend và frontend lên Docker Hub.
+
+Security scan chặn phát hành khi phát hiện dependency mức `CRITICAL` đã có bản
+vá, hoặc secret/misconfiguration mức `HIGH`/`CRITICAL`. Các vulnerability mức
+khác vẫn được ghi vào báo cáo để theo dõi. Mọi ngoại lệ phải khai báo có lý do và
+ngày hết hạn trong `.trivyignore.yaml`; xem [Trivy repository scanning](../../.trivy/README.md).
+
+Nếu repository hỗ trợ GitHub Code Scanning, đặt repository variable
+`ENABLE_GITHUB_CODE_SCANNING=true` để đồng thời tải SARIF lên tab Security.
+Không bật biến này thì CI vẫn quét, enforce và lưu SARIF dưới dạng artifact.
 
 CI hiện tạo hai dạng tag:
 

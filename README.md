@@ -164,6 +164,7 @@ Toàn bộ tài liệu bàn giao được viết bằng Markdown và quản lý 
 | Tài liệu                                                    | Nội dung                                     |
 | ----------------------------------------------------------- | -------------------------------------------- |
 | [Triển khai](./docs/operations/deployment.md)               | Build image và deploy production             |
+| [Security scan](./.trivy/README.md)                         | Trivy policy, SARIF và CI enforcement        |
 | [Troubleshooting](./docs/operations/troubleshooting.md)     | Mã lỗi, tình huống và cách xử lý             |
 | [Terminal Launcher](./docs/operations/terminal-launcher.md) | CI, Docker verification, rollout và rollback |
 
