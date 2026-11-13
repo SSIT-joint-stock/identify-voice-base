@@ -11,26 +11,36 @@ This project follows a strict **Feature-Based Modular Pattern**. Instead of grou
 ### Directory Structure Explained
 
 ```text
-apps/client/src
-├── api/                # Global Axios instance & interceptors
-├── components/         # Shared generic UI components
-│   └── ui/             # shadcn/ui base components
-├── configs/            # Application constants and configuration
-├── feature/            # ⭐ The Core: Feature-specific modules
-│   └── voice/          # Voice Profile Feature
-│       ├── api/        # Feature-specific API calls (React Query)
-│       ├── components/ # Components unique to this feature
-│       ├── hooks/      # Business logic encapsulated in hooks
-│       ├── schemas/    # Zod validation schemas for forms
-│       ├── types/      # Feature-specific TypeScript interfaces
-│       └── store/      # Zustand store for feature state
-├── hooks/              # Global reusable utility hooks (e.g., useTheme)
-├── layouts/            # Page layout wrappers (Main, Auth, Dashboard)
-├── libs/               # Third-party library initializations
-├── pages/              # Route-level components
-├── types/              # Global shared TypeScript types
-└── utils/              # Helper functions (Formatters, Validators)
+apps/client
+├── src/
+│   ├── api/                # Global Axios instance & interceptors
+│   ├── components/         # Shared generic UI components
+│   │   └── ui/             # shadcn/ui base components
+│   ├── configs/            # Application constants and configuration
+│   ├── feature/            # ⭐ Feature-specific modules
+│   │   └── voice/
+│   │       ├── api/
+│   │       ├── components/
+│   │       ├── hooks/
+│   │       ├── schemas/
+│   │       ├── types/
+│   │       └── store/
+│   ├── hooks/              # Global reusable hooks
+│   ├── layouts/            # Page layout wrappers
+│   ├── libs/               # Third-party initializations
+│   ├── pages/              # Route-level components
+│   ├── types/              # Global shared TypeScript types
+│   └── utils/              # Shared helpers
+└── test/                   # Centralized Vitest tests, mirroring src/
+    ├── feature/            # Feature unit and component tests
+    ├── pages/              # Route-level component tests
+    └── setup.ts            # Shared test cleanup/setup
 ```
+
+Tests are intentionally kept outside `src`. A test must mirror the source path,
+use a `.test.ts` or `.test.tsx` suffix, and import application code through the
+`@/` alias. See [Project Structure](../../docs/technical/project-structure.md)
+for the repository-wide convention.
 
 ---
 
@@ -179,6 +189,15 @@ graph LR
 ---
 
 ## 🧰 Development Workflow
+
+### Frontend Tests
+
+```bash
+pnpm test:client
+```
+
+Vitest scans only `apps/client/test`. New test files must not be colocated in
+`apps/client/src`.
 
 ### Coding Standards
 

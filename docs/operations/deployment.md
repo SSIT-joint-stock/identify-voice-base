@@ -85,8 +85,8 @@ DOCKERHUB_USERNAME
 DOCKERHUB_TOKEN
 ```
 
-CI chạy lint, unit test, E2E test và build backend; frontend chạy lint và build. CI
-chưa tự động deploy lên server.
+CI chạy lint, unit test, E2E test và build backend; frontend chạy lint, unit test
+và build. CI chưa tự động deploy lên server.
 
 ### 3.2. Phát hành thủ công
 

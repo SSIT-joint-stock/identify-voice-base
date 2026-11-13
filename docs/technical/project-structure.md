@@ -124,8 +124,15 @@ apps/client
 │   ├── store
 │   ├── types
 │   └── utils
+├── test
+│   ├── feature
+│   ├── pages
+│   └── setup.ts
 ├── Dockerfile
-└── vite.config.ts
+├── tsconfig.test.json
+├── vite.config.ts
+├── vitest.config.ts
+└── package.json
 ```
 
 ### `src/feature`
@@ -143,6 +150,33 @@ Chứa tài nguyên tĩnh và runtime config. Production có thể đổi API ba
 ### `docker`
 
 Chứa cấu hình Nginx và entrypoint tạo runtime config.
+
+### `test`
+
+Chứa toàn bộ unit test và component test của frontend. Cấu trúc bên trong phải
+mirror đường dẫn tương ứng trong `src` để dễ xác định source đang được kiểm thử.
+
+```text
+apps/client
+├── src
+│   ├── feature/terminal-launcher/components/open-terminal-entry-point.tsx
+│   └── pages/TerminalSetup.tsx
+└── test
+    ├── feature/terminal-launcher/components/open-terminal-entry-point.test.tsx
+    └── pages/terminal-setup.test.tsx
+```
+
+Quy ước test frontend:
+
+- Chỉ đặt file `*.test.ts`, `*.test.tsx`, `*.spec.ts` và `*.spec.tsx` trong
+  `apps/client/test`; không đặt xen kẽ trong `src`.
+- Ưu tiên hậu tố `.test.*` cho unit/component test; chỉ dùng `.spec.*` khi cần
+  giữ convention của một test suite đã tồn tại.
+- Import source qua alias `@/` thay vì đường dẫn tương đối xuyên qua `src`.
+- Shared setup đặt tại `test/setup.ts` và được khai báo trong
+  `vitest.config.ts`.
+- TypeScript dành cho test được cấu hình riêng tại `tsconfig.test.json`.
+- Chạy test bằng `pnpm test:client` từ repository root.
 
 ## 4. Tài liệu
 

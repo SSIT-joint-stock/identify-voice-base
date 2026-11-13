@@ -67,6 +67,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar-context";
 import { ROUTES } from "@/constants";
+import { OpenTerminalEntryPoint } from "@/feature/terminal-launcher/components/open-terminal-entry-point";
 import { isAdminUser } from "@/lib/auth";
 import { useAuthStore } from "@/store/auth.store";
 
@@ -478,6 +479,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             );
           })}
         </SidebarMenu>
+
+        <OpenTerminalEntryPoint collapsed={state === "collapsed"} />
 
         {isAdmin ? (
           <SidebarMenu className="gap-1 px-3">

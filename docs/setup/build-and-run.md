@@ -91,6 +91,7 @@ Production nên chạy frontend bằng Docker/Nginx.
 pnpm lint
 pnpm check-types
 pnpm test:api
+pnpm test:client
 pnpm build
 ```
 

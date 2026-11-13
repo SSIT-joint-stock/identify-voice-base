@@ -84,6 +84,7 @@ export const ROUTES = {
   VOICE_GUIDE: "/voice/guide",
   VOICE_DIRECTORY: "/voice/directory",
   VOICE_HISTORY: "/voice/session-history",
+  TERMINAL_SETUP: "/terminal/setup",
   NOT_FOUND: "*",
 } as const;
 

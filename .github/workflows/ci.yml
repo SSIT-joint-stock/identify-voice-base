@@ -102,6 +102,9 @@ jobs:
       - name: Lint frontend
         run: pnpm --filter voice-identify-fe run lint
 
+      - name: Unit test frontend
+        run: pnpm --filter voice-identify-fe run test
+
       - name: Build frontend
         run: pnpm --filter voice-identify-fe run build
         env:

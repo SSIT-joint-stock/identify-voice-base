@@ -48,17 +48,17 @@ Chi tiết xem [Kiến trúc hệ thống](./docs/architecture/system-architectu
 
 ## Công nghệ
 
-| Thành phần | Công nghệ                         |
-| ---------- | --------------------------------- |
-| Monorepo   | pnpm workspace, Turborepo         |
-| Backend    | Node.js 20, NestJS 11, TypeScript |
-| Frontend   | React 19, Vite 8, TypeScript      |
-| Database   | PostgreSQL 15, Prisma 7           |
-| Queue      | Redis, BullMQ                     |
-| API docs   | Swagger/OpenAPI                   |
-| Logging    | Winston                           |
-| Kiểm thử   | Jest, Supertest                   |
-| Triển khai | Docker, Docker Compose, Nginx     |
+| Thành phần | Công nghệ                                |
+| ---------- | ---------------------------------------- |
+| Monorepo   | pnpm workspace, Turborepo                |
+| Backend    | Node.js 20, NestJS 11, TypeScript        |
+| Frontend   | React 19, Vite 8, TypeScript             |
+| Database   | PostgreSQL 15, Prisma 7                  |
+| Queue      | Redis, BullMQ                            |
+| API docs   | Swagger/OpenAPI                          |
+| Logging    | Winston                                  |
+| Kiểm thử   | Jest, Supertest, Vitest, Testing Library |
+| Triển khai | Docker, Docker Compose, Nginx            |
 
 ## Bắt đầu nhanh
 
@@ -128,6 +128,7 @@ Port thực tế có thể thay đổi qua `.env.development`.
 | Lint                 | `pnpm lint`          |
 | Kiểm tra type        | `pnpm check-types`   |
 | Test backend         | `pnpm test:api`      |
+| Test frontend        | `pnpm test:client`   |
 | Prisma Studio        | `pnpm prisma:studio` |
 | Xem log Docker       | `pnpm infra:logs`    |
 
@@ -189,6 +190,7 @@ Khi bàn giao offline, nên xuất thêm OpenAPI JSON/YAML hoặc Postman Collec
 pnpm lint
 pnpm check-types
 pnpm test:api
+pnpm test:client
 pnpm build
 ```
 

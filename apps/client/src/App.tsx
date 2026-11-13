@@ -17,6 +17,7 @@ import VoiceSearchSingle from "@/pages/VoiceSearchSingle";
 import VoiceSessionHistory from "@/pages/VoiceSessionHistory";
 import TranslateFile from "@/pages/TranslateFile";
 import TranslateLive from "@/pages/TranslateLive";
+import TerminalSetup from "@/pages/TerminalSetup";
 
 function App() {
   return (
@@ -56,6 +57,7 @@ function App() {
             />
             <Route path={ROUTES.TRANSLATE_LIVE} element={<TranslateLive />} />
             <Route path={ROUTES.TRANSLATE_FILE} element={<TranslateFile />} />
+            <Route path={ROUTES.TERMINAL_SETUP} element={<TerminalSetup />} />
             <Route element={<AdminOnlyRoute />}>
               <Route
                 path={ROUTES.ADMIN_ACCOUNTS}

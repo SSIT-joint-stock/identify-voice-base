@@ -30,7 +30,7 @@ export function MainLayout() {
                 className=" h-14 w-14 shrink-0 object-contain md:h-16 md:w-16"
               />
 
-              <div className=" text-[#fad29e]">
+              <div className="text-[#fad29e]">
                 <p className="text-xsm font-sans font-light tracking-wide md:text-base">
                   BỘ CÔNG AN
                 </p>
