@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -33,6 +33,8 @@ RUN apk add --no-cache ffmpeg poppler-utils
 COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/apps/api/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./dist
+RUN test -r ./dist/assets/terminal/install.sh \
+  && grep -Fq '# Managed-By: identify-app' ./dist/assets/terminal/install.sh
 COPY --from=builder /app/apps/api/docs ./docs
 COPY --from=builder /app/apps/api/prisma ./prisma
 COPY --from=builder /app/apps/api/prisma.config.ts ./prisma.config.ts
@@ -42,8 +44,11 @@ COPY --from=builder /app/package.json /app/package.json
 COPY --from=builder /app/pnpm-lock.yaml /app/pnpm-lock.yaml
 COPY --from=builder /app/pnpm-workspace.yaml /app/pnpm-workspace.yaml
 
-RUN mkdir -p ./storage ./logs
+RUN mkdir -p /app/storage /app/apps/api/logs \
+  && chown -R node:node /app/storage /app/apps/api/logs
 
 EXPOSE 3000
+
+USER node
 
 CMD ["node", "dist/src/main.js"]

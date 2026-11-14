@@ -1,6 +1,9 @@
 {
   "name": "voice-identify-service",
   "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=22.22.2 <23"
+  },
   "private": true,
   "scripts": {
     "prepare": "husky",
@@ -22,6 +25,7 @@
     "dev:client": "pnpm --filter voice-identify-fe run dev",
     "build:client": "pnpm --filter voice-identify-fe run build",
     "lint:client": "pnpm --filter voice-identify-fe run lint",
+    "test:client": "pnpm --filter voice-identify-fe run test",
     "start:client": "pnpm --filter voice-identify-fe run start",
     "------ Combined ------": "---",
     "dev:all": "turbo run dev --parallel",
@@ -53,6 +57,11 @@
   },
   "prisma": {
     "schema": "apps/api/prisma/schema.prisma"
+  },
+  "pnpm": {
+    "overrides": {
+      "proxy-addr@<2.0.8": "2.0.8"
+    }
   },
   "devDependencies": {
     "@commitlint/cli": "^20.4.2",

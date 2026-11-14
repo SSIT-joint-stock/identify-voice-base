@@ -31,6 +31,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 // app
 import { AppModule } from '@/app.module';
 import { appConfig } from '@/config';
+import { TERMINAL_INSTALLER_PUBLIC_ROUTE } from '@/module/terminal-launcher/terminal-launcher.module';
 // external
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
@@ -80,6 +81,14 @@ async function bootstrap() {
         { path: 'health/*path', method: RequestMethod.ALL },
         { path: 'docs', method: RequestMethod.ALL },
         { path: 'docs/*path', method: RequestMethod.ALL },
+        {
+          path: TERMINAL_INSTALLER_PUBLIC_ROUTE,
+          method: RequestMethod.GET,
+        },
+        {
+          path: TERMINAL_INSTALLER_PUBLIC_ROUTE,
+          method: RequestMethod.HEAD,
+        },
       ],
     });
 

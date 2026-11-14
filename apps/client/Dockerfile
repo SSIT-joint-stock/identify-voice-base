@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -24,14 +24,14 @@ COPY . .
 
 RUN pnpm --filter voice-identify-fe run build
 
-FROM nginx:1.27-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 
-COPY apps/client/docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
-COPY apps/client/docker/entrypoint/40-generate-runtime-config.sh /docker-entrypoint.d/40-generate-runtime-config.sh
-COPY apps/client/public/runtime-config.template.js /usr/share/nginx/html/runtime-config.template.js
-COPY --from=builder /app/apps/client/dist /usr/share/nginx/html
+COPY --chown=nginx:nginx apps/client/docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY --chown=nginx:nginx --chmod=755 apps/client/docker/entrypoint/40-generate-runtime-config.sh /docker-entrypoint.d/40-generate-runtime-config.sh
+COPY --chown=nginx:nginx apps/client/public/runtime-config.template.js /usr/share/nginx/html/runtime-config.template.js
+COPY --chown=nginx:nginx --from=builder /app/apps/client/dist /usr/share/nginx/html
 
-RUN chmod +x /docker-entrypoint.d/40-generate-runtime-config.sh
+EXPOSE 8080
 
-EXPOSE 80
+USER nginx
 

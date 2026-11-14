@@ -91,6 +91,7 @@ Production nên chạy frontend bằng Docker/Nginx.
 pnpm lint
 pnpm check-types
 pnpm test:api
+pnpm test:client
 pnpm build
 ```
 
@@ -105,6 +106,18 @@ Backend coverage:
 ```bash
 pnpm --filter api run test:cov
 ```
+
+Terminal Launcher:
+
+```bash
+pnpm --filter api run test:terminal-launcher
+pnpm --filter api run build
+pnpm --filter api run verify:terminal-launcher:dist
+make build-backend
+make verify-terminal-launcher-image
+```
+
+Runbook đầy đủ: [Terminal Launcher operations](../operations/terminal-launcher.md).
 
 ## 6. Định dạng mã nguồn
 

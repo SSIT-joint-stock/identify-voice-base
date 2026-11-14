@@ -33,12 +33,12 @@ Docker image backend đã cài `ffmpeg` và `poppler-utils`. Nếu chạy API tr
 
 ### 2.2. Runtime trong Docker
 
-| Thành phần        | Image hiện tại       |
-| ----------------- | -------------------- |
-| Backend và worker | `node:20-alpine`     |
-| Frontend runtime  | `nginx:1.27-alpine`  |
-| PostgreSQL        | `postgres:15-alpine` |
-| Redis             | `redis:7.4.9-alpine` |
+| Thành phần        | Image hiện tại                            |
+| ----------------- | ----------------------------------------- |
+| Backend và worker | `node:22-alpine`                          |
+| Frontend runtime  | `nginxinc/nginx-unprivileged:1.27-alpine` |
+| PostgreSQL        | `postgres:15-alpine`                      |
+| Redis             | `redis:7.4.9-alpine`                      |
 
 Redis được khóa ở `7.4.9-alpine` để các lần pull image không tự nâng phiên bản ngoài
 dự kiến. Trước khi đổi version Redis trên hệ thống đang có dữ liệu, phải backup và

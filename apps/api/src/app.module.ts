@@ -39,6 +39,7 @@ import { IdentifyModule } from './module/identify/identify.module';
 import { SessionsModule } from './module/sessions/sessions.module';
 import { StorageModule } from './module/storage/storage.module';
 import { TranslationHistoryModule } from './module/translation-history/translation-history.module';
+import { TerminalLauncherModule } from './module/terminal-launcher/terminal-launcher.module';
 import { UploadModule } from './module/upload/upload.module';
 import { UserAuthModule } from './module/user-auth/user-auth.module';
 import { VoicesModule } from './module/voices/voices.module';
@@ -109,6 +110,7 @@ import { VoicesModule } from './module/voices/voices.module';
     SessionsModule,
     AiCoreModule,
     TranslationHistoryModule,
+    TerminalLauncherModule,
     EnrollModule,
     AiVoicesModule,
     DocsModule,

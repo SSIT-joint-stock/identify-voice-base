@@ -7,11 +7,12 @@ on:
     branches: [main, develop]
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
   PNPM_VERSION: "9.15.4"
 
 jobs:
   detect_changes:
+    name: Changes - Detect Affected Applications
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
@@ -26,6 +27,7 @@ jobs:
             backend:
               - 'apps/api/**'
               - 'apps/api/Dockerfile'
+              - '.dockerignore'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
@@ -35,6 +37,7 @@ jobs:
             frontend:
               - 'apps/client/**'
               - 'apps/client/Dockerfile'
+              - '.dockerignore'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
@@ -43,6 +46,7 @@ jobs:
               - '.github/workflows/ci.yml'
 
   test_backend:
+    name: Backend - Lint, Test and Build
     needs: detect_changes
     if: needs.detect_changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
@@ -72,13 +76,20 @@ jobs:
       - name: Unit test backend
         run: pnpm --filter api exec jest --runInBand
 
+      - name: Test Terminal Launcher installer
+        run: pnpm --filter api run test:terminal-launcher
+
       - name: E2E test backend
         run: pnpm --filter api exec jest --config ./test/jest-e2e.json --runInBand
 
       - name: Build backend
         run: pnpm --filter api run build
 
+      - name: Verify Terminal Launcher build artifact
+        run: pnpm --filter api run verify:terminal-launcher:dist
+
   test_frontend:
+    name: Frontend - Lint, Test and Build
     needs: detect_changes
     if: needs.detect_changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
@@ -102,18 +113,148 @@ jobs:
       - name: Lint frontend
         run: pnpm --filter voice-identify-fe run lint
 
+      - name: Unit test frontend
+        run: pnpm --filter voice-identify-fe run test
+
       - name: Build frontend
         run: pnpm --filter voice-identify-fe run build
         env:
           VITE_API_BASE_URL: /api/v1
 
-  build_and_push_backend:
+  security_scan:
+    name: Security - Trivy Repository Scan
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Validate Trivy ignore policy
+        run: node .github/scripts/validate-trivy-ignores.mjs
+
+      - name: Test Trivy policy validator
+        run: node --test .github/scripts/tests/*.test.mjs
+
+      - name: Generate Trivy security report
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          trivy-config: .trivy/trivy-fs.yaml
+          trivyignores: .trivyignore.yaml
+          scanners: vuln,secret,misconfig
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: "0"
+          limit-severities-for-sarif: false
+          version: v0.72.0
+
+      - name: Upload Trivy workflow artifact
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-repository-${{ github.run_id }}-${{ github.run_attempt }}
+          path: trivy-results.sarif
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Trivy results to GitHub Code Scanning
+        if: >-
+          always() &&
+          hashFiles('trivy-results.sarif') != '' &&
+          vars.ENABLE_GITHUB_CODE_SCANNING == 'true' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-repository
+
+      - name: Check fixable critical vulnerabilities
+        if: always()
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          trivy-config: .trivy/trivy-fs.yaml
+          trivyignores: .trivyignore.yaml
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
+          skip-setup-trivy: true
+
+      - name: Block high and critical secrets and misconfigurations
+        if: always()
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          trivy-config: .trivy/trivy-fs.yaml
+          trivyignores: .trivyignore.yaml
+          scanners: secret,misconfig
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: "1"
+          skip-setup-trivy: true
+
+      - name: Record Trivy enforcement mode
+        if: always()
+        run: |
+          echo "HIGH dependency vulnerabilities are reported but do not block CI." >> "$GITHUB_STEP_SUMMARY"
+          echo "Fixable CRITICAL dependency vulnerabilities block CI." >> "$GITHUB_STEP_SUMMARY"
+          echo "HIGH/CRITICAL secrets and misconfigurations also block CI." >> "$GITHUB_STEP_SUMMARY"
+
+  verify_terminal_launcher_docker:
+    name: Terminal Launcher - Verify Docker Image
     needs: [detect_changes, test_backend]
+    if: |
+      needs.detect_changes.outputs.backend == 'true' &&
+      needs.test_backend.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build backend verification image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          load: true
+          push: false
+          tags: identify-voice-backend:terminal-launcher-ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify Terminal Launcher in final image
+        run: |
+          bash apps/api/test/terminal-launcher/docker.verify.sh \
+            identify-voice-backend:terminal-launcher-ci
+
+  build_and_push_backend:
+    name: Backend - Build and Push Docker Image
+    needs:
+      [
+        detect_changes,
+        test_backend,
+        verify_terminal_launcher_docker,
+        security_scan,
+      ]
     if: |
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       needs.detect_changes.outputs.backend == 'true' &&
-      needs.test_backend.result == 'success'
+      needs.test_backend.result == 'success' &&
+      needs.verify_terminal_launcher_docker.result == 'success' &&
+      needs.security_scan.result == 'success'
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/identify-voice-backend
@@ -149,12 +290,14 @@ jobs:
           cache-to: type=gha,mode=max
 
   build_and_push_frontend:
-    needs: [detect_changes, test_frontend]
+    name: Frontend - Build and Push Docker Image
+    needs: [detect_changes, test_frontend, security_scan]
     if: |
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       needs.detect_changes.outputs.frontend == 'true' &&
-      needs.test_frontend.result == 'success'
+      needs.test_frontend.result == 'success' &&
+      needs.security_scan.result == 'success'
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/identify-voice-client

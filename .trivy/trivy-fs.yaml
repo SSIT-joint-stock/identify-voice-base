@@ -1,0 +1,13 @@
+# Shared defaults for repository security scans.
+timeout: 10m
+ignorefile: .trivyignore.yaml
+
+scan:
+  disable-telemetry: true
+  skip-version-check: true
+  skip-dirs:
+    - "**/.git"
+    - "**/coverage"
+    - "**/dist"
+    - "**/node_modules"
+    - "**/storage"

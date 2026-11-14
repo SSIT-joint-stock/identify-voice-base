@@ -19,6 +19,12 @@ URL development mặc định:
 http://localhost:3000/api/v1
 ```
 
+Ngoại lệ không dùng prefix `/api/v1`:
+
+- `GET /api/terminal/install.sh`: phân phối raw Ubuntu Terminal Launcher
+  installer, không yêu cầu xác thực.
+- `HEAD /api/terminal/install.sh`: kiểm tra installer có sẵn mà không tải body.
+
 ## 2. Nhóm endpoint
 
 ### 2.1. Xác thực
@@ -103,6 +109,16 @@ Identify dùng type `SINGLE` hoặc `MULTI`.
 | POST   | `/ai-voices/:id/convert` | Chuyển AI Voice thành hồ sơ |
 | GET    | `/translate/history`     | Danh sách lịch sử dịch      |
 | PATCH  | `/translate/history/:id` | Chỉnh sửa bản dịch          |
+
+### 2.8. Terminal Launcher artifact
+
+| Method | Path                       | Mục đích                     |
+| ------ | -------------------------- | ---------------------------- |
+| GET    | `/api/terminal/install.sh` | Tải raw installation script  |
+| HEAD   | `/api/terminal/install.sh` | Kiểm tra installation script |
+
+Hai endpoint này là public artifact endpoint, không dùng `/api/v1` và không trả
+response envelope JSON thông thường.
 
 ## 3. Response thành công
 

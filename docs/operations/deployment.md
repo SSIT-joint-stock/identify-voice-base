@@ -31,7 +31,7 @@ flowchart LR
     Worker --> Storage
 ```
 
-Nginx trong image client lắng nghe HTTP port 80. HTTPS phải được terminate tại load balancer, ingress hoặc reverse proxy của hạ tầng.
+Nginx non-root trong image client lắng nghe HTTP port 8080. HTTPS phải được terminate tại load balancer, ingress hoặc reverse proxy của hạ tầng.
 
 AI Core nằm ngoài `docker-compose.prod.yml`. Server phải kết nối được tới từng endpoint AI đã cấu hình.
 
@@ -66,8 +66,20 @@ CI hiện thực hiện:
 - Cài dependency bằng lockfile.
 - Sinh Prisma Client.
 - Lint và build.
+- Chạy regression test và xác minh build/Docker artifact của Terminal Launcher.
+- Quét dependency, secret và cấu hình sai bằng Trivy.
+- Lưu báo cáo SARIF trong workflow artifact trong 30 ngày.
 - Build image khi push vào `main`.
 - Push image backend và frontend lên Docker Hub.
+
+Security scan chặn phát hành khi phát hiện dependency mức `CRITICAL` đã có bản
+vá, hoặc secret/misconfiguration mức `HIGH`/`CRITICAL`. Các vulnerability mức
+khác vẫn được ghi vào báo cáo để theo dõi. Mọi ngoại lệ phải khai báo có lý do và
+ngày hết hạn trong `.trivyignore.yaml`; xem [Trivy repository scanning](../../.trivy/README.md).
+
+Nếu repository hỗ trợ GitHub Code Scanning, đặt repository variable
+`ENABLE_GITHUB_CODE_SCANNING=true` để đồng thời tải SARIF lên tab Security.
+Không bật biến này thì CI vẫn quét, enforce và lưu SARIF dưới dạng artifact.
 
 CI hiện tạo hai dạng tag:
 
@@ -85,8 +97,8 @@ DOCKERHUB_USERNAME
 DOCKERHUB_TOKEN
 ```
 
-CI chạy lint, unit test, E2E test và build backend; frontend chạy lint và build. CI
-chưa tự động deploy lên server.
+CI chạy lint, unit test, E2E test và build backend; frontend chạy lint, unit test
+và build. CI chưa tự động deploy lên server.
 
 ### 3.2. Phát hành thủ công
 
@@ -468,6 +480,7 @@ Thực hiện theo thứ tự:
 8. Tạo một Update Voice job và kiểm tra worker.
 9. Mở audio URL qua `/cdn`.
 10. Kiểm tra session và translation history.
+11. Kiểm tra `HEAD /api/terminal/install.sh` qua origin public của frontend.
 
 Checklist:
 
@@ -480,9 +493,13 @@ Checklist:
 - [ ] Worker xử lý job đến `DONE` hoặc trả lỗi có ý nghĩa.
 - [ ] Audio URL phát được.
 - [ ] PostgreSQL, Redis và AI Core không có lỗi kết nối lặp lại.
+- [ ] Terminal installer trả `200`, đúng content type và không bị SPA fallback.
 - [ ] Log không chứa secret hoặc dữ liệu nhạy cảm.
 
 Backend chưa có health endpoint chuyên dụng. Không dùng `/health` làm acceptance gate cho đến khi endpoint được triển khai.
+
+Quy trình chi tiết cho installer artifact và Ubuntu desktop acceptance nằm tại
+[Terminal Launcher operations](terminal-launcher.md).
 
 ## 11. Tiêu chí chấp nhận release
 

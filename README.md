@@ -48,23 +48,23 @@ Chi tiết xem [Kiến trúc hệ thống](./docs/architecture/system-architectu
 
 ## Công nghệ
 
-| Thành phần | Công nghệ                         |
-| ---------- | --------------------------------- |
-| Monorepo   | pnpm workspace, Turborepo         |
-| Backend    | Node.js 20, NestJS 11, TypeScript |
-| Frontend   | React 19, Vite 8, TypeScript      |
-| Database   | PostgreSQL 15, Prisma 7           |
-| Queue      | Redis, BullMQ                     |
-| API docs   | Swagger/OpenAPI                   |
-| Logging    | Winston                           |
-| Kiểm thử   | Jest, Supertest                   |
-| Triển khai | Docker, Docker Compose, Nginx     |
+| Thành phần | Công nghệ                                |
+| ---------- | ---------------------------------------- |
+| Monorepo   | pnpm workspace, Turborepo                |
+| Backend    | Node.js 22, NestJS 11, TypeScript        |
+| Frontend   | React 19, Vite 8, TypeScript             |
+| Database   | PostgreSQL 15, Prisma 7                  |
+| Queue      | Redis, BullMQ                            |
+| API docs   | Swagger/OpenAPI                          |
+| Logging    | Winston                                  |
+| Kiểm thử   | Jest, Supertest, Vitest, Testing Library |
+| Triển khai | Docker, Docker Compose, Nginx            |
 
 ## Bắt đầu nhanh
 
 ### Yêu cầu
 
-- Node.js 20 trở lên.
+- Node.js 22.22.2 trở lên, cùng major 22.
 - pnpm 9.15.4 hoặc tương thích.
 - Docker Engine và Docker Compose v2.
 - Git.
@@ -128,6 +128,7 @@ Port thực tế có thể thay đổi qua `.env.development`.
 | Lint                 | `pnpm lint`          |
 | Kiểm tra type        | `pnpm check-types`   |
 | Test backend         | `pnpm test:api`      |
+| Test frontend        | `pnpm test:client`   |
 | Prisma Studio        | `pnpm prisma:studio` |
 | Xem log Docker       | `pnpm infra:logs`    |
 
@@ -160,10 +161,12 @@ Toàn bộ tài liệu bàn giao được viết bằng Markdown và quản lý 
 
 ### Operations
 
-| Tài liệu                                                | Nội dung                         |
-| ------------------------------------------------------- | -------------------------------- |
-| [Triển khai](./docs/operations/deployment.md)           | Build image và deploy production |
-| [Troubleshooting](./docs/operations/troubleshooting.md) | Mã lỗi, tình huống và cách xử lý |
+| Tài liệu                                                    | Nội dung                                     |
+| ----------------------------------------------------------- | -------------------------------------------- |
+| [Triển khai](./docs/operations/deployment.md)               | Build image và deploy production             |
+| [Security scan](./.trivy/README.md)                         | Trivy policy, SARIF và CI enforcement        |
+| [Troubleshooting](./docs/operations/troubleshooting.md)     | Mã lỗi, tình huống và cách xử lý             |
+| [Terminal Launcher](./docs/operations/terminal-launcher.md) | CI, Docker verification, rollout và rollback |
 
 ## Database
 
@@ -189,6 +192,7 @@ Khi bàn giao offline, nên xuất thêm OpenAPI JSON/YAML hoặc Postman Collec
 pnpm lint
 pnpm check-types
 pnpm test:api
+pnpm test:client
 pnpm build
 ```
 
